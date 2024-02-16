@@ -4,8 +4,8 @@ SRC_P = p1_set.cpp p2_wsort.cpp p3_distinct.cpp p4_reorder.cpp p5_strides.cpp p6
 SRC_R = r1_priority.cpp r2_join.cpp r3_sorted.cpp r4_rotsort.cpp r5_permute.cpp
 SRC_T =
 
-CXX      = /packages/run.64/gcc-12.2/bin/c++
-TIDY     = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+CXX      = g++
+TIDY     = clang-tidy.exe
 VALGRIND = valgrind
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
 TDYFLAGS = -std=c++20

@@ -4,8 +4,8 @@ SRC_P =
 SRC_R =
 SRC_T = a_natural.cpp b_treap.cpp c_robots.cpp d_network.cpp e_tree.cpp
 
-CXX      = /packages/run.64/gcc-12.2/bin/c++
-TIDY     = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+CXX      = g++
+TIDY     = clang-tidy.exe
 VALGRIND = valgrind
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
 TDYFLAGS = -std=c++20

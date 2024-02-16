@@ -4,8 +4,8 @@ SRC_P = p1_area.cpp p2_rational.cpp p3_mountains.cpp p4_polar.cpp p5_numset.cpp 
 SRC_R = r1_poly.cpp r2_qsort.cpp r3_ttt.cpp r4_flight.cpp r5_qfield.cpp r6_life.cpp
 SRC_T =
 
-CXX      = /packages/run.64/gcc-12.2/bin/c++
-TIDY     = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+CXX      = g++
+TIDY     = clang-tidy.exe
 VALGRIND = valgrind
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
 TDYFLAGS = -std=c++20

@@ -4,8 +4,8 @@ SRC_P = p1_minsum.cpp p2_connected.cpp p3_divisors.cpp p4_midpoints.cpp p5_dag.c
 SRC_R = r1_mode.cpp r2_sssp.cpp r3_solve.cpp r4_buckets.cpp r5_colour.cpp r6_flood.cpp
 SRC_T =
 
-CXX      = /packages/run.64/gcc-12.2/bin/c++
-TIDY     = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+CXX      = g++
+TIDY     = clang-tidy.exe
 VALGRIND = valgrind
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
 TDYFLAGS = -std=c++20

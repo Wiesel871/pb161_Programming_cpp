@@ -4,8 +4,8 @@ SRC_P = p1_prisoner.cpp p2_bexpr.cpp p3_sexpr.cpp p4_network.cpp p5_filter.cpp p
 SRC_R = r1_bom.cpp r2_circuit.cpp r3_loops.cpp r6_while.cpp
 SRC_T =
 
-CXX      = /packages/run.64/gcc-12.2/bin/c++
-TIDY     = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+CXX      = g++
+TIDY     = clang-tidy.exe
 VALGRIND = valgrind
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
 TDYFLAGS = -std=c++20
