@@ -20,3 +20,9 @@ bin/
 
 # Unignore all `.exe` in `bin` dir
 !*/bin/*.exe
+
+# Ignore .d files
+*.d
+
+# Ignore valgrind output
+*valgrind*
