@@ -1,0 +1,30 @@
+# Metody a operátory
+
+Ukázky:
+
+ 1. ‹freq›       – analýza frekvence ⟦n⟧-gramů
+ 2. ‹lemmings›   – modelujeme figurky z počítačové hry
+ 3. ‹arithmetic› – přetěžování aritmetických operátorů
+ 4. ‹relational› – přetěžování relačních operátorů
+
+Elementární příklady:
+
+ 2. ‹cartesian› – komplexní čísla
+
+Přípravy:
+
+ 1. ‹area›      – výpočet plochy jednoduchých útvarů
+ 2. ‹rational›  – racionální čísla (zlomky)
+ 3. ‹mountains› – „rekurzivní“ pohoří
+ 4. ‹polar›     – komplexní čísla podruhé
+ 5. ‹numset›    – mírně vylepšená množina čísel
+ 6. ‹continued› – řetězové zlomky
+
+Regular exercises:
+
+ 1. ‹poly›      – polynomy se sčítáním a násobením
+ 2. ‹xxx›
+ 3. ‹set›       – množina čísel s operátory
+ 4. ‹xxx›
+ 5. ‹xxx›
+ 6. ‹xxx›

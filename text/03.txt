@@ -1,0 +1,888 @@
+
+# Metody a operátory
+
+Ukázky:
+
+ 1. ‹freq›       – analýza frekvence ⟦n⟧-gramů
+ 2. ‹lemmings›   – modelujeme figurky z počítačové hry
+ 3. ‹arithmetic› – přetěžování aritmetických operátorů
+ 4. ‹relational› – přetěžování relačních operátorů
+
+Elementární příklady:
+
+ 2. ‹cartesian› – komplexní čísla
+
+Přípravy:
+
+ 1. ‹area›      – výpočet plochy jednoduchých útvarů
+ 2. ‹rational›  – racionální čísla (zlomky)
+ 3. ‹mountains› – „rekurzivní“ pohoří
+ 4. ‹polar›     – komplexní čísla podruhé
+ 5. ‹numset›    – mírně vylepšená množina čísel
+ 6. ‹continued› – řetězové zlomky
+
+Regular exercises:
+
+ 1. ‹poly›      – polynomy se sčítáním a násobením
+ 2. ‹xxx›
+ 3. ‹set›       – množina čísel s operátory
+ 4. ‹xxx›
+ 5. ‹xxx›
+ 6. ‹xxx›
+
+
+## d. Demonstrace (ukázky)
+
+
+### 1. [‹freq›]
+
+V této ukáce budeme počítat histogram (číselných) ⟦n⟧-gramů, tzn.
+bloků ⟦n⟧ po sobě jdoucích čísel v nějaké delší sekvenci.
+Jednotlivé ⟦n⟧-gramy se mohou překrývat (⟦n⟧-gram tedy může
+začínat na libovolném offsetu).
+
+Naším úkolem je navrhnout typ, který bude tuto frekvenci počítat
+„za běhu“ – počítáme totiž s tím, že vstupních dat bude hodně a
+budou přicházet po blocích. Zároveň předpokládáme, že různých
+⟦n⟧-gramů bude řádově méně než vstupních dat.
+
+Budeme implementovat dvě metody:
+
+ 1. ‹count›, která pro zadaný ⟦n⟧-gram vrátí počet jeho
+    dosavadních výskytů, a metodu
+ 2. ‹process›, která zpracuje další blok dat. 
+
+    struct freq /* C */
+    {
+        std::size_t ngram_size = 3;
+
+Budeme potřebovat dvě datové složky: samotné počítadlo
+výskytů implementujeme pomocí standardního asociativního
+kontejneru ‹std::map›. Klíčem bude ‹std::vector› potřebné
+délky (reprezentuje ⟦n⟧-gram), hodnotou pak počet výskytů
+tohoto ⟦n⟧-gramu. 
+
+        std::map< std::vector< int >, int > _counter; /* C */
+
+Druhou složkou bude «posuvné okno», ve kterém budeme
+uchovávat poslední zpracovaný ⟦n⟧-gram. Je to proto, že
+některé ⟦n⟧-gramy budou rozděleny mezi dva bloky (nebo i
+více, pokud se objeví velmi krátký blok). Pro jednoduchost
+budeme toto okno používat pro všechny ⟦n⟧-gramy, a realizovat
+ho budeme jako instanci ‹std::deque›¹. 
+
+        std::deque< int > _window; /* C */
+
+Nejprve implementujeme pomocnou metodu, která zpracuje jedno
+číslo. Je-li okno již plné, odstraníme z něj nejstarší
+hodnotu. Je-li po vložení čísla okno dostatečně plné,
+výsledný ⟦n⟧-gram započítáme. Vzpomeňte si, že indexovací
+operátor kontejneru ‹std::map› podle potřeby vloží novou
+dvojici klíč-hodnota (s hodnotou inicializovanou „na nulu“).
+
+
+        void add( int value ) /* C */
+        {
+            if ( _window.size() == ngram_size )
+                _window.pop_front();
+
+            _window.push_back( value ); /* C */
+
+            if ( _window.size() == ngram_size ) /* C */
+            {
+                std::vector< int > ngram;
+                for ( int v : _window )
+                    ngram.push_back( v );
+                ++ _counter[ ngram ];
+            }
+        }
+
+Protože metoda ‹add› kompletně řeší jak správu okna, tak
+počítadlo, zpracování bloku už je jednoduché. 
+
+        void process( const std::vector< int > &block ) /* C */
+        {
+            for ( int value : block )
+                add( value );
+        }
+
+Metodu ‹count›, která pouze vrací informace a aktuální objekt
+nijak nemění, bychom rádi označili jako ‹const›. Jako drobný
+problém se jeví, že indexace položky ‹_counter› ale není
+konstantní operace: jak jsme zmiňovali, operátor indexace
+může do kontejneru vložit novou dvojici, a tím ho změnit.
+
+Nemůžeme také přímo použít metodu ‹at›, protože musíme být
+schopni správně odpovídat i v případě, že dotazovaný ⟦n⟧-gram
+se na vstupu dosud neobjevil, a tedy takový klíč v kontejneru
+‹_counter› není přítomen.
+
+Zbývá tedy metoda ‹find›, která nám dá jak informaci o tom,
+jestli je klíč přítomen (hledání vyžaduje logaritmický čas),
+a pokud ano, tak nám k němu přímo umožní přístup (již
+v konstantním čase). Použití s inicializační sekcí
+podmíněného příkazu ‹if› sze považovat za idiomatické. 
+
+        int count( const std::vector< int > &ngram ) const /* C */
+        {
+            if ( auto it = _counter.find( ngram ); it != _counter.end() )
+                return it->second;
+            else
+                return 0;
+        }
+    };
+
+    int main() /* demo */ /* C */
+    {
+        freq f{ .ngram_size = 3 };
+
+Vytvoříme si na ‹f› také konstantní referenci, abychom se
+ujistili, že metodu ‹count› skutečně lze volat na konstantní
+hodnotu. 
+
+        const freq &cf = f; /* C */
+
+        assert( cf.count( { 1, 1, 1 } ) == 0 ); /* C */
+
+        f.process( { 1, 1, 2, 1, 1 } ); /* C */
+        assert( cf.count( { 1, 1, 1 } ) == 0 );
+        assert( cf.count( { 1, 1, 2 } ) == 1 );
+        assert( cf.count( { 1, 2, 1 } ) == 1 );
+
+        f.process( { 1 } ); /* C */
+        assert( cf.count( { 1, 1, 1 } ) == 1 );
+        assert( cf.count( { 1, 2, 1 } ) == 1 );
+
+        f.process( { 1 } ); /* C */
+        f.process( { 2, 2 } );
+        assert( cf.count( { 1, 1, 1 } ) == 2 );
+        assert( cf.count( { 1, 2, 2 } ) == 1 );
+        assert( cf.count( { 2, 2, 1 } ) == 0 );
+    }
+
+¹ Tato volba reprezentace není úplně nejefektivnější, ale pro
+  naše účely dostatečná. Asymptoticky jí není co vytknout. 
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹lemmings›]
+
+While we are talking about computer games, you might have heard
+about a game called Lemmings (but it's not super important if you
+didn't).  In each level of the game, lemmings start spawning at a
+designated location, and immediately start to wander about, fall
+off cliffs, drown and generally get hurt. The player is in charge
+of saving them (or rather as many as possible), by giving them
+tasks like digging tunnels, or stopping and redirecting other
+lemmings.
+
+Let's try to design a type which will capture the state of a
+single lemming: 
+
+    struct lemming /* C */
+    {
+Each lemming is located somewhere on the map: coordinates
+would be a good way to describe this. For simplicity, let's
+say the designated spawning spot is at coordinates ⟦(0, 0)⟧. 
+
+        double _x = 0, _y = 0; /* C */
+
+Unless they hit an obstacle, lemmings simply walk in a given
+direction – this is another candidate for an attribute; and
+being rather heedless, it's probably good idea to keep track
+of whether they are still alive. 
+
+        bool _facing_right = true; /* C */
+        bool _alive = true;
+
+Finally, they might be assigned a task, which they will
+immediately start performing. The exact meaning of the number
+is not very important. 
+
+        int _task = 0; /* C */
+
+Let us define a few (mostly self-explanatory) methods: 
+
+        void start_digging() { _task = 1; } /* C */
+
+        bool busy()  const { return _task != 0; } /* C */
+        bool alive() const { return _alive; }
+
+        void step() /* C */
+        {
+            _x += _facing_right ? 1 : -1;
+            _y += 0; // TODO gravity, terrain, …
+        }
+    };
+
+Earlier, we have mentioned that user-defined types are
+essentially the same as built-in types – their values can be
+stored in variables, passed to and from functions and so on.
+There are more ways in which this is true: for instance, we can
+construct collections of such values. Earlier, we have seen a
+sequence of integers, the type of which was ‹std::vector< int >›.
+We can create a vector of lemmings just as easily: as an
+‹std::vector< lemming >›. Let us try: 
+
+    int count_busy( const std::vector< lemming > &lemmings ) /* C */
+    {
+
+Note that the vector is marked ‹const› (because it is passed
+into the function as a «constant reference»). That extends to
+the items of the vector: the individual lemmings are also
+‹const›. We are not allowed to call non-‹const› methods, or
+assign into their attributes here. For instance, calling
+‹lemmings[ 0 ].start_digging()› would be a compile error. 
+
+        int count = 0; /* C */
+
+Of course we can iterate a vector of lemmings like any other
+vector, and call methods on the individual lemmings («inside»
+the vector, since we are using a reference). 
+
+        for ( const lemming &l : lemmings ) /* C */
+            if ( l.busy() )
+                count ++;
+
+        return count; /* C */
+    }
+
+    int main() /* demo */ /* C */
+    {
+We first create an (empty) vector, then fill it in with 7
+lemmings. 
+
+        std::vector< lemming > lemmings; /* C */
+        lemmings.resize( 7 );
+
+We can call methods on the lemmings as usual, by indexing the
+vector: 
+
+        lemmings[ 0 ].start_digging(); /* C */
+        assert( count_busy( lemmings ) == 1 );
+
+We can also modify the lemmings in a range ‹for› loop –
+notice the absence of ‹const›; this time, we use a «mutable
+reference» – the lemmings are modified «in place» inside the
+container. 
+
+        for ( lemming &l : lemmings ) /* C */
+        {
+            assert( l.alive() );
+            l.start_digging();
+        }
+
+        assert( count_busy( lemmings ) == 7 ); /* C */
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹arithmetic›]
+
+Operator overloading allows instances of classes to behave more
+like built-in types: it makes it possible for values of custom
+types to appear in expressions, as operands. Before we look at
+examples of how this looks, we need to define a class with some
+overloaded operators. For binary operators, it is customary to
+define them using a ‘friends trick’, which allows us to define a
+top-level function inside a class. 
+
+As a very simple example, we will implement a class which
+represents integral values modulo 7 (this happens to be a finite
+field, with addition and multiplication). 
+
+    struct gf7 /* C */
+    {
+        int value;
+
+We can name a constant by wrapping it in a method. There are
+other ways to achieve the same effect, but we don't currently
+have the necessary pieces of syntax. 
+
+        int modulus() const { return 7; } /* C */
+
+A helper method to normalize an integer. We would really
+prefer to «enforce» the normalization (such that «all» values
+of type ‹gf7› would have their ‹value› field in the range
+⟦⟨0, 7)⟧, but we currently do not have the mechanisms to do
+that either. This will improve in the next chapter. 
+
+        gf7 normalize() const { return { value % modulus() }; } /* C */
+
+This is the ‘friend trick’ syntax for writing operators, and
+for binary operators, it is often the preferred one (because
+of its symmetry). The function is not really a part of the
+compound type in this case – the trick is that we can write
+it here anyway. The implementation relies on the simple fact
+that ⟦ [a]₇ + [b]₇ = [a + b]₇ ⟧. 
+
+        friend gf7 operator+( gf7 a, gf7 b ) /* C */
+        {
+            return gf7{ a.value + b.value }.normalize();
+        }
+
+For multiplication, we will use the more ‘orthodox‘ syntax,
+where the operator is a ‹const› method: the left operand is
+passed into the operator as ‹this›, the right operand is the
+argument. In general, operators-as-methods have one explicit
+argument less (unary operators take 0 arguments, binary take
+1 argument). Note that normally, you would use the same form
+for all symmetric operators for any given type – we mix them
+here to highlight the difference. We again use the fact that
+⟦ [a]₇⋅[b]₇ = [a⋅b]₇ ⟧. 
+
+        gf7 operator*( gf7 b ) const /* C */
+        {
+            return gf7{ value * b.value }.normalize(); 
+        }
+
+Values of type ‹gf7› cannot be directly compared (we did not
+define the required operators) – instead, we provide this
+method to convert instances of ‹gf7› back into ‹int›'s. 
+
+        int to_int() const { return value % modulus(); } /* C */
+    };
+
+Operators can be also overloaded using ‘normal’ top-level
+functions, like this unary minus (which finds the additive
+inverse of the given element). 
+
+    gf7 operator-( gf7 x ) { return gf7{ 7 - x.to_int() }; } /* C */
+
+Now that we have defined the class and the operators, we can look
+at how is the result used. 
+
+    int main() /* demo */ /* C */
+    {
+        gf7 a{ 3 }, b{ 4 }, c{ 0 }, d{ 5 };
+
+Values ‹a›, ‹b› and so forth can be now directly used in
+arithmetic expressions, just as we wanted. 
+
+        gf7 x = a + b; /* C */
+        gf7 y = a * b;
+
+Let us check that the operations work as expected: 
+
+        assert( x.to_int() == c.to_int() ); /* [3]₇ + [4]₇ = [0]₇ */ /* C */
+        assert( y.to_int() == d.to_int() ); /* [3]₇ * [4]₇ = [5]₇ */
+        assert( (-a + a).to_int() == c.to_int() ); /* unary minus */
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 4. [‹relational›]
+
+In this example, we will show relational operators, which are
+very similar to the arithmetic operators from previous example,
+except for their return types, which are ‹bool› values. 
+
+The example which we will use in this case are sets of small
+natural numbers (1-64) with inclusion as the order. We will
+use three-way comparison to obtain most of the comparison
+operators ‘for free’.
+
+NB. Standard ordered containers like ‹std::set› and ‹std::map›
+require the operator less-than to define a «strict weak ordering»
+(which is corresponds to a «total» order). The comparison
+operators in this example do «not» define a total order (some
+sets are «incomparable»). 
+
+    struct set /* C */
+    {
+Each bit of the below number indicates the presence of the
+corresponding integer (the index of that bit) in the set. 
+
+        uint64_t bits = 0; /* C */
+
+We also define a few methods to add and remove numbers from
+the set, to test for presence of a number and an emptiness
+check. 
+
+        void add( int i ) { bits |=    1ul << i; } /* C */
+        void del( int i ) { bits &= ~( 1ul << i ); }
+        bool has( int i ) const { return bits & ( 1ul << i ); }
+        bool empty() const { return !bits; }
+
+We will use the method syntax here, because it is slightly
+shorter. We start with (in)equality, which is very simple
+(the sets are equal when they have the same members). Note
+that defining a separate operator ‹!=› is not required in
+C++20. 
+
+        bool operator==( set b ) const { return bits == b.bits; } /* C */
+
+It will be quite useful to have set difference to implement
+the comparisons below, so let us also define that: 
+
+        set operator-( set b ) const { return { bits & ~b.bits }; } /* C */
+
+Since the non-strict comparison (ordering) operators are
+easier to implement, we will do that first. Set ‹b› is a
+superset of set ‹a› if all elements of ‹a› are also present
+in ‹b›, which is the same as the difference ‹a - b› being
+empty. We will write a single comparison operator, then use
+it to implement three-way comparison, which the compiler will
+then use to derive all the remaining comparison operators. 
+
+        bool operator<=( set b ) const { return ( *this - b ).empty(); } /* C */
+
+In addition to getting all other comparisons for free, the
+three-way comparison also allows us to declare the properties
+of the ordering. 
+
+        friend std::partial_ordering operator<=>( set a, set b ) /* C */
+        {
+            if ( a == b )
+                return std::partial_ordering::equivalent;
+            if ( a <= b )
+                return std::partial_ordering::less;
+            if ( b <= a )
+                return std::partial_ordering::greater;
+
+            return std::partial_ordering::unordered; /* C */
+        }
+    };
+
+    int main() /* demo */ /* C */
+    {
+        set a; a.add( 1 ); a.add( 7 ); a.add( 13 );
+        set b; b.add( 1 ); b.add( 6 ); b.add( 13 );
+
+In each pair of assertions below, the two expressions are not
+quite equivalent. Do you understand why? 
+
+        assert( a != b ); assert( !( a == b ) ); /* C */
+        assert( a == a ); assert( !( a != a ) );
+
+The two sets are incomparable, i.e. neither is less than the
+other, but as shown above they are not equal either. 
+        assert( !( a < b ) ); assert( !( b < a ) ); /* C */
+
+        a.add( 6 ); // let's make ‹a› a superset of ‹b› /* C */
+
+And check that the ordering operators work on ordered sets. 
+
+        assert( a > b ); assert( a >= b ); assert( a != b ); /* C */
+        assert( b < a ); assert( b <= a ); assert( b != a );
+
+        b.add( 7 ); /* let's make the sets equal */ /* C */
+        assert( a == b ); assert( a <= b ); assert( a >= b );
+    }
+
+## e. Elementární příklady
+
+
+### 2. [‹cartesian›]
+
+V tomto příkladu implementujeme typ ‹cartesian›, který
+reprezentuje komplexní číslo pomocí reálné a imaginární části.
+Takto realizovaná čísla umožníme sčítat, odečítat, získat číslo
+opačné (unárním mínus) a určit jejich rovnost (zamyslete se,
+má-li smysl definovat na tomto typu uspořádání; proč ano, proč
+ne?). 
+
+    struct cartesian; /* C */
+
+Implementujte také čistou funkci ‹make_cartesian›, která vytvoří
+hodnotu typu ‹cartesian› se zadané reálné a imaginární složky. 
+
+    cartesian make_cartesian( double, double ); /* C */
+
+
+## p. Přípravy
+
+
+### 1. [‹area›]
+
+Doplňte definice typů ‹point›, ‹polygon› a ‹circle› tak, abyste
+pak mohli s jejich pomocí možné implementovat tyto čisté funkce:
+
+ • ‹make_polygon›, která přijme jako parametr celé číslo (počet
+   stran) a dále:
+   ◦ 2 body (střed a některý vrchol), nebo
+   ◦ 1 bod (střed) a 1 reálné číslo (poloměr opsané kružnice),
+ • ‹make_circle› které přijme jako parametry:
+   ◦ 2 body (střed a bod na kružnici), nebo
+   ◦ 1 bod a 1 reálné číslo (střed a poloměr),
+ • ‹area›, které přijme ‹polygon› nebo ‹circle› a vrátí plochu
+   odpovídajícího útvaru.
+
+Typ ‹point› nechť má složky ‹x› a ‹y› (reálná čísla). 
+
+    struct point; /* C */
+    struct polygon;
+    struct circle;
+
+
+### 2. [‹rational›]
+
+V tomto příkladu budeme programovat jednoduchá racionální čísla
+(taková, že je lze reprezentovat dvojicí celých čísel typu
+‹int›). Hodnoty typu ‹rat› lze:
+
+ • vytvořit čistou funkcí ‹make_rat( p, q )› kde ‹p›, ‹q› jsou
+   hodnoty typu ‹int› (čitatel a jmenovatel) a ‹q > 0›,
+ • použít jako operandy základních aritmetických operací:
+   ◦ sčítání ‹+›,
+   ◦ odečítání (‹-›),
+   ◦ násobení (‹*›) a
+   ◦ dělení (‹/›),
+ • libovolně srovnávat (‹==›, ‹!=›, ‹<=›, ‹<›, ‹>›, ‹>=›).
+
+Vzpomeňte si, jak se jednotlivé operace nad racionálními čísly
+zavádí. Jsou-li ⟦a = p₁/q₁⟧ a ⟦b = p₂/q₂⟧ zlomky v základním
+tvaru, můžete se u libovolné operace ⟦a ⋄ b⟧ spolehnout, že
+žádný ze součinů ⟦p₁⋅q₂⟧, ⟦p₂⋅q₁⟧, ⟦p₁⋅p₂⟧ a ⟦q₁⋅q₂⟧ nepřeteče
+rozsah ‹int›-u. 
+
+    struct rat; /* C */
+
+    rat make_rat( int, int ); /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹mountains›]
+
+Vaším úkolem je vytvořit typ ‹mountain_range›, který bude
+reprezentovat rekurzivní pohoří. Rekurzivní pohoří má tento tvar:
+
+ 1. levý svah (může být prázdný), který může na každém kroku
+    libovolně stoupat,
+ 2. libovolný počet (i nula) vnitřních pohoří stejného typu
+    (první z nich začíná ve výšce, na které skončil levý svah),
+ 3. pravý svah, který je zrcadlovým obrazem toho levého.
+
+Například (hlavní pohoří má prázdný svah; závorky naznačují
+začátky a konce jednotlivých vnitřních pohoří):
+
+         ┌───┐                   ┌───┐
+         │   │ ┌───┐     ┌───┐ ┌─┘   └─┐
+       ┌─┘   └─┘   │   ┌─┘   └─┘       │
+     ┌─┘           └───┘               └─┐
+    ╶┘                                   └╴
+      1 2 4 4 2 3 3 1 1 2 3 3 2 3 4 4 3 1
+      ( (     )     ) ( (     ) (     ) )
+
+Je-li ‹outer› hodnota typu ‹mountain_range›, nechť:
+
+ 1. ‹outer.get( i )› vrátí výšku ‹i›-tého pole pohoří ‹outer›, a
+ 2. ‹outer.set_slope( slope )› pro zadaný vektor čísel ‹slope›
+    nastaví «oba» svahy tak, aby ten «levý» odpovídal výškám
+    v ‹slope›,
+ 2. ‹outer.insert( inner )› vloží nové vnitřní pohoří zadané
+    hodnotou ‹inner› typu ‹mountain_range›, a to těsně před pravý
+    svah.
+
+Dobře si rozmyslete vhodnou reprezentaci. Požadujeme:
+
+ • metoda ‹get› musí mít konstantní složitost,
+ • metoda ‹set_slope› může být vůči argumentu lineární, ale nesmí
+   záviset na délce vnitřních pohoří,
+ • metoda ‹insert› může být vůči vkládanému pohoří (‹inner›)
+   lineární, vůči tomu vnějšímu (‹outer›) ale musí být
+   amortizovaně konstantní.
+
+Nově vytvořená hodnota typu ‹mountain_range› reprezentuje prázdné
+pohoří (prázdný svah a žádná vnitřní pohoří). 
+
+    struct mountain_range; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 4. [‹polar›]
+
+Vaším úkolem je implementovat typ ‹polar›, který realizuje
+polární reprezentaci komplexního čísla. Protože tato podoba
+zjednodušuje násobení a dělení, implementujeme v této úloze právě
+tyto operace (sčítání jsme definovali v příkladu ‹e2_cartesian›).
+
+Krom násobení a dělení nechť je možné pro hodnoty typu polar
+určit jejich rovnost operátory ‹==› a ‹!=›.  Rovnost
+implementujte s ohledem na nepřesnost aritmetiky s plovoucí
+desetinnou čárkou. V tomto příkladě můžete pro reálná čísla (typu
+‹double›) místo ‹x == y› použít ‹std::fabs( x - y ) < 1e-10›.
+
+Pozor! Argument komplexního čísla je «periodický»: buďto jej
+normalizujte tak, aby ležel v intervalu ⟦[0, 2π)⟧, nebo
+zajistěte, aby platilo ‹polar( 1, x ) == polar( 1, x + 2π )›. 
+
+    struct polar; /* C */
+
+    polar make_polar( double, double ); /* C */
+
+
+### 5. [‹numset›]
+
+Navrhněte typ ‹numset›, kterého hodnoty budou reprezentovat
+množiny čísel. Jsou-li ‹ns₁›, ‹ns₂› hodnoty typu ‹numset› a dále
+‹i›, ‹j› jsou hodnota typu ‹int›, požadujeme následující operace:
+
+ • ‹ns₁.add( i )› – vloží do ‹ns₁› číslo ‹i›,
+ • ‹ns₁.del( i )› – odstraní z ‹ns₁› číslo ‹i›,
+ • ‹ns₁.del_range( i, j )› – odstraní z ‹ns₁› všechna čísla,
+   která spadají do uzavřeného intervalu ⟦⟨i, j⟩⟧,
+ • ‹ns₁.merge( ns₂ )› – přidá do ‹ns₁› všechna čísla přítomná
+   v ‹ns₂›,
+ • ‹ns₁.has( i )› – rozhodne, zda je ‹i› přítomné v ‹ns₁›.
+
+Složitost:
+
+ • ‹del_range› a ‹merge› musí mít nejvýše lineární složitost,
+ • ostatní operace nejvýše logaritmickou. 
+
+    struct numset; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 6. [‹continued›]
+
+Předmětem tohoto příkladu jsou tzv. «řetězové zlomky». Typ
+‹fraction› bude reprezentovat racionální číslo, které lze:
+
+ • zadat posloupností koeficientů řetězového zlomku (přesněji
+   popsáno níže) pomocí metody ‹set_coefficients( cv )› kde ‹cv›
+   je vektor hodnot typu ‹int›,
+ • sčítat (operátorem ‹+›),
+ • násobit (operátorem ‹*›),
+ • srovnávat (všemi relačními operátory, tzn. ‹==›, ‹!=›, ‹<›,
+   ‹<=›, ‹>›, ‹>=›).
+
+Řetězový zlomek reprezentujej racionální číslo ⟦q₀⟧ jako součet
+celého čísla ⟦a₀⟧ a převrácené hodnoty nějakého dalšího
+racionálního čísla, ⟦q₁⟧, které je samo zapsáno pomocí řetězového
+zlomku. Tedy
+
+ ⟦ q₀ = a₀ + 1/q₁
+   q₁ = a₁ + 1/q₂
+   q₂ = a₂ + 1/q₃ ⟧
+
+a tak dále, až než je nějaké ⟦qᵢ⟧ celé číslo, kterým sekvence
+končí (pro racionální číslo se to jistě stane po konečném počtu
+kroků). Hodnotám ⟦a₀, a₁, a₂, …⟧ říkáme «koeficienty» řetězového
+zlomku – jeho hodnota je jimi jednoznačně určena.
+
+Rozmyslete si vhodnou reprezentaci vzhledem k zadanému rozhraní.
+Je důležité jak to, které operace jsou požadované, tak to, které
+nejsou. 
+
+    struct fraction; /* C */
+
+
+## r. Řešené úlohy
+
+
+### 1. [‹poly›]
+
+Cílem cvičení je naprogramovat typ, který bude reprezentovat
+polynomy s celočíselnými koeficienty, s operacemi sčítání
+(jednoduché) a násobení (méně jednoduché).  Polynom je výraz
+tvaru ⟦7x⁴ + 0x³ + 0x² + 3x + x⁰⟧ – tzn. součet nezáporných
+celočíseslných mocnin proměnné ⟦x⟧, kde u každé mocniny stojí
+pevný (konstantní) koeficient.
+
+Součet polynomů má u každé mocniny součet koeficientů příslušné
+mocniny sčítanců. Součin je složitější, protože:
+
+ • každý monom (sčítanec) prvního polynomu musí být vynásoben
+   každým monomem druhého polynomu,
+ • některé z těchto součinů vedou na stejnou mocninu ⟦x⟧ a tedy
+   jejich koeficienty musí být sečteny.
+
+Pro každý polynom existuje nějaké ⟦n⟧ takové, že všechny mocniny
+větší než ⟦n⟧ mají nulový koeficient. Tento fakt nám umožní
+polynomy snadno reprezentovat. 
+
+Implicitně sestrojená hodnota typu ‹poly› nechť má všechny
+koeficienty nulové. Krom sčítání a násobení (formou operátorů)
+implementujte také rovnost a metodu ‹set›, která má dva
+parametry: mocninu ⟦x⟧ a koeficient, obojí celá čísla. 
+
+    struct poly; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹qsort›]
+
+Implementujte typ ‹array›, který reprezentuje pole čísel a bude
+mít metody:
+
+ • ‹get( i )› – vrátí hodnotu na indexu ‹i›,
+ • ‹append( x )› – vloží hodnotu ‹x› na konec pole,
+ • ‹partition( p, l, r )› – přeuspořádá část pole v rozsahu
+   indexů ⟦⟨l, r)⟧ tak, aby hodnoty menší než ‹p› předcházely
+   hodnotě rovné ‹p› a tato předcházela zbývající hodnoty větší
+   nebo rovné ‹p› (nejsou-li ‹l› a ‹r› uvedeny, přeuspořádá celé
+   pole; vstupní podmínkou je, že ‹p› je v uvedeném rozsahu
+   přítomno),
+ • ‹sort()› – seřadí pole metodou quicksort (bez dodatečné paměti
+   mimo místa na zásobníku potřebného pro rekurzi).
+
+Algoritmus quicksort pracuje takto:
+
+ 1. má-li pole žádné nebo 1 prvek, je již seřazené: konec;
+ 2. jinak jeden z prvků vybereme jako «pivot»,
+ 3. přeuspořádáme pole na dvě menší «partice» (viz popis metody
+    ‹partition› výše),
+ 4. rekurzivně aplikuje algoritmus quicksort na levou a pravou
+    partici (vynechá přitom hodnoty rovné pivotu).
+
+Užitečný invariant: po každé partici jsou prvky rovné vybranému
+pivotu na pozicích, které budou mít ve výsledném uspořádaném
+poli.
+
+Viz též: https://xkcd.com/1185/ 
+
+    struct array; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹ttt›]
+
+Naprogramujte typ ‹tictactoe›, který bude reprezentovat stav této
+jednoduché hry (piškvorky na ploše 3×3). Stav hry má tyto složky:
+
+ • který hráč je na tahu,
+ • který hráč zabral která políčka.
+
+V nově vytvořené hře je plocha prázdná a na tahu je hrač
+s křížky. Metody:
+
+ • ‹play( x, y )› umístí symbol aktivního hráče na souřadnice
+   ‹x›, ‹y› (platnost souřadnic i tahu je vstupní podmínkou, roh
+   má souřadnice ⟦0, 0⟧),
+ • ‹read( x, y )› vrátí hodnotu zadaného pole:
+   ◦ -1 je křížek,
+   ◦ 0 je prázdné pole, konečně 
+   ◦ 1 je kolečko,
+ • ‹winner()› vrátí podobně -1/0/1 podle toho, který hráč vyhrál
+   (0 značí, že hra buď ještě neskončila, nebo skončila remízou).
+
+
+    struct tictactoe; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 4. [‹flight›]
+
+Vaší úlohou je naprogramovat jednoduchý simulátor hry, kde hráč
+ovládá létající objekt („loď“) v bočním pohledu. Cílem hráče je
+nenarazit do hranic „jeskyně“ ve které se pohybuje, a která je
+zadaná jako seznam dvojic, kde čísla na indexu ⟦i⟧ udávají vždy
+souřadnice ⟦y⟧ spodní a horní meze příslušného sloupce – pole –
+v rozsahu souřadnice ⟦x ∈ ⟨i, i + 1)⟧. Například:
+
+  ╶───┬┬┬┬┬┬─┬┬┬┬┬┬┬┬┬┬─┬┬──╴
+      └┤││├┘ └┤│││││├┴┘ └┘
+       └┤├┘   └┴┴┤│├┘
+   ●▶   └┘       └┴┘   ┌┐
+   ┌┐      ┌┐         ┌┤│
+   │├┐    ┌┤├┐ ┌┬┬┬┬┬┬┤│├┐
+  ╶┴┴┴────┴┴┴┴─┴┴┴┴┴┴┴┴┴┴┴──╴
+
+Loď lze ovládat nastavením stoupání ⟦c⟧ (pro každý posun o ⟦l⟧
+jednotek doprava se loď zároveň posune ⟦c⋅l⟧ jednotek nahoru;
+je-li ⟦c⟧ záporné, posouvá se dolů). Hra má tyto 4 metody:
+
+ • ‹append( y₁, y₂ )› přidá na pravý konec hracího pole novou
+   dvojici překážek (zadanou čísly s plovoucí desetinnou čárkou),
+ • ‹move( l )› posune loď o ‹l› jednotek doprava (‹l› je celé
+   číslo; při posunu dojde také k příslušné změně výšky podle
+   aktuálního nastavení) a vrátí ‹true› v případě, že při tomto
+   posunu nedošlo ke kolizi,
+ • ‹set_climb( c )› nastaví aktuální stoupání na ‹c› (číslo
+   s plovoucí desetinnou čárkou),
+ • ‹finished()› vrátí ‹true› nachází-li se loď na pravém konci
+   hracího pole.
+
+V případě, že dojde k pokusu o posun lodě za konec pole, loď
+zůstane na posledním definovaném poli. Dojde-li ke kolizi, další
+volání ‹move› již nemají žádný efekt a vrací ‹false›.
+
+Implicitně sestrojený stav hry má hrací pole délky 1 s překážkami
+⟦(-10, +10)⟧ a počáteční výška i stoupání lodě jsou 0. 
+
+    struct flight; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹qfield›]
+
+Uvažme těleso ⟦ℚ⟧ a číslo ⟦j⟧ takové, že ⟦j² = 2⟧ (tedy zejména
+⟦j ∉ ℚ⟧). Těleso ⟦ℚ⟧ můžeme rozšířit na tzv. (algebraické)
+číselné těleso (v tomto případě konkrétně kvadratické těleso)
+⟦ℚ(j)⟧, kterého prvky jsou tvaru ⟦a + bj⟧, kde ⟦a, b ∈ ℚ⟧.
+
+Vaším úkolem je naprogramovat typ, který prvky tohoto tělesa
+reprezentuje, a umožňuje je sčítat, násobit a rozhodovat jejich
+rovnost.  Rozmyslete si vhodnou reprezentaci; uvažte zejména jak
+bude vypadat výsledek násobení ⟦(a + bj)⋅(x + yj)⟧. 
+
+    struct qf; /* C */
+
+Protože k dispozici máme pouze celá čísla, k zápisu jednoho prvku
+⟦ℚ(j)⟧ budeme potřebovat 4 (vystačili bychom si se třemi? pokud
+ano, jaké to má výhody a nevýhody?). 
+
+    qf make_qf( int a_nom, int a_den, int b_nom, int b_den ); /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 6. [‹life›]
+
+Hra života je dvourozměrný buněčný automat: buňky tvoří
+čtvercovou síť a mají dva možné stavy: živá nebo mrtvá.
+V každé generaci (kroku simulace) spočítáme novou hodnotu pro
+každou buňku, a to podle těchto pravidel (výsledek závisí na
+současném stavu buňky a na tom, kolik z jejích 8 sousedů je
+živých):
+
+│  stav │ živí sousedi │ výsledek │
+├───────┼──────────────┼──────────┤
+│  živá │          0–1 │    mrtvá │
+│  živá │          2–3 │     živá │
+│  živá │          4–8 │    mrtvá │
+│┄┄┄┄┄┄┄│┄┄┄┄┄┄┄┄┄┄┄┄┄┄│┄┄┄┄┄┄┄┄┄┄│
+│ mrtvá │          0–2 │    mrtvá │
+│ mrtvá │            3 │     živá │
+│ mrtvá │          4-8 │    mrtvá │
+
+Příklad krátké periodické hry:
+
+ ┌───┬───┬───┐   ┌───┬───┬───┐   ┌───┬───┬───┐
+ │   │   │   │   │   │ × │   │   │   │   │   │
+ ├───┼───┼───┤   ├───┼───┼───┤   ├───┼───┼───┤
+ │ × │ × │ × │ → │   │ × │   │ → │ × │ × │ × │
+ ├───┼───┼───┤   ├───┼───┼───┤   ├───┼───┼───┤
+ │   │   │   │   │   │ × │   │   │   │   │   │
+ └───┴───┴───┘   └───┴───┴───┘   └───┴───┴───┘
+
+Napište funkci, která dostane na vstupu množinu živých buněk a
+vrátí množinu buněk, které jsou živé po ‹n› generacích. Živé
+buňky jsou zadané svými souřadnicemi, tzn. jako dvojice ⟦x, y⟧.
+
+
+    using cell = std::pair< int, int >; /* C */
+    using grid = std::set< cell >;
+
+    grid life( const grid &, int ); /* C */
+

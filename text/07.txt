@@ -1,0 +1,894 @@
+
+# Výjimky a princip RAII
+
+Demonstrace:
+
+ 1. ‹exceptions› – vyhazování a chytání výjimek
+ 2. ‹stdexcept›  – typy výjimek ve standardní knihovně
+ 3. ‹semaphore›  – automatická správa zdrojů
+
+Elementární příklady:
+
+ 1. ‹xxx›
+ 2. ‹counter›    – jednoduché počítadlo instancí
+ 3. ‹coffee›     – model automatu na kávu
+
+Preparatory exercises:
+
+ 1. ‹fd›         – POSIX file descriptors
+ 2. ‹loan›       – database-style transactions with resources
+ 3. ‹library›    – borrowing books
+ 4. ‹parse›      – a simple parser which throws exceptions
+ 5. ‹invest›     – we further stretch the banking story
+ 6. ‹linear›     – linear equations, with some exceptions
+
+Regular exercises:
+
+ 1. ‹printing›   – printing with a monthly budget
+ 2. ‹bsearch›    – a key-value vector which throws on failure
+ 3. ‹enzyme›     – cellular chemistry with RAII
+ 4. ‹tinyvec› †  – a vector in a fixed memory buffer
+ 5. ‹lock›       – a movable mutual exclusion token
+ 6. ‹bounded›    – a bounded queue that throws when full
+
+
+## d. Demonstrace (ukázky)
+
+
+### 1. [‹exceptions›]
+
+Exceptions are, as their name suggests, a mechanism for handling
+unexpected or otherwise «exceptional» circumstances, typically
+error conditions. A canonic example would be trying to open a
+file which does not exist, trying to allocate memory when there
+is no free memory left and the like. Another common circumstance
+would be errors during processing user input: bad format,
+unexpected switches and so on.
+
+NB. Do «not» use exceptions for ‘normal’ control flow, e.g.  for
+terminating loops. That is a «really» bad idea (even though ‹try›
+blocks are cheap, throwing exceptions is very expensive). 
+
+This example will be somewhat banal. We start by creating a class
+which has a global counter of instances attached to it: i.e. the
+value of ‹counter› tells us how many instances of ‹counted› exist
+at any given time. Fair warning, do not do this at home. 
+
+    int counter = 0; /* C */
+
+    struct counted /* C */
+    {
+        counted()  { ++ counter; }
+        ~counted() { -- counter; }
+
+        counted( const counted & ) = delete; /* C */
+        counted( counted && ) = delete;
+        counted &operator=( const counted & ) = delete;
+        counted &operator=( counted && ) = delete;
+    };
+
+A few functions which throw exceptions and/or create instances of
+the ‹counted› class above. Notice that a ‹throw› statement
+immediately stops the execution and propagates up the call stack
+until it hits a ‹try› block (shown in the ‹main› function below).
+The same applies to a function call which hits an exception: the
+calling function is interrupted immediately. 
+
+    int f() { counted x; return 7; } /* C */
+    int g() { counted x; throw std::bad_alloc(); assert( 0 ); }
+    int h() { throw std::runtime_error( "h" ); }
+    int i() { counted x; g(); assert( 0 ); }
+
+    int main() /* demo */ /* C */
+    {
+        bool caught = false;
+
+A ‹try› block allows us to detect that an exception was
+thrown and react, based on the type and attributes of the
+exception. Otherwise, it is a regular block with associated
+scope, and behaves normally. 
+
+        try /* C */
+        {
+            counted x;
+            assert( counter == 1 );
+            f();
+            assert( counter == 1 );
+        }
+
+One or more ‹catch› blocks can be attached to a ‹try› block:
+those describe what to do in case an exception of a matching
+type is thrown in one of the statements of the ‹try› block.
+The ‹catch› clause behaves like a prototype of a
+single-argument function -- if it could be ‘called’ with the
+thrown exception as an argument, it is executed to «handle»
+the exception. 
+
+This particular ‹catch› block is never executed, because
+nothing in the associated ‹try› block above throws a matching
+exception (or rather, any exception at all): 
+
+        catch ( const std::bad_alloc & ) { assert( false ); } /* C */
+
+The ‹counted› instance ‹x› above went out of scope: 
+
+        assert( counter == 0 ); /* C */
+
+Let's write another ‹try› block. This time, the ‹i› call in
+the ‹try› block throws, indirectly (via ‹g›) an exception of
+type ‹std::bad_alloc›. 
+
+        try { i(); } /* C */
+
+To demonstrate how ‹catch› blocks are selected, we will first
+add one for ‹std::runtime_error›, which will not trigger (the
+‘prototype’ does not match the exception type that was
+thrown): 
+
+        catch ( const std::runtime_error & ) { assert( false ); } /* C */
+
+As mentioned above, each ‹try› block can have multiple
+‹catch› blocks, so let's add another one, this time for the
+‹bad_alloc› that is actually thrown. If the ‹catch› matches
+the exception type, it is executed and propagation of the
+exception is stopped: it is now handled and execution
+continues normally after the end of the ‹catch› sequence. 
+
+        catch ( const std::bad_alloc & ) { caught = true; } /* C */
+
+Execution continues here. We check that the ‹catch› block
+was actually executed: 
+
+        assert( caught ); /* C */
+        assert( counter == 0 ); // no ‹counted› instances were leaked
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹stdexcept›]
+
+It is possible to sub-class standard exception classes. For most
+uses, ‹std::runtime_error› is the most appropriate base class. 
+
+    class custom_exception : public std::runtime_error /* C */
+    {
+    public:
+        custom_exception() : std::runtime_error( "custom" ) {}
+    };
+
+This demo simply demonstrates some of the standard exception
+types (i.e. those that are part of the standard library, and
+which are thrown by standard functions or methods; as long as
+those methods or functions are not too arcane). 
+
+    int main() /* demo */ /* C */
+    {
+        try
+        {
+            throw custom_exception();
+            assert( false );
+        }
+As per standard rules, it's possible to catch exceptions of
+derived classes (of course including user-defined types) via
+a ‹catch› clause which accepts a reference to a superclass. 
+        catch ( const std::exception & ) {} /* C */
+
+        try /* C */
+        {
+            std::vector x{ 1, 2 };
+Attempting out-of-bounds access through ‹at› gives
+‹std::out_of_range› 
+            x.at( 7 ); /* C */
+            assert( false );
+        }
+        catch ( const std::out_of_range & ) {}
+
+        try /* C */
+        {
+If the string passed to ‹stoi› is not a number, we get
+back an exception of type ‹std::invalid_argument›. 
+            std::stoi( "foo" ); /* C */
+            assert( false );
+        }
+        catch ( const std::invalid_argument & ) {}
+
+        try /* C */
+        {
+If an integer is too big to fit the result type, ‹stoi›
+throws ‹std::out_of_range›. 
+            std::stoi( "123456123456123456" ); /* C */
+            assert( false );
+        }
+        catch ( const std::out_of_range & ) {}
+
+        try /* C */
+        {
+System-interfacing functions may throw
+‹std::system_error›. Here, for instance, trying to detach
+a thread which was not started. 
+            std::thread().detach(); /* C */
+            assert( false );
+        }
+        catch ( const std::system_error & ) {}
+
+        try /* C */
+        {
+Throwing a ‹system_error› is the appropriate reaction
+when dealing with a failure of a POSIX function which
+sets ‹errno›. 
+
+            int fd = ::open( "/does/not/exist", O_RDONLY ); /* C */
+            if ( fd < 0 )
+                throw std::system_error( errno, std::system_category(),
+                                         "opening /does/not/exist" );
+            assert( false );
+        }
+        catch ( const std::system_error & ) {}
+
+        try /* C */
+        {
+Passing a size that is more than ‹max_size()› when
+constructing or resizing an ‹std::string› or an
+‹std::vector› gives us back an ‹std::length_error›. Note
+that the -1 turns into a really big number in this
+context. 
+
+            std::string x( -1, 'x' ); /* C */
+            assert( false );
+        }
+        catch ( const std::length_error & ) {}
+
+        try /* C */
+        {
+            std::bitset< 128 > x;
+            x[ 100 ] = true;
+
+Trying to convert an ‹std::bitset› to an integer type may
+throw ‹std::overflow_error›, if there are bits set that
+do not fit into the target integer type. 
+            x.to_ulong(); /* C */
+            assert( false );
+        }
+        catch ( const std::overflow_error & ) {}
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹semaphore›]
+
+In this demo, we will implement a simple semaphore. A semaphore
+is a device which guards a resource of which there are multiple
+instances, but the number of instances is limited. It is a slight
+generalization of a mutex (which guards a singleton resource).
+Internally, semaphore simply counts the number of clients who
+hold the resource and refuses further requests if the maximum is
+reached. In a multi-threaded program, semaphores would typically
+block (wait for a slot to become available) instead of refusing.
+In a single-threaded program (which is what we are going to use
+for a demonstration), this would not work. Hence our ‹get› method
+returns a ‹bool›, indicating whether acquisition of the lock
+succeeded. 
+
+    class semaphore /* C */
+    {
+        int _available;
+    public:
+
+When a semaphore is constructed, we need to know how many
+instances of the resource are available. 
+
+        explicit semaphore( int max ) : _available( max ) {} /* C */
+
+Classes which represent resource managers (in this case
+‘things that can be locked’ as opposed to ‘locks held’) have
+some tough choices to make. If they are impossible to
+copy/move/assign, users will find that they must not appear
+as attributes in their classes, lest those too become
+un-copyable (and un-movable) by default. However, this is how
+the standard library deals with the problem, see ‹std::mutex›
+or ‹std::condition_variable›. While it is the safest option,
+it is also the most annoying. Nonetheless, we will do the
+same. 
+
+        semaphore( const semaphore & ) = delete; /* C */
+        semaphore &operator=( const semaphore & ) = delete;
+
+We allow would-be lock holders to query the number of
+resource instances currently available. Perhaps if none are
+left, they can make do without one, or they can perform some
+other activity in the hopes that the resource becomes
+available later. 
+
+        int available() const /* C */
+        {
+            return _available;
+        }
+
+Finally, what follows is the ‘low-level’ interface to the
+semaphore. It is completely unsafe, and it is inadvisable to
+use it directly, other than perhaps in special circumstances.
+This being C++, such interfaces are commonly made available.
+Again see ‹std::mutex› for an example.
+
+However, it would also be an option to be strict about it,
+make the following 2 methods private, and declare the RAII
+class defined below, ‹semaphore_lock›, to be a friend of this
+one. 
+
+        bool get() /* C */
+        {
+            if ( _available > 0 )
+                return _available --;
+            else
+                return false;
+        }
+
+        void put() /* C */
+        {
+            ++ _available;
+        }
+    };
+
+We will want to write a RAII ‘lock holder’ class. However, since
+‹get› above might fail, we need a way to indicate the failure in
+the RAII class as well. But constructors don't return values: it
+is therefore a reasonable choice to throw an exception. It is
+reasonable as long as we don't expect the failure to be a common
+scenario. 
+
+    class resource_exhausted : public std::runtime_error /* C */
+    {
+    public:
+        resource_exhausted()
+            : std::runtime_error( "semaphore full" )
+        {}
+    };
+
+Now the RAII class itself. It will need to hold a reference to
+the semaphore for which it holds a lock (good thing the semaphore
+is not movable, so we don't have to think about its address
+changing). Of course, it must not be possible to make a copy of
+the resource class: we cannot duplicate the resource, which is a
+lock being held. However, it does make sense to move the lock to
+a new owner, if the client so wishes. Hence, both a move
+constructor and move assignment are appropriate. 
+
+    class semaphore_lock /* C */
+    {
+        semaphore *_sem = nullptr;
+    public:
+
+To construct a semaphore lock, we understandably need a
+reference to the semaphore which we wish to lock. You might
+be wondering why the attribute is a pointer and the argument
+is a reference. The main difference between references and
+pointers (except the syntactic sugar) is that references
+cannot be null. In a correct program, all references always
+refer to valid objects. It does not make sense to construct a
+semaphore_lock which does not lock anything. Hence the
+reference. Why the pointer in the attributes? That will
+become clear shortly.
+
+Before we move on, notice that, as promised, we throw an
+exception if the locking fails. Hence, no ‹noexcept› on this
+constructor. 
+
+        semaphore_lock( semaphore &s ) : _sem( &s ) /* C */
+        {
+            if ( !_sem->get() )
+                throw resource_exhausted();
+        }
+
+As outlined above, semaphore locks cannot be copied or
+assigned. Let's make that explicit. 
+
+        semaphore_lock( const semaphore_lock & ) = delete; /* C */
+        semaphore_lock &operator=( const semaphore_lock & ) = delete;
+
+The new object (the one initialized by the move constructor)
+is quite unremarkable. The interesting part is what happens
+to the ‘old’ (source) instance: we need to make sure that
+when it is destroyed, it does not release the resource (i.e.
+the lock held) – the ownership of that has been transferred
+to the new instance. This is where the pointer comes in
+handy: we can assign ‹nullptr› to the pointer held by the
+source instance. Then we just need to be careful when we
+release the resource (in the destructor, but also in the move
+assignment operator) – we must first check whether the
+pointer is valid.
+
+Also notice the ‹noexcept› qualifier: even though the
+‘normal’ constructor throws, we are not trying to obtain a
+new resource here, and there is nothing in the constructor
+that might fail. This is good, because move constructors, as
+a general rule, should not throw. 
+
+        semaphore_lock( semaphore_lock &&src ) noexcept /* C */
+            : _sem( src._sem )
+        {
+            src._sem = nullptr;
+        }
+
+We now define a helper method, ‹release›, which frees up
+(releases) the resource held by this instance. It will do
+this by calling ‹put› on the semaphore. However, if the
+semaphore is null, we do nothing: the instance has been moved
+from, and no longer owns any resources.
+
+Why the helper method? Two reasons:
+
+ 1. it will be useful in both the move assignment operator and
+    in the destructor,
+ 2. the client might need to release the resource before the
+    instance goes out of scope or is otherwise destroyed
+    ‘naturally’ (compare ‹std::fstream::close()›). 
+
+        void release() noexcept /* C */
+        {
+            if ( _sem )
+                _sem->put();
+        }
+
+Armed with ‹release›, writing both the move assignment and
+the destructor is easy. The move assignment is also
+‹noexcept›, which is usually a pretty good idea. 
+
+        semaphore_lock &operator=( semaphore_lock &&src ) noexcept /* C */
+        {
+Self-move is not very useful in this case, forbid it. 
+
+            assert( &src != this ); /* C */
+
+First release the resource held by the current instance.
+We cannot hold both the old and the new resource at the
+same time. 
+
+            release(); /* C */
+
+Now we reset our ‹_sem› pointer and update the ‹src›
+instance – the resource is now in our ownership. 
+
+            _sem = src._sem; /* C */
+            src._sem = nullptr;
+            return *this;
+        }
+
+        ~semaphore_lock() noexcept /* C */
+        {
+            release();
+        }
+    };
+
+    int main() /* demo */ /* C */
+    {
+        semaphore sem( 3 );
+        sem.get();
+        semaphore_lock l1( sem );
+        bool l4_made = false;
+
+        try /* C */
+        {
+            semaphore_lock l2( sem );
+            assert( sem.available() == 0 );
+            semaphore_lock l3 = std::move( l2 );
+            assert( sem.available() == 0 );
+            semaphore_lock l4 = std::move( l1 );
+            assert( sem.available() == 0 );
+            l4_made = true;
+            semaphore_lock l5( sem );
+            assert( false );
+        }
+        catch ( const resource_exhausted & ) {}
+
+        assert( l4_made ); /* C */
+        assert( sem.available() == 2 );
+
+        // clang-tidy: -clang-analyzer-deadcode.DeadStores /* C */
+    }
+
+## e. Elementární příklady
+
+
+### 2. [‹counter›]
+
+    int counter = 0; /* C */
+
+Přidejte konstruktory a destruktor typu ‹counted› tak, aby
+počítadlo ‹counter› vždy obsahovalo počet existujících hodnot
+typu ‹counted›. Nezapomeňte na pravidlo pěti (rule of five). 
+
+    struct counted; /* C */
+
+
+### 3. [‹coffee›]
+
+Implement a coffee machine which gives out a token when the order
+is placed and takes the token back when it is done… at most one
+order can be in progress. 
+
+Throw this when the machine is already busy making coffee. 
+
+    class busy {}; /* C */
+
+And this when trying to use a default-constructed or already-used
+token. 
+
+    class invalid {}; /* C */
+
+Fill in the two classes. Besides constructors and assignment
+operators, add methods ‹make› and ‹fetch› to ‹machine›, to create
+and redeem tokens respectively. 
+
+    class machine; /* C */
+    class token;
+
+
+## p. Přípravy
+
+
+### 1. [‹fd›]
+
+Dle normy POSIX, otevřením souboru nebo podobného zdroje získáme
+tzv. «popisovač otevřeného souboru» (angl. file descriptor), malé
+celé číslo, které pak lze dále předávat systémovým voláním (např.
+‹read› nebo ‹write›). Není-li již zdroj potřebný, popisovač je
+nutné uvolnit systémovým voláním ‹close› (a to právě jednou – je
+důležité, aby stejný popisovač nebyl uvolněn dvakrát).
+
+Naprogramujte typ ‹fd›, který bude popisovač souboru uchovávat, a
+zároveň zabezpečí, že ho není lze omylem ztratit (aniž bychom ho
+uvolnili) ani omylem uvolnit vícenásobně.
+
+Hodnoty typu ‹fd› nechť je možné přesouvat (a přiřazovat
+přesunutím), a vytvářet dvěma způsoby:
+
+ 1. funkcí ‹fd_open( path, flags )›, která vnitřně použije
+    systémové volání ‹open› a výsledný popisovač vrátí jako hodnotu
+    typu ‹fd›,
+ 2. funkcí ‹fd_dup( raw_fd )›, která přijme číselný (syrový,
+    nechráněný) popisovač a systémovým voláním ‹dup› vytvoří jeho
+    «chráněnou» kopii typu ‹fd›.
+
+Parametr ‹path› je typu ‹const char *› a stačí jej přeposlat
+systémovému volání tak, jak ho obdržíte – není potřeba jej
+jakkoliv kontrolovat nebo interpretovat. Více informací
+o voláních ‹open› a ‹dup› získáte příkazy ‹man 2 open› a ‹man 2
+dup› na stroji ‹aisa›.
+
+Typ ‹fd› nechť má dále metody ‹read› a ‹write›, které vrátí resp.
+přijmou, vektor bajtů (jako hodnot typu ‹char›). Počet bajtů,
+které je potřeba načíst, dostane metoda ‹write› jako parametr.
+
+Více informací o potřebných funkcích získáte opět příkazy ‹man 2
+read› and ‹man 2 write›.
+
+Selže-li některé ze systémových volání ‹open›, ‹read› nebo
+‹write›, ukončete dotčenou funkci výjimkou ‹std::system_error›.
+Pokus o čtení nebo zápis s použitím neplatného popisovače
+(implicitně sestrojeného, vykradeného, nebo již uzavřeného) nechť
+skončí výjimkou ‹std::invalid_argument›. 
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹queue›]
+
+Naprogramujte typ ‹queue›, který bude reprezentovat «omezenou»
+frontu celých čísel (velikost fronty je zadaná jako parametr
+konstruktoru), s metodami:
+
+  • ‹pop()› – vrátí nejstarší vložený prvek,
+  • ‹push( x )› – vloží nový prvek ‹x› na konec fronty,
+  • ‹empty()› vrátí ‹true› je-li fronta prázdná.
+
+Metody ‹pop› a ‹push› nechť v případě selhání skončí výjimkou
+‹queue_empty› resp. ‹queue_full›. Všechny operace musí mít
+složitost O(1). Metody ‹push› ani ‹pop› nesmí alokovat dodatečnou
+paměť. 
+
+    struct queue_empty; /* C */
+    struct queue_full;
+    struct queue;
+
+
+### 3. [‹partition›]
+
+Napište generický podprogram ‹partition( seq, p )›, který
+přeuspořádá zadanou sekvenci tak, že všechny prvky menší než ‹p›
+budou předcházet všem prvkům rovným ‹p› budou předcházet všem
+prvkům větším než ‹p›. Sekvence ‹seq› má tyto metody:
+
+ • ‹size()› vrátí počet prvků uložených v sekvenci,
+ • ‹swap( i, j )› prohodí prvky na indexech ‹i› a ‹j›,
+ • ‹compare( i, p )› srovná prvek na pozici ‹i› s hodnotou ‹p›:
+   ◦ výsledek -1 znamená, že hodnota na indexu ‹i› je menší,
+   ◦ výsledek 0, že je stejná, a konečně
+   ◦ výsledek +1, že je větší než ‹p›.
+
+Metoda ‹compare› může skončit výjimkou. V takovém případě vraťte
+sekvenci ‹seq› do původního stavu a výjimku propagujte dál směrem
+k volajícímu. Hodnoty typu ‹seq› nelze kopírovat, máte ale
+povoleno použít pro výpočet dodatečnou paměť. Metody ‹size› ani
+‹swap› výjimkou skončit nemohou. 
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 4. [‹buckets›]
+
+Napište generický podprogram ‹buckets( list, vec )›, který
+dostane na vstupu:
+
+ • referenci na seznam tokenů ‹list›, který má tyto metody:
+   ◦ ‹front()› – vrátí referenci na první token seznamu,
+   ◦ ‹drop()› – odstraní první token v seznamu,
+   ◦ ‹empty()› – vrátí ‹true› je-li seznam prázdný,
+ • referenci na hodnotu ‹vec› neurčeného typu, který má metodu
+   ‹size()›, a který lze indexovat celými čísly. Uvnitř ‹vec›
+   jsou uloženy kontejnery typu, který poskytuje metodu ‹emplace›,
+   která vloží prvek kopií nebo přesunem (podle typu parametru),
+   a metodu ‹pop›, která odstraní posledně vložený prvek a vrátí
+   ho hodnotou (provede přesun z kontejneru).
+
+Tokeny nelze kopírovat ani přiřazovat kopií, pouze přesouvat.
+
+Podprogram bude ze vstupního seznamu ‹list› postupně odebírat
+tokeny a bude je vkládat do ‹vec[ i % vec.size() ]›, kde ‹i› je
+pořadové číslo odebraného tokenu v původním seznamu ‹list›
+(počínaje nulou).
+
+Zabezpečte, aby byl výsledek konzistentní, a to i v případě, kdy
+dojde k výjimce. Selhat mohou tyto operace (a žádné jiné):
+
+ • alokace paměti v metodě ‹emplace› (v takovém případě není
+   prvek vložen, ani není zavolán jeho konstruktor),
+ • metoda ‹drop› (odstranění prvku v tomto případě neproběhne).
+
+Zejména se nesmí žádný token ztratit, ani nesmí nikde zůstat
+přebytečný vykradený (moved from) token. 
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹invest›]
+
+Vrátíme se k již známému příkladu s bankovním účtem, který
+tentokrát rozšíříme o práci s výjimkami – konkrétně pokus o výběr
+z účtu, na kterém není dostatečný zůstatek, skončí výjimkou. Dále
+přidáme třídu ‹investment›, která je „duální“ k půjčce: při
+sestrojení «odečte» peníze z účtu, bude se pravidelně
+zhodnocovat, a při zničení vrátí investované peníze na původní
+účet. 
+
+    struct insufficient_funds; /* C */
+
+Typ ‹account› nechť má metody ‹balance›, ‹deposit› and
+‹withdraw›. Startovní zůstatek je 0 a musí zůstat za všech
+okolností nezáporný. Jakýkoliv pokus o jeho snížení pod nulu musí
+skončit výjimkou ‹insuficient_funds›. 
+
+    struct account; /* C */
+
+Konečně typ ‹investment›, kterého konstruktor má 3 parametry:
+
+ • odkaz (referenci) na hodnotu typu ‹account›,
+ • sumu, kterou hodláme investovat,
+ • roční úrok (jako celé číslo v promile).
+
+Při sestrojení musí z cílového účtu odebrat potřebné prostředky a
+při zničení je musí vrátit, včetně nahromaděných úroků. Metoda
+‹next_year› připočítá příslušný úrok. 
+
+    struct investment; /* C */
+
+
+### 6. [‹linear›]
+
+† Napište program, který bude řešit systémy lineárních rovnic
+o dvou neznámých. Rozhraní bude lehce nekonvenční: přetěžte
+operátory ‹+›, ‹*› a ‹==› a definujte globální konstanty ‹x› a
+‹y› vhodných typů tak, aby bylo možné rovnice zapisovat způsobem,
+který vidíte níže v proceduře ‹main›. 
+
+Uvědomte si, že návratový typ ‹==› nemusí být ‹bool› – naopak,
+může se jednat o libovolný typ, včetně vlastních. Pro samotnou
+implementaci funkce ‹solve› doporučujeme použít Cramerovo
+pravidlo. 
+
+Nemá-li zadaný systém řešení, funkce ‹solve› nechť skončí
+výjimkou ‹no_solution› (tuto odvoďte od ‹std::exception›). Má-li
+řešení více, je jedno které vrátíte.¹ 
+
+¹ Jsou-li oba determinanty pomocných matic ⟦A₁, A₂⟧ nulové,
+  systém má libovolně mnoho řešení. Dejte si ale při jejich
+  vyčíslování pozor na dělení nulou. 
+
+
+## r. Řešené úlohy
+
+
+### 1. [‹printing›]
+
+Jobs need resources (printing credits, where 1 page = 1 credit)
+which must be reserved when the job is queued, but are only
+consumed at actual printing time; jobs can be moved between
+queues (printers) by the system, and jobs that are still in the
+queue can be aborted. 
+
+The class ‹job› represents a document to be printed, along with
+resources that have already been earmarked for its printing.
+
+ • The constructor should take a numeric identifier, the id of
+   the user who owns the job, and the number of pages (= credits
+   allocated for the job),
+ • method ‹owner› should return the id of the owner,
+ • method ‹page_count› should return the number of pages. 
+
+    class job; /* C */
+
+A single ‹queue› instance represents a printer. It should have
+the following methods:
+
+ • ‹dequeue›: consume (print) the «oldest» job in the queue and
+   return its ‹id›,
+ • ‹enqueue›: add a job to the queue,
+ • ‹release( id )›: remove the job given by ‹id› from the queue
+   and return it to the caller,
+ • ‹page_count›: number of pages in the queue.
+
+You can assume that oldest job has the lowest ‹id›. 
+
+    class queue; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹bsearch›]
+
+V tomto cvičení se vrátíme k oblíbenému vyhledávacímu algoritmu
+půlením intervalu. Budeme implementovat kontejner, který se
+podobá na ‹std::map›, ale budeme předpokládat, že vyhledávání je
+mnohem častější než vkládání. Proto budeme preferovat strukturu,
+kde je vyhledávání podle možnosti co nejrychlejší, i za cenu
+pomalejšího vkládání.
+
+Vhodným kandidátem je seřazené pole¹ – hledání je logaritmické
+podobně jako u vyhledávacího stromu, ale data jsou uložena mnohem
+kompaktněji a proto je i práce s nimi výrazně rychlejší.
+
+Implementujte metody ‹emplace›, ‹at› a ‹contains›, s chováním,
+které odpovídá typu ‹std::map›, s výjimkou ‹emplace›, který vrátí
+pouze hodnotu typu ‹bool› (iterátory implementovat nebudeme).
+
+Konečně, protože neumíme psát generické třídy, klíče i hodnoty
+budou pevných typů: ‹int› pro klíče a ‹token› pro hodnoty. 
+
+    struct token /* C */
+    {
+        token( int i ) : _value( i ) {}
+        token( const token & ) = delete;
+        token( token && ) = default;
+
+        token &operator=( const token & ) = delete; /* C */
+        token &operator=( token && ) = default;
+        token &operator=( int v ) { _value = v; return *this; }
+
+        bool operator==( int v ) const { return _value == v; } /* C */
+
+    private: /* C */
+        int _value;
+    };
+
+    class flat_map; /* C */
+
+¹ Požadujeme, aby kontejner ‹flat_map› po libovolné sekvenci
+  operací používal nejvýše dvě souvislé dynamicky alokované
+  oblasti paměti. Kontejner ‹std::vector› používá nejvýše jednu. 
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 4. [‹tinyvec›]
+
+† Implement ‹tiny_vector›, a class which works like a vector, but
+instead of allocating memory dynamically, it uses a fixed-size
+buffer (32 bytes) which is part of the object itself (use e.g. an
+‹std::array› of bytes). Like earlier, we will use ‹token› as the
+value type. Provide the following methods:
+
+ • ‹insert› (take an index and an rvalue reference),
+ • ‹erase› (take an index),
+ • ‹back› and ‹front›, with appropriate return types.
+
+In this exercise (unlike in most others), you are allowed to use
+‹reinterpret_cast›. 
+
+    class token /* C */
+    {
+        int _value;
+        bool _robbed = false;
+    public:
+        static int _count;
+
+        token( int i ) : _value( i ) { ++ _count; } /* C */
+        ~token() { -- _count; }
+
+        token( const token & ) = delete; /* C */
+        token( token &&o ) : _value( o._value )
+        {
+            ++ _count;
+            assert( !o._robbed );
+            o._robbed = true;
+        }
+
+        token &operator=( const token & ) = delete; /* C */
+        token &operator=( token &&o )
+        {
+            assert( !o._robbed );
+            _value = o._value;
+            _robbed = o._robbed;
+            o._robbed = true;
+            return *this;
+        }
+
+        token &operator=( int v ) /* C */
+        {
+            _value = v;
+            _robbed = false;
+            return *this;
+        }
+
+        bool operator==( int v ) const /* C */
+        {
+            assert( !_robbed );
+            return _value == v;
+        }
+    };
+
+Throw this if ‹insert› is attempted but the element wouldn't fit
+into the buffer. 
+    class insufficient_space {}; /* C */
+
+Hint: Use ‹uninitialized_*› and ‹destroy(_at)› functions from the
+‹memory› header. 
+
+    class tiny_vector; /* C */
+
+    int token::_count = 0; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹lock›]
+
+Implement class ‹lock› which holds a mutex locked as long as it
+exists. The ‹lock› instance can be moved around. For simplicity,
+the ‹mutex› itself is immovable. 
+
+    class mutex /* C */
+    {
+        bool _locked = false;
+    public:
+        ~mutex() { assert( !_locked ); }
+
+        mutex() = default; /* C */
+        mutex( const mutex & ) = delete;
+        mutex( mutex && ) = delete;
+        mutex &operator=( const mutex & ) = delete;
+        mutex &operator=( mutex && ) = delete;
+
+        void lock() { assert( !_locked ); _locked = true; } /* C */
+        void unlock() { assert( _locked ); _locked = false; }
+        bool locked() const { return _locked; }
+    };
+
+    class lock; /* C */
+

@@ -1,0 +1,497 @@
+
+
+## d. Demonstrace (ukázky)
+
+
+### 1. [‹iterate›]
+
+V této ukázce si předvedeme práci s tzv. funkcemi vyššího řádu
+(higher order) – tedy funkcemi, kterých parametrem je opět
+funkce. 
+
+    auto iterate( auto f, auto x, int count ) /* C */
+    {
+We want to build a vector of values, starting with ‹x›, then
+‹f(x)›, ‹f(f(x))›, and so on. Immediately, we face a problem:
+what should be the type of the vector? We need to specify the
+type parameter to declare the variable, and this time we
+won't be able to weasel out by just saying ‹auto›, since the
+compiler can't tell the type without an unambiguously typed
+initializer. We have two options here:
+
+ 1. we could omit the type parameter of ‹std::vector› and let
+    the compiler deduce only that – this would be written
+    ‹std::vector out{ x }› – by putting ‹x› into the vector
+    right from the start, the compiler can deduce that the
+    element type should be the same as the type of ‹x›,
+    whatever that is,
+ 2. we can use ‹decltype› to obtain the type of ‹x› and use
+    that to specify the required type parameter for ‹out›,
+    i.e.: 
+
+        std::vector< decltype( x ) > out; /* C */
+        out.push_back( x );
+
+We build the return vector by repeatedly calling ‹f› on the
+previous value, until we hit ‹count› items. 
+
+        for ( int i = 1; i < count; ++ i ) /* C */
+            out.push_back( f( out.back() ) );
+
+        return out; /* C */
+    };
+
+    int main() /* demo */ /* C */
+    {
+Besides the missing name and the empty square brackets, the
+signature of the lambda is similar to a standard function.
+However, on closer inspection, another thing is missing: the
+return type. This might be specified using ‹-> type› after the
+argument list, but if it is not, the compiler will, again, deduce
+the type for us. The return type is commonly omitted. 
+
+        auto f = []( int x ) /* C */
+        {
+We return a value just like in a regular function. Please
+also note the semicolon after the closing brace: definition
+of a lambda is an «expression», and the variable declaration
+as a whole needs to be delimited by a semicolon, just like in
+‹int x = 7;›. 
+
+            return x * x; /* C */
+        };
+
+        auto g = []( int x ) { return x + 1; }; /* C */
+
+        auto v = iterate( f, 2, 4 ); /* C */
+
+        std::vector< int > expect{ 2, 4, 16, 256 }; /* C */
+        assert( v == expect );
+
+        std::vector< int > /* C */
+            iota = iterate( g, 1, 4 ),
+            iota_expect{ 1, 2, 3, 4 };
+
+        assert( iota == iota_expect ); /* C */
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹convert›]
+
+In this example, we will implement a class which behaves like a
+nullable reference to an integer. We will pretend we are in Java
+and will throw an exception when the user attempts to use a null
+reference. 
+
+We first define the type which we will use to indicate an attempt
+to use an invalid (null) reference. 
+
+    class null_pointer_exception {}; /* C */
+
+Now for the reference-like class itself. We need two basic
+ingredients to provide simple reference-like behaviours: we need
+to be able to (implicitly) convert a value of type ‹maybe_ref› to
+a value of type ‹int›. The other part is the ability to «assign»
+new values of type ‹int› to the referred-to variable, via
+instances of the class ‹maybe_ref›. 
+
+    class maybe_ref /* C */
+    {
+We hold a pointer internally, since real references in C++
+cannot be null. 
+
+        int *_ptr = nullptr; /* C */
+
+We will also define a helper (internal, private) method which
+checks whether the reference is valid. If the reference is
+null, it throws the above exception. 
+
+        void _check() const /* C */
+        {
+            if ( !_ptr )
+                throw null_pointer_exception();
+        }
+
+    public: /* C */
+
+Constructors: the default-constructed ‹maybe_ref› instances
+are nulls, they have nowhere to point. Like real references
+in C++, we will allow ‹maybe_ref› to be initialized to point
+to an existing value. We take the argument by reference and
+convert that reference into a pointer by using the unary ‹&›
+operator, in order to store it in ‹_ptr›. 
+
+        maybe_ref() = default; /* C */
+        maybe_ref( int &i ) : _ptr( &i ) {}
+
+As mentioned earlier, we need to be able to (implicitly)
+convert ‹maybe_ref› instances into integers. The syntax to do
+that is ‹operator type›, without mentioning the return type
+(in this case, the return type is given by the name of the
+operator, i.e. ‹int› here). It is also possible to have
+reference conversion operators, by writing e.g. ‹operator
+const int &()›. However, we don't need one of those here
+because ‹int› is small, and we can't have both since that
+would cause a lot of ambiguity. 
+
+        operator int() const /* C */
+        {
+            _check();
+            return *_ptr;
+        }
+
+The final part is assignment: as you surely remember,
+‹operator=› should return a reference to the assigned-to
+instance. It usually takes a ‹const› reference as an
+argument, but again we do not need to do that here. Below in
+the demo, we will point out where the assignment operator
+comes into play. 
+
+        maybe_ref &operator=( int v ) /* C */
+        {
+            _check();
+            *_ptr = v;
+            return *this;
+        }
+    };
+
+    int main() /* demo */ /* C */
+    {
+        int i = 7;
+
+When initializing built-in references, we use ‹int &i_ref =
+i›. We can do the same with ‹maybe_ref›, but we need to keep
+in mind that this syntax calls the ‹maybe_ref( int )›
+constructor, «not» the assignment operator. 
+
+        maybe_ref i_ref = i; /* C */
+
+Let us check that the reference behaves as expected. 
+
+        assert( i_ref == 7 ); /* uses conversion to ‹int› */ /* C */
+        i_ref = 3;            /* uses the assignment operator */
+        assert( i_ref == 3 ); /* conversion to ‹int› again */
+
+Check that the original variable has changed too. 
+
+        assert( i == 3 ); /* C */
+
+Let's also check that null references behave as expected. 
+
+        bool caught = false; /* C */
+        maybe_ref null;
+
+Comparison will try to convert the reference to ‹int›, but
+that will fail in ‹_check› with an exception. 
+
+        try { assert( null == 7 ); } /* C */
+        catch ( const null_pointer_exception & ) { caught = true; }
+
+Make sure that the exception was thrown and caught. 
+
+        assert( caught ); /* C */
+        caught = false;
+
+Same but with assignment into the null referenc. 
+
+        try { null = 2; } /* C */
+        catch ( const null_pointer_exception & ) { caught = true; }
+
+        assert( caught ); /* C */
+    }
+
+## e. Elementární příklady
+
+
+### 1. [‹iota›]
+
+Implement a generic function ‹iota›, which, given a function ‹f›,
+calls ‹f( start )›, ‹f( start + 1 )›, … ‹f( end - 1 )›, in this
+order. 
+
+    // void iota( … f, int start, int end ); /* C */
+
+
+### 2. [‹accumulate›]
+
+Write a function ‹accumulate( f, vec )› which will sum up ⟦f(x)⟧
+for all ⟦x⟧ in the given ‹std::vector< int > vec›. 
+
+    // … /* C */
+
+
+## p. Přípravy
+
+
+### 1. [‹kernel›]
+
+Napište funkci ‹kernel›, která spočítá rozklad¹ množiny celých
+čísel ‹s› podle jádra funkce ‹f›. Jádrem funkce myslíme relaci
+ekvivalence, kde jsou v relaci právě všechny vzory ⟦x⟧ daného
+obrazu ⟦f(x)⟧. Formálněji ⟦(x, y) ∈ \ker f ↔ f(x) = f(y)⟧.
+
+Můžete předpokládat, že návratový typ funkce ‹f› je ‹int›.
+Časová složitost nesmí být horší, než O(n⋅logn). 
+
+    auto kernel( const std::set< int > &, auto ); /* C */
+
+¹ Rozkladem množiny ⟦X⟧ podle ekvivalence ⟦R⟧ myslíme systém
+  množin ⟦S⟧, který tuto relaci respektuje: je-li ⟦ [a] = { b ∈ X
+  | (a, b) ∈ R } ⟧, potom ⟦ S = { [a] | a ∈ X } ⟧. 
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹bitref›]
+
+Navrhněte typ ‹bitref›, který se bude co nejvíce podobat
+(nekonstantní) referenci na hodnotu typu ‹bool›, ale bude
+„odkazovat“ jediný bit. Bity číslujeme od toho nejméně
+významného (který má index 0). Je-li
+
+ • ‹br› hodnota typu ‹bitref›,
+ • ‹b› hodnota typu ‹bool›,
+ • ‹f› je funkce, která akceptuje parametr typu ‹bool›,
+ • ‹off› hodnota typu ‹int› v rozsahu 0–7 a konečně,
+ • ‹ptr› je dereferencovatelná hodnota typu ‹std::byte *›,
+
+tyto výrazy musí být dobře utvořené:
+
+ • ‹bitref( ptr, off )› – vytvoří „bitovou referenci“ na ‹off›-tý
+   bit bajtu, na který ukazuje ‹ptr›,
+ • ‹br = b› – nastaví odkazovaný bit na hodnotu ‹b›,
+ • ‹!br›,
+ • ‹br & b›, ‹b & br›, ‹br & br›,
+ • podobně pro ostatní binární operátory: ‹|›, ‹&›, ‹^›, ‹+›,
+   ‹-›, ‹*›, ‹/›, ‹%›,
+ • ‹br += b›, ‹br += br›, podobně ‹*=›, ‹/=›, ‹&=›, ‹^=›, ‹|=›,
+ • ‹br == b›, ‹b == br›, ‹br == br›,
+ • podobně ostatní relační operátory: ‹<=›, ‹>=›, ‹<›, ‹>›, ‹!=›,
+ • ‹br++›, ‹br--›, ‹++br›, ‹--br›,
+ • ‹br && b›, ‹b && br›, ‹br && br›,
+ • ‹br || b›, ‹b || br›, ‹br || br›,
+ • ‹f( br )› – zavolá funkci ‹f› s hodnotou odkazovaného bitu
+   jako parametrem.
+
+Navíc musí být možné použít ‹br› jako podmínku příkazů ‹if›,
+‹while›, ‹for›. 
+
+    struct bitref; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹combine›]
+
+Napište čistou, generickou funkci ‹combine( s, f )› kde ‹s› je
+neprázdný indexovatelný kontejner (má tedy metodu ‹size› a lze
+jej indexovat celými čísly) hodnot libovolného typu, a ‹f› je
+binární asociativní funkce, kde:
+
+ • velikost výsledku funkce ‹f› může mít libovolnou monotonní
+   závislost na velikosti vstupů (např. může platit ⟦|f(u, v)| =
+   |u| + |v|⟧),
+ • podobně libovolná (ale stále monotonní) je délka výpočtu
+   funkce ‹f› v závislosti na velikostech parametrů.
+
+Vaším úkolem je pomocí ‹f› sestavit z celé posloupnosti ‹s›
+jedinou hodnotu, a to tak, aby se minimalizoval celkový potřebný
+čas.
+
+Příklad: Je-li ‹f› lineární (jak ve velikosti výsledku, tak
+v čase výpočtu) a prvky ‹s› mají velikost 1, celková složitost
+volání ‹combine› by neměla přesáhnout ⟦O(n⋅log(n))⟧. Příkladem
+takové funkce ‹f› je spojení dvou hodnot typu ‹std::vector› za
+sebe.
+
+Příklad: Je-li ‹f› kvadratická (opět ve velikosti výsledku i
+čase), celková složitost by měla být nejvýše ⟦O(n²⋅log(n))⟧.
+Zde by ‹f› mohl být například tenzorový součin. 
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 4. [‹nibble›]
+
+In this exercise, we will implement a class that represents an
+array of nibbles (half-bytes) stored compactly, using a byte
+vector as backing storage. We will need 3 classes: one to
+represent reference-like objects: ‹nibble_ref›, another for
+pointer-like objects: ‹nibble_ptr› and finally the container to
+hold the nibbles: ‹nibble_vec›. NB. In this exercise, we will
+«not» consider ‹const›-ness of values stored in the vector.¹ 
+
+The ‹nibble_ref› class needs to remember a reference or a pointer
+to the byte which contains the nibble that we refer to, and
+whether it is the upper or the lower nibble. With that
+information (which should be passed to it via a constructor), it
+needs to provide:
+
+ • an «assignment operator» which takes an ‹uint8_t› as an
+   argument, but only uses the lower half of that argument to
+   overwrite the pointed-to nibble,
+ • a «conversion operator» which allows implicit conversion of a
+   ‹nibble_ref› to an ‹uint8_t›. 
+
+    class nibble_ref; /* reference implementation: 17 lines */ /* C */
+
+The ‹nibble_ptr› class works as a pointer. «Dereferencing» a
+‹nibble_ptr› should result in a ‹nibble_ref›. To make
+‹nibble_ptr› more useful, it should also have:
+
+ • a pre-increment operator, which shifts the pointer to the next
+   nibble in memory. That is, if it points at a lower nibble,
+   after ‹++x›, it should point to an «upper half» of the «same»
+   byte, and after another ‹++x›, it should point to the «lower
+   half» of the «next» byte,
+ • an «equality comparison» operator, which checks whether two
+   ‹nibble_ptr› instances point to the same place in memory. 
+
+    class nibble_ptr; /* reference implementation: 18 lines */ /* C */
+
+And finally the ‹nibble_vec›: this class should provide 4
+methods:
+
+ • ‹push_back›, which adds a nibble at the end,
+ • ‹begin›, which returns a ‹nibble_ptr› to the first stored
+   nibble (lower half of the first byte),
+ • ‹end›, which returns a ‹nibble_ptr› «past» the last stored
+   nibble (i.e. the first nibble that is not in the container),
+   and finally
+ • ‹get( i )› which returns a ‹nibble_ref› to the ‹i›-th nibble.
+
+
+    class nibble_vec; /* reference implementation: 16 lines */ /* C */
+
+¹ In particular, obtaining a pointer (e.g. by using ‹begin›) will
+  allow you to change the value that it points to, even if
+  ‹nibble_vec› itself was marked ‹const›. 
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹higher›]
+
+Napište funkce ‹map›, ‹zip› a ‹fold›. Pracovat budeme ve všech
+případech s libovolnými kontejnery, o kterých je zaručeno, že
+
+ • mají (konstantní) metody ‹begin› a ‹end›, které vrací
+ • vhodné iterátory, které
+   ◦ mají prefixový a postfixový operátor ‹++›,
+   ◦ operátory rovnosti ‹==›, ‹!=› a
+   ◦ operátor dereference (unární ‹*›).
+
+Žádné jiné metody předpokládat nelze. 
+
+Funkce ‹map› má parametry ‹f› (funkce) a kontejner ‹c› (s prvky
+takového typu, aby je bylo možné předat funkci ‹f› jako
+parametr). Výsledkem je ‹std::vector› hodnot, které vzniknou
+voláním ‹f› na jednotlivé prvky kontejneru ‹c›. 
+
+    // … /* C */
+
+Funkce ‹zip› je podobná, ale ‹f› je funkce o dvou parametrech a
+na vstupu jsou dva kontejnery ‹c› a ‹d› (nemusí být stejného
+typu). První parametr funkce ‹f› nechť pochází z kontejneru ‹c›,
+ten druhý pak z kontejneru ‹d›.
+
+Nemají-li kontejnery stejnou délku, přebývající hodnoty v tom
+delším se ignorují. 
+
+    // … /* C */
+
+Konečně funkce ‹fold› bude mít parametry ‹f›, ‹i› a ‹c›, kde ‹f›
+je binární funkce, ‹i› je iniciální hodnota a ‹c› je vstupní
+kontejner. Jsou-li c₀ … cₙ prvky ‹c›, výsledek funkce ‹fold› pak
+odpovídá ‹f( … f( f( i, c₀ ), c₁ ), … cₙ )›. Je-li kontejner ‹c›
+prázdný, výsledkem je ‹i›. Parametry funkce ‹f› mohou být obecně
+různých typů, musí být ale kompatibilní s ‹i› a ‹c›. 
+
+    // … /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 6. [‹comp›]
+
+† Navrhněte typ, který se bude navenek chovat jako sekvenční
+kontejner dvojic (‹std::tuple›) čísel, ale vnitřně bude data
+uchovávat ve dvojici kontejnerů (‹std::vector›) celých čísel.
+Požadované metody:
+
+ • ‹begin›, ‹end› a odpovídající zjednodušený iterátor s:
+   ◦ operátory ‹==› a ‹!=›,
+   ◦ prefixovým operátorem ‹++›,
+   ◦ operátorem dereference (unární ‹*›),
+   kde výsledek operátoru ‹*› musí být použitelný jako dvojice
+   čísel, včetně ‹std::get› a přiřazení do jednotlivých složek.
+ • ‹size›,
+ • ‹push_back›,
+ • ‹emplace_back› (se dvěma parametry typu ‹int›, nebo
+   žádným parametrem),
+ • ‹left› a ‹right› vrátí konstantní referenci na příslušný
+   vnitřní kontejner (konstantní proto, aby nebylo jejich
+   použitím možné porušit potřebné invarianty).
+
+Stačí, aby iterace fungovala pro nekonstantní hodnoty typu
+‹components› (naprogramovat konstantní i nekonstantní iteraci bez
+duplikace kódu neumíme).
+
+Nápověda: zvažte, jak využít ‹std::tuple› s vhodnými parametry.
+K vyřešení příkladu stačí už probrané konstrukce. 
+
+    struct components; /* C */
+
+
+## r. Řešené úlohy
+
+
+### 2. [‹approx›]
+
+Remember ‹fib.cpp›? We can do a bit better. Let's decompose our
+golden() function differently this time. 
+
+The ‹approx› function is a higher-order one. What it does is it
+calls f() repeatedly to improve the current estimate, until the
+estimates are sufficiently close to each other (closer than the
+given precision). The ‹init› argument is our initial estimate of
+the result. 
+
+    double approx( auto f, double init, double prec ); /* C */
+
+Use ‹approx› to compute the golden mean. Note that you don't need
+to use the previous estimate in your improvement function. Use
+by-reference captures to keep state between iterations if you
+need some. 
+
+    double golden( double prec ); /* C */
+
+
+### 4. [‹sort›]
+
+Implement an in-place selection sort of a vector of integers,
+using a «comparator» passed to the sort routine as an argument.
+A comparator is a function that is used to compare elements
+instead of the builtin relational operators. This is useful if
+your data is sorted in non-standard manner. 
+
+    void selectsort( std::vector< int > &to_sort, auto cmp ); /* C */
+
+
+### 6. [‹bsearch›]
+
+Implement binary search on a vector, with a twist: the order of
+the elements is given by a «comparator». This is a function that
+is passed as an argument to ‹search› and is used to compare
+elements instead of the builtin relational operators. This is
+useful if your data is sorted in non-standard manner. 
+
+    // auto search = []( std::vector< int > &vec, int val, auto cmp ); /* C */
+

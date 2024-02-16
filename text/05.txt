@@ -1,0 +1,799 @@
+
+# Ukazatele
+
+Before you dig into the demonstrations and exercises, do not forget
+to read the extended introduction below. That said, the units for
+this week are, starting with demonstrations:
+
+ 1. ‹queue›    – a queue with stable references
+ 2. ‹finexp›   – like regexps but finite
+ 3. ‹expr›     – expressions with operators and shared pointers
+ 4. ‹family›   – genealogy with weak pointers
+
+Elementary exercises:
+
+ 1. ‹dynarray› – a simple array with a dynamic size
+ 2. ‹list›     – a simple linked list with minimal interface
+ 3. ‹iota›     – an iterable integer range
+
+Preparatory exercises:
+
+ 1. ‹unrolled› – a linked list of arrays
+ 2. ‹bittrie›  – bitwise tries (radix trees)
+ 3. ‹solid›    – efficient storage of optional data
+ 4. ‹chartrie› – binary tree for holding string keys
+ 5. ‹bdd›      – binary decision diagrams
+ 6. ‹rope›     – a string-like structure with cheap concatenation
+
+Regular exercises:
+
+ 1. ‹circular› – a singly-linked circular list
+ 2. ‹zipper›   – implementing zipper as a linked list
+ 3. ‹segment›  – a binary tree of disjoint intervals
+ 4. ‹diff›     – automatic differentiation
+ 5. ‹critbit›  – more efficient version of binary tries
+ 6. ‹refcnt› † – implement a simple reference-counted heap
+
+## A. Exclusive Ownership
+
+So far, we have managed to almost entirely avoid thinking about
+memory management: standard containers manage memory behind the
+scenes. We sometimes had to think about «copies» (or rather avoiding
+them), because containers could carry a lot of memory around and
+copying all that memory without a good reason is rather wasteful
+(this is why we often pass arguments as ‹const› references and not
+as values).
+
+This week, we will look more closely at how memory management works
+and what we can do when standard containers are inadequate to deal
+with a given problem. In particular, we will look at building our
+own pointer-based data structures and how we can retain automatic
+memory management in those cases using ‹std::unique_ptr›.
+
+XXX
+
+## B. Shared Ownership
+
+While ‹unique_ptr› is very useful and efficient, it only works in
+cases where the ownership structure is clear, and a given object has
+a single owner. When ownership of a single object is shared by
+multiple entities (objects, running functions or otherwise), we
+cannot use ‹unique_ptr›.
+
+To be slightly more explicit: shared ownership only arises when the
+lifetime of the objects sharing ownership is «not» tied to each
+other. If A owns B and A and B both need references to C, we can
+assign the ownership of C to object A: since it also owns B, it must
+live at least as long as B and hence there ownership is not actually
+shared.
+
+However, if A needs to be able to transfer ownership of B to some
+other, unrelated object while still retaining a reference to C, then
+C will indeed be in shared ownership: either A or B may expire
+first, and hence neither can safely destroy the shared instance of C
+to which they both keep references. In many modern languages, this
+problem is solved by a «garbage collector», but alas, C++ does not
+have one.
+
+Of course, it is usually better to design data structures in a way
+that allows for clear, 1:1 ownership structure. Unfortunately, this
+is not always easy, and sometimes it is not the most efficient
+solution either. Specifically, when dealing with large immutable (or
+persistent, in the functional programming sense) data structures,
+shared ownership can save considerable amount of memory, without
+introducing any ill side-effects, by only storing common
+sub-structures once, instead of cloning them. Of course, there are
+also cases where «shared mutable state» is the most efficient
+solution to a problem.
+
+
+## d. Demonstrace (ukázky)
+
+
+### 1. [‹queue›]
+
+In this example, we will demonstrate the use of
+‹std::unique_ptr›, which is an RAII class for holding (owning)
+values dynamically allocated from the heap. We will implement a
+simple one-way, non-indexable queue. We will require that it is
+possible to erase elements from the middle in O(1), without
+invalidating any other iterators. The standard containers
+which could fit:
+
+ • ‹std::deque› fails the erase in the middle requirement,
+ • ‹std::forward_list› does not directly support queue-like
+   operation, hence using it as a queue is possible but awkward;
+   wrapping ‹std::forward_list› would be, however, a viable
+   approach to this task, too,
+ • ‹std::list› works well as a queue out of the box, but has
+   twice the memory overhead of ‹std::forward_list›.
+
+As usual, since we do not yet understand templates, we will only
+implement a queue of integers, but it is not hard to imagine we
+could generalize to any type of element. 
+
+Since we are going for a custom, node-based structure, we will
+need to first define the class to represent the nodes. For sake
+of simplicity, we will not encapsulate the attributes. 
+
+    struct queue_node /* C */
+    {
+We do not want to handle all the memory management ourselves.
+To rule out the possibility of accidentally introducing
+memory leaks, we will use ‹std::unique_ptr› to manage
+allocated memory for us. Whenever a ‹unique_ptr› is
+destroyed, it will free up any associated memory. An
+important limitation of ‹unique_ptr› is that each piece of
+memory managed by a ‹unique_ptr› must have «exactly one»
+instance of ‹unique_ptr› pointing to it. When this instance
+is destroyed, the memory is deallocated. 
+
+        std::unique_ptr< queue_node > next; /* C */
+
+Besides the structure itself, we of course also need to store
+the actual data. We will store a single integer per node. 
+
+        int value; /* C */
+    };
+
+We will also need to be able to iterate over the queue. For that,
+we define an iterator, which is really just a slightly
+generalized pointer (you may remember ‹nibble_ptr› from last
+week). We need 3 things: pre-increment, dereference and
+inequality. 
+
+    struct queue_iterator /* C */
+    {
+        queue_node *node;
+
+The ‹queue› will need to create instances of a
+‹queue_iterator›. Let's make that convenient. 
+
+        queue_iterator( queue_node *n ) : node( n ) {} /* C */
+
+The pre-increment operator simply shifts the pointer to the
+‹next› pointer of the currently active node. 
+
+        queue_iterator &operator++() /* C */
+        {
+            node = node->next.get();
+            return *this;
+        }
+
+Equality is very simple (we need this because the condition
+of iteration loops is ‹it != c.end()›, including range ‹for›
+loops). We could implement ‹!=› directly, but ‹==› is usually
+more natural, and given ‹==›, the compiler will derive ‹!=›
+for us automatically. 
+
+        bool operator==( const queue_iterator &o ) const /* C */
+        {
+            return o.node == node;
+        }
+
+And finally the dereference operator: this is what will be
+called when ‹*it› is evaluated. Also notice the
+‹const›/non-‹const› overloads (for completeness, it is often
+preferable to return a ‹const› reference from the ‹const›
+overload; this depends on the element type).
+
+        int &operator*()       { return node->value; } /* C */
+        int  operator*() const { return node->value; }
+    };
+
+This class represents the queue itself. We will have ‹push› and
+‹pop› to add and remove items, ‹empty› to check for emptiness and
+‹begin› and ‹end› to implement iteration. 
+
+    class queue /* C */
+    {
+We will keep the head of the list in another ‹unique_ptr›. An
+empty queue will be represented by a null head. Also worth
+noting is that when using a list as a queue, the head is
+where we remove items. The end of the queue (where we add new
+items) is represented by a plain pointer because it does not
+«own» the node (the node is owned by its predecessor). 
+
+        std::unique_ptr< queue_node > first; /* C */
+        queue_node *last = nullptr;
+    public:
+
+As mentioned above, adding new items is done at the ‘tail’
+end of the list. This is quite straightforward: we simply
+create the node, chain it into the list (using the ‹last›
+pointer as a shortcut) and point the ‹last› pointer at the
+newly appended node. We need to handle empty and non-empty
+lists separately because we chose to represent an empty list
+using null head, instead of using a dummy node. 
+
+        void push( int v ) /* C */
+        {
+            if ( last ) /* non-empty list */
+            {
+                last->next = std::make_unique< queue_node >();
+                last = last->next.get();
+            }
+            else /* empty list */
+            {
+                first = std::make_unique< queue_node >();
+                last = first.get();
+            }
+
+            last->value = v; /* C */
+        }
+
+Reading off the value from the head is easy enough. However,
+to remove the corresponding node, we need to be able to point
+‹first› at the next item in the queue.
+
+Unfortunately, we cannot use normal assignment (because
+copying ‹unique_ptr› is not allowed). We will have to use an
+operation that is called «move assignment» and which is
+written using a helper function in from the standard library,
+called ‹std::move›.
+
+Operations which «move» their operands invalidate the
+«moved-from» instance. In this case, ‹first->next› is the
+«moved-from» object and the «move» will turn it into a ‹null›
+pointer. In any case, the ‹next› pointer which was
+invalidated was stored in the old ‹head› «node» and by
+rewriting ‹first›, we lost all pointers to that node. This
+means two things:
+
+ 1. the old head's ‹next› pointer, now ‹null›, is no longer
+    accessible
+ 2. memory allocated to hold the old head node is freed 
+
+        int pop() /* C */
+        {
+            int v = first->value;
+            first = std::move( first->next );
+
+Do not forget to update the ‹last› pointer in case we
+popped the last item. 
+
+            if ( !first ) last = nullptr; /* C */
+            return v;
+        }
+
+The emptiness check is simple enough. 
+
+        bool empty() const { return !last; } /* C */
+
+Now the ‹begin› and ‹end› methods. We start iterating from
+the head (since we have no choice but to iterate in the
+direction of the ‹next› pointers). The ‹end› method should
+return a so-called «past-the-end» iterator, i.e. one that
+comes right after the last real element in the queue. For an
+empty queue, both ‹begin› and ‹end› should be the same.
+Conveniently, the ‹next› pointer in the last real node is
+‹nullptr›, so we can use that as our end-of-queue sentinel
+quite naturally. You may want to go back to the pre-increment
+operator of ‹queue_iterator› just in case. 
+
+        queue_iterator begin() { return { first.get() }; } /* C */
+        queue_iterator end()   { return { nullptr }; }
+
+And finally, erasing elements. Since this is a singly-linked
+list, to erase an element, we need an iterator to the element
+«before» the one we are about to erase. This is not really a
+problem, because erasing at the head is done by ‹pop›. We use
+the same «move assignment» construct that we have seen in
+‹pop› earlier. 
+
+        void erase_after( queue_iterator i ) /* C */
+        {
+            assert( i.node->next );
+            i.node->next = std::move( i.node->next->next );
+        }
+    };
+
+    int main() /* demo */ /* C */
+    {
+We start by constructing an (empty) queue and doing some
+basic operations on it. For now, we only try to insert and
+remove a single element. 
+
+        queue q; /* C */
+        assert( q.empty() );
+        q.push( 7 );
+        assert( !q.empty() );
+        assert( q.pop() == 7 );
+        assert( q.empty() );
+
+Now that we have emptied the queue again, we add a few more
+items and try erasing one and iterating over the rest.
+
+        q.push( 1 ); /* C */
+        q.push( 2 );
+        q.push( 7 );
+        q.push( 3 );
+
+We check that erase works as expected. We get an iterator
+that points to the value ‹2› from above and use it to erase
+the value ‹7›. 
+
+        queue_iterator i = q.begin(); /* C */
+        ++ i;
+        assert( *i == 2 );
+        q.erase_after( i );
+
+We can use instances of ‹queue› in range ‹for› loops, because
+they have ‹begin› and ‹end›, and the types those methods
+return (i.e. iterators) have dereference, inequality and
+pre-increment. 
+
+        int x = 1; /* C */
+        for ( int v : q )
+            assert( v == x++ );
+
+That went rather well, let's just check that the order of
+removal is the same as the order of insertion (first in,
+first out). This is how queues should behave. 
+
+        assert( q.pop() == 1 ); /* C */
+        assert( q.pop() == 2 );
+        assert( q.pop() == 3 );
+        assert( q.empty() );
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹expr›]
+
+In this example program, we will look at using shared pointers
+and operator overloading to get a nicer version of our expression
+examples, this time with sub-structure sharing: that is, doing
+something like ‹a + a› will not duplicate the sub-expression ‹a›.
+
+
+Like in week 7, we will define an abstract base class to
+represent the nodes of the expression tree. 
+
+    struct expr_base /* C */
+    {
+        virtual int eval() const = 0;
+        virtual ~expr_base() = default;
+    };
+
+Since we will use (shared) pointers to ‹expr_base› quite often,
+we can save ourselves some typing by defining a convenient type
+alias: ‹expr_ptr› sounds like a reasonable name. 
+
+    using expr_ptr = std::shared_ptr< expr_base >; /* C */
+
+We will have two implementations of ‹expr_base›: one for constant
+values (nothing much to see here), 
+
+    struct expr_const : expr_base /* C */
+    {
+        const int value;
+        expr_const( int v ) : value( v ) {}
+        int eval() const override { return value; }
+    };
+
+and another for operator nodes. Those are more interesting,
+because they need to hold references to the sub-expressions,
+which are represented as shared pointers. 
+
+    struct expr_op : expr_base /* C */
+    {
+        enum op_t { add, mul } op;
+        expr_ptr left, right;
+        expr_op( op_t op, expr_ptr l, expr_ptr r )
+            : op( op ), left( l ), right( r )
+        {}
+
+        int eval() const override /* C */
+        {
+            if ( op == add ) return left->eval() + right->eval();
+            if ( op == mul ) return left->eval() * right->eval();
+            assert( false );
+        }
+    };
+
+In principle, we could directly overload operators on ‹expr_ptr›,
+but we would like to maintain the illusion that expressions are
+values. For that reason, we will implement a thin wrapper that
+provides a more natural interface (and also takes care of
+operator overloading). Again, the ‹expr› class essentially
+provides Java-like object semantics -- which is quite reasonable
+for immutable objects like our expression trees here. 
+
+    struct expr /* C */
+    {
+        expr_ptr ptr;
+        expr( int v ) : ptr( std::make_shared< expr_const >( v ) ) {}
+        expr( expr_ptr e ) : ptr( e ) {}
+        int eval() const { return ptr->eval(); }
+    };
+
+The overloaded operators simply construct a new node (of type
+‹expr_op› and wrap it up in an ‹expr› instance. 
+
+    expr operator+( expr a, expr b ) /* C */
+    {
+        return { std::make_shared< expr_op >( expr_op::add,
+                                              a.ptr, b.ptr ) };
+    }
+
+    expr operator*( expr a, expr b ) /* C */
+    {
+        return { std::make_shared< expr_op >( expr_op::mul,
+                                              a.ptr, b.ptr ) };
+    }
+
+    int main() /* demo */ /* C */
+    {
+        expr a( 3 ), b( 7 ), c( 2 );
+        expr ab = a + b;
+        expr bc = b * c;
+        expr abc = a + b * c;
+
+        assert( a.eval() == 3 ); /* C */
+        assert( b.eval() == 7 );
+        assert( ab.eval() == 10 );
+        assert( bc.eval() == 14 );
+        assert( abc.eval() == 17 );
+    }
+
+## e. Elementární příklady
+
+
+### 1. [‹dynarray›]
+
+Implement a dynamic array of integers with 2 operations: element
+access (using methods ‹get( i )› and ‹set( i, v )›) and
+‹resize( n )›. The constructor takes the initial size as its only
+parameter. 
+
+    struct dynarray; /* C */
+
+
+### 2. [‹list›]
+
+Implement a linked list of integers, with ‹head›, ‹tail› (returns
+a reference) and ‹empty›. Asking for a ‹head› or ‹tail› of an
+empty list has undefined results. A default-constructed list is
+empty. The other constructor takes an int (the value of head) and
+a reference to an existing list. It will should make a copy of
+the latter. 
+
+    class list; /* C */
+
+
+### 3. [‹iota›]
+
+Write a class ‹iota›, which can be iterated using a ‹range› for
+to yield a sequence of numbers in the range ‹start›, ‹end - 1›
+passed to the constructor. 
+
+    class iota; /* C */
+
+
+## p. Přípravy
+
+
+### 1. [‹unrolled›]
+
+Předmětem tohoto cvičení je datová struktura, tzv. „rozbalený“
+zřetězený seznam. Typ, který bude strukturu zastřešovat, by měl
+mít metody ‹begin›, ‹end›, ‹empty› a ‹push_back›. Ukládat budeme
+celá čísla.
+
+Rozdíl mezi běžným zřetězeným seznamem a rozbaleným seznamem
+spočívá v tom, že ten rozbalený udržuje v každém uzlu několik
+hodnot (pro účely tohoto příkladu 4). Samozřejmě, poslední uzel
+nemusí být zcela zaplněný. Aby měla taková struktura smysl,
+požadujeme, aby byly hodnoty uloženy přímo v samotném uzlu, bez
+potřeby další alokace paměti.
+
+Návratová hodnota metod ‹begin› a ‹end› bude „pseudo-iterátor“:
+bude poskytovat prefixový operátor zvětšení o jedničku
+(pre-increment), rovnost a operátor dereference. Více informací
+o tomto typu objektu naleznete například v ukázce ‹d1_queue›.
+
+V tomto příkladu není potřeba implementovat mazání prvků. 
+
+    struct unrolled_node; /* C */
+    struct unrolled_iterator;
+    struct unrolled;
+
+
+### 2. [‹bittrie›]
+
+Binární trie je «binární» stom, který kóduje množinu bitových
+řetězců, s rychlým vkládáním a vyhledáváním. Každá hrana kóduje
+jeden bit. 
+
+Klíč chápeme jako sekvenci bitů – každý bit určuje, kterým směrem
+budeme ve stromě pokračovat (0 = doleva, 1 = doprava). Bitový
+řetězec budeme chápat jako přítomný v reprezentované množině
+právě tehdy, kdy přesně popisuje cestu k listu. Pro jednoduchost
+budeme klíče reprezentovat jako vektor hodnot typu ‹bool›. 
+
+    using key = std::vector< bool >; /* C */
+
+    struct trie_node; /* C */
+
+Pro jednoduchost nebudeme programovat klasickou metodu ‹insert›.
+Místo toho umožníme uživateli přímo vystavět trie pomocí metod
+‹root› (zpřístupní kořen trie) a ‹make› (vloží nový uzel:
+parametry určí rodiče a směr – 0 nebo 1 – ve kterém bude uzel
+vložen). V obou případech je výsledkem odkaz na uzel, který lze
+předat metodě ‹make›.
+
+Hlavní část úkolu tedy spočívá v implementaci metody ‹has›, která
+pro daný klíč rozhodne, je-li v množině přítomen. 
+
+    struct trie; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹solid›]
+
+V tomto cvičení se zaměříme na typy (v tomto cvičení typ ‹solid›)
+s volitelnými složkami (typ ‹transform_matrix›). Budou nás
+zejména zajímat situace, kdy je relativně častý případ, že
+volitelná data nejsou potřebná, a zároveň jsou dostatečně velká
+aby mělo smysl je oddělit do samostatného objektu (v samostatně
+alokované oblasti paměti). Zároveň budeme požadovat, aby
+«logicky» hodnoty hlavního typu (‹solid›) vystupovaly jako jeden
+celek a nepřítomnost volitelných dat byla vnějšímu světu podle
+možnosti skrytá. 
+
+Typ ‹solid› bude reprezentovat nějaké třírozměrné těleso, zatímco
+typ ‹transform_matrix› bude popisovat třírozměrnou lineární
+transformaci takového tělesa, a bude tedy reprezentován devíti
+čísly s plovoucí desetinnou čárkou (3 řádky × 3 sloupce). Tyto
+hodnoty nechť jsou (přímo nebo nepřímo) položkami typu
+‹transform_matrix› (bez jakékoliv další pomocné paměti).
+Implicitně sestrojená hodnota nechť reprezentuje identitu
+(hodnoty na hlavní diagonále rovné 1, mimo diagonálu 0). 
+
+    struct transform_matrix; /* C */
+
+Typ ‹solid› bude reprezentovat společné vlastnosti pevných těles
+(které nezávisí na konkrétním tvaru nebo typu tělesa). Měl by mít
+tyto metody:
+
+ • ‹pos_x›, ‹pos_y› a ‹pos_z› určí polohu těžiště v prostoru,
+ • ‹transform_entry( int r, int c )› udává koeficient
+   transformační matice na řádku ‹r› a sloupci ‹c›,
+ • ‹transform_set( int r, int c, double v )› nastaví příslušný
+   koeficient na hodnotu ‹v›,
+ • konstruktor přijme 3 parametry typu ‹double› (vlastní
+   souřadnice ⟦x⟧, ⟦y⟧ a ⟦z⟧).
+
+Výchozí transformační maticí je opět identita. Paměť pro tuto
+matici alokujte pouze v případě, že se oproti implicitnímu stavu
+změní některý koeficient. 
+
+    struct solid; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 4. [‹inttrie›]
+
+V tomto cvičení rozšíříme binární trie z ‹p2› – místo
+posloupnosti bitů budeme za klíče brát posloupnosti celých čísel
+typu ‹int›. Vylepšíme také rozhraní – místo ruční správy uzlů
+poskytneme přímo operaci vložení zadaného klíče.
+
+Množiny budeme nadále kódovat do binárního stromu:
+
+ • levý potomek uzlu rozšiřuje reprezentovaný klíč o jedno celé
+   číslo (podobně jako tomu bylo u binární trie) – toto číslo je
+   tedy součástí levé hrany,
+ • pravý „potomek“ uzlu je ve skutečnosti jeho sourozenec, a
+   hrana není nijak označená (přechodem doprava se klíč nemění),
+ • řetěz pravých potomků tvoří de-facto zřetězený seznam, který
+   budeme udržovat seřazený podle hodnot na odpovídajících
+   «levých» hranách.
+
+
+Příklad: na obrázku je znázorněná trie s klíči [3, 1], [3, 13,
+7], [3, 15], [5, 2], [5, 5], [37]. Levý potomek je pod svým
+rodičem, pravý je od něj napravo.
+
+  ●────────────────▶●─────────────▶●
+  │                 │              │
+  │ 3               │ 5            │ 37
+  ▼                 ▼              ▼
+  ●────▶●────▶●     ●─────▶●       ●
+  │     │     │     │      │
+  │ 1   │ 13  │ 15  │ 2    │ 5
+  ▼     ▼     ▼     ▼      ▼
+  ●     ●     ●     ●      ●
+        │
+        │ 7
+        ▼
+        ●
+
+Můžete si představit takto reprezentovanou trie jako ⟦2³²⟧-ární,
+které by bylo zcela jistě nepraktické přímo implementovat. Proto
+reprezentujeme virtuální uzly pomyslného ⟦2³²⟧-árního stromu jako
+zřetězené seznamy pravých potomků ve fyzicky binárním stromě. 
+
+    using key = std::vector< int >; /* C */
+    struct trie_node;
+
+Rozhraní typu ‹trie› je velmi jednoduché: má metodu ‹add›, která
+přidá klíč a metodu ‹has›, která rozhodne, je-li daný klíč
+přítomen. Obě jako parametr přijmou hodnotu typu ‹key›. Prefixy
+vložených klíčů nepovažujeme za přítomné. 
+
+    struct trie; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹bdd›]
+
+Binární rozhodovací diagram je úsporná reprezentace booleovských
+funkcí více parametrů. Lze o nich uvažovat jako o orientovaném
+acyklickém grafu s dodatečnou sémantikou: každý vrchol je buď:
+
+ 1. «proměnná» (parametr) a má dva následníky, kteří určí, jak
+    pokračovat ve vyhodnocení funkce, je-li daná proměnná
+    pravdivá resp. nepravdivá;
+ 2. krom proměnných existují dva další uzly, které již žádné
+    následníky nemají, a reprezentují výsledek vyhodnocení
+    funkce; označujeme je jako 0 a 1. 
+
+Implementujte tyto metody:
+
+ • konstruktor má jeden parametr typu ‹char› – název proměnné,
+   kterou reprezentuje kořenový uzel,
+ • ‹one› vrátí „pravdivý“ uzel (tzn. uzel 1),
+ • ‹zero› vrátí „nepravdivý“ uzel (tzn. uzel 0),
+ • ‹root› vrátí počáteční (kořenový) uzel,
+ • ‹add_var› přijme ‹char› a «vytvoří» uzel pro zadanou
+   proměnnou; k jedné proměnné může existovat více než jeden uzel
+ • ‹add_edge› přijme rodiče, hodnotu typu ‹bool› a následníka,
+ • ‹eval› přijme map z ‹char› do ‹bool› a vyhodnotí
+   reprezentovanou funkci na parametrech popsaných touto mapou
+   (tzn. bude procházet BDD od kořene a v každém uzlu se rozhodne
+   podle zadané mapy, až než dojde do koncového uzlu).
+
+Chování není definováno, obsahuje-li BDD uzel, který nemá
+nastavené oba následníky. 
+
+    struct bdd_node; /* C */
+    struct bdd;
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 6. [‹rope›]
+
+Lano je datová struktura, která reprezentuje sekvenci,
+implementovaná jako binární strom, který má v listech klasická
+pole a ve vnitřních uzlech udržuje celočíselné váhy. Sdílení
+podstromů je dovolené a očekávané.
+
+Váhou uzlu se myslí celková délka sekvence reprezentovaná jeho
+levým podstromem. Díky tomu lze lana spojovat a indexovat v čase
+lineárním k «hloubce» stromu.¹
+
+Naprogramujte:
+
+ • konstruktor, který vytvoří jednouzlové lano z vektoru,
+ • konstruktor, který spojí dvě stávající lana,
+ • metodu ‹get( i )›, která získá ‹i›-tý prvek,
+ • a ‹set( i, value )›, která ‹i›-tý prvek nastaví na ‹value›.
+
+Pro účely tohoto příkladu není potřeba implementovat žádnou formu
+vyvažování.
+
+¹ Spojení dvou lan lze za cenu dodatečné informace v uzlech, nebo
+  pomalejší indexace, provést i v konstantním čase. 
+
+    struct rope; /* C */
+
+
+## r. Řešené úlohy
+
+
+### 1. [‹circular›]
+
+In this exercise, we will implement a slightly unusual data
+structure: a circular linked list, but instead of the usual
+access operators and iteration, it will have a ‹rotate› method,
+which rotates the entire list. We require that rotation does not
+invalidate any references to elements in the list.
+
+If you think of the list as a stack, you can think of the
+‹rotate› operation as taking an element off the top and putting
+it at the bottom of the stack. It is undefined on an empty list.
+
+To add and remove elements, we will implement ‹push› and ‹pop›
+which work in a stack-like manner. Only the top element is
+accessible, via the ‹top› method. This method should allow both
+read and write access. Finally, we also want to be able to check
+whether the list is ‹empty›. As always, we will store integers in
+the data structure. 
+
+    class circular; /* C */
+
+
+### 2. [‹zipper›]
+
+V této úloze se vrátíme k datové struktuře „zipper“ –
+připomínáme, že tato struktura reprezentuje sekvenci prvků
+(v našem případě celých čísel), přitom právě jeden z těchto prvků
+je «aktivní» (angl. focused).
+
+Tentokrát budeme tuto strukturu reprezentovat pomocí dvojice
+zřetězených seznamů sestavených z ukazatelů typu ‹unique_ptr›.
+Seznamy začínají v aktivním prvku a pokračují každý na jeden
+konec struktury. Typ ‹zipper› bude mít toto rozhraní:
+
+ • konstruktor vytvoří jednoprvkový ‹zipper› z celého čísla,
+ • ‹shift_left› (‹shift_right›) aktivuje prvek vlevo (vpravo) od
+   toho dosud aktivního, a to v čase O(1); metody vrací ‹true›
+   bylo-li posun možné provést (jinak nic nezmění a vrátí
+   ‹false›),
+ • ‹insert_left› (‹insert_right›) přidá nový prvek těsně vlevo
+   (vpravo) od právě aktivního prvku (opět v čase O(1))
+ • ‹focus› zpřístupní aktivní prvek (pro čtení i zápis). 
+
+
+### 3. [‹segment›]
+
+In this exercise, we will go back to building data structures, in
+this particular case a simple binary tree. The structure should
+represent a partitioning of an interval with integer bounds into
+a set of smaller, non-overlapping intervals. 
+
+Implement class ‹segment_map› with the following interface:
+
+ • the constructor takes two integers, which represent the limits
+   of the interval to be segmented,
+ • a ‹split› operation takes a single integer, which becomes the
+   start of a new segment, splitting the existing segment in two,
+ • ‹query›, given an integer ‹n›, returns the bounds of the
+   segment that contains ‹n›, as an ‹std::pair› of integers.
+
+The tree does «not» need to be self-balancing: the order of
+splits will determine the shape of the tree. 
+
+
+### 4. [‹diff›]
+
+In this exercise, we will implement automatic differentiation of
+simple expressions. You will need the following rules:
+
+ • linearity: ⟦ (a⋅f(x) + b⋅g(x))' = a⋅f'(x) + b⋅g'(x) ⟧
+ • the Leibniz rule: ⟦ (f(x)⋅g(x))' = f'(x)⋅g(x) + f(x)⋅g'(x) ⟧
+ • chain rule: ⟦ (f(g(x)))' = f'(g(x))⋅g'(x) ⟧
+ • derivative of exponential: ⟦ exp'(x) = exp(x) ⟧ 
+
+Define a type, ‹expr› (from «expression»), such that values of
+this type can be constructed from integers, added and multiplied,
+and exponentiated using function ‹expnat› (to avoid conflicts
+with the ‹exp› in the standard library). 
+
+    class expr; /* ref: 29 + 7 lines */ /* C */
+    expr expnat( expr );
+
+Implement function ‹diff› that accepts a single ‹expr› and
+returns the derivative (again in the form of ‹expr›). Define a
+constant ‹x› of type ‹expr› such that ‹diff( x )› is 1. 
+
+    expr diff( expr ); /* ref: 11 lines */ /* C */
+    // const expr x;
+
+Finally, implement function ‹eval› which takes an ‹expr› and a
+‹double› and it substitutes for ‹x› and computes the value of the
+expression. 
+
+    double eval( expr, double ); /* ref: 11 lines */ /* C */
+

@@ -1,0 +1,13 @@
+# Knihovna algoritmů
+
+Přípravy:¹
+
+ 1. ‹set›       – množinové operace,
+ 2. ‹wsort›     – paralelní řazení dvou posloupností,
+ 3. ‹distinct›  – počítání unikátních prvků,
+ 4. ‹reorder›   – stabilní řazení s malou množinou klíčů,
+ 5. ‹strides›   – řazení již seřazených běhů,
+ 6. ‹intervals› – jednoduchý algoritmus v duchu ‹std›.
+
+¹ Tato kapitola neobsahuje ukázky ani elementární příklady –
+  potřebné informace naleznete v přednášce.

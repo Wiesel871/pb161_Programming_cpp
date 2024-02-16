@@ -1,0 +1,32 @@
+# Životní cyklus hodnot
+
+Ukázky:
+
+ 1. ‹xxx›
+ 2. ‹numbers›  – a list of numbers which remember their type
+ 3. ‹refs›     – overloading with references
+ 4. ‹pool›     – ownership and indirect references
+
+Elementary exercises:
+
+ 1. ‹diameter› – basic function overloading (circle diameter)
+ 2. ‹circle›   – same story, but with constructors
+ 3. ‹force›    – a type to represent a force (3D vector)
+
+Preparatory exercises:
+
+ 1. ‹distance› – vzdálenost v rovině
+ 2. ‹least›    – nejmenší prvek bez kopií
+ 3. ‹loan›     – bankovní půjčka
+ 4. ‹zipper›   – jednoduchá datová struktura
+ 5. ‹rpn›      – postfixová aritmetika s přetěžováním
+ 6. ‹eval›     – infixová aritmetika s vlastnictvím zdrojů
+
+Regular exercises:
+
+ 1. ‹complex›  – přetěžování konstruktorů
+ 2. ‹xxx›
+ 3. ‹search›   – vyhledávací strom s uzly v poli
+ 4. ‹bitptr›   – odkaz na jednotlivý bit
+ 5. ‹xxx›
+ 6. ‹xxx›

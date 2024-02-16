@@ -1,0 +1,33 @@
+# Iterators
+
+XXX
+
+Demonstrations:
+
+ 1. ‹queue›    – an iterable queue
+ 2. ‹split›    – chop up a ‹string_view› into pieces
+ 3. ‹glob›     – iterate over matches of a pattern in a string
+
+Elementary exercises:
+
+ 1. ‹iota›     – an iterable sequence of integers
+ 2. ‹view›     – iterate a slice of an existing collection
+ 3. ‹skip›     – iterate every n-th item (a stride) of a collection
+
+Preparatory exercises:
+
+ 1. ‹seq›      – generic sequences
+ 2. ‹filter›   – filtered sequences
+ 3. ‹zip›      – iterate two sequences in lockstep
+ 4. ‹nibble›   – a fixed-size nibble array
+ 5. ‹tree›     – in-order iteration of a tree
+ 6. ‹scan›     – generalized prefix sum
+
+Regular exercises:
+
+ 1. ‹map›      – applying a function to a sequence
+ 2. ‹range›    – views with a shared backing store
+ 3. ‹permute›  – iterate all permutations of a sequence
+ 4. ‹critbit›  – iterate a ‘critbit’ binary trie in order
+ 5. ‹matrix› † – iterate a compact rectangular array
+ 6. ‹bits›     – iterate bits in a word

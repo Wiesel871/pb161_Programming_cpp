@@ -1,0 +1,309 @@
+
+# Součtové typy
+
+Přípravy:¹
+
+ 1. ‹bounds›  – intervaly platných hodnot,
+ 2. ‹arary›   – dvourozměrné pole se speciálními řádky,
+ 3. ‹intmap›  – složené zobrazení celočíselných polí,
+ 4. ‹program› – reprezentace jednoduchého programu,
+ 5. ‹eval›    – vyhodnocení výrazu zadaného stromem,
+ 6. ‹anyarr›  – dynamické pole hodnot libovolného typu.
+
+Rozšířené úlohy: TBD
+
+¹ Tato kapitola neobsahuje ukázky ani elementární příklady –
+  potřebné informace naleznete v přednášce.
+
+
+## p. Přípravy
+
+
+### 1. [‹bounds›]
+
+Implementujte třídu ‹bounds›, která si bude pro každý zadaný
+celočíselný klíč pamatovat rozsah povolených hodnot. Přitom mez
+typu ‹unbounded› bude znamenat, že v daném směru není hodnota
+příslušná danému klíči nijak omezena. 
+
+    struct unbounded {}; /* C */
+
+Samotná třída bounds bude mít metody:
+
+ • ‹set_lower( k, b )› nastaví spodní mez ‹b› pro klíč ‹k› (‹b›
+   je buď 64b celé číslo, nebo hodnota ‹unbounded{}›),
+ • ‹set_upper( k, b )› obdobně, ale horní mez,
+ • ‹set_default_lower( b )› nastaví implicitní dolní mez (platí
+   pro klíče, kterým nebyla nastavena žádná jiná),
+ • ‹set_default_upper( b )› obdobně, ale horní mez,
+ • ‹valid( k, i )› vrátí ‹true› právě když hodnota ‹i› spadá do
+   mezí platných pro klíč ‹k›.
+
+Všechny takto zadané intervaly jsou oboustranně otevřené. 
+
+    struct bounds; /* C */
+
+
+### 2. [‹array›]
+
+Implementujte dvourozměrné pole, kde vnitřní pole na daném indexu
+může být buď obyčejné pole celých čísel (‹std::vector›), nebo
+konstantní pole neomezené délky, nebo neomezené pole, kde hodnota
+na libovolném indexu je rovna tomuto indexu. Metody:
+
+ • ‹a.get( i, j )› vrátí hodnotu (typu ‹int›) na zadaných
+   souřadnicích, nebo vyhodí výjimku ‹std::out_of_range›, není-li
+   některý index platný,
+ • ‹a.size()› vrátí délku vnějšího pole,
+ • ‹a.size( i )› vrátí délku ‹i›-tého vnitřního pole (pro
+   neomezená vnitřní pole vrátí ‹INT_MAX›),
+ • po volání ‹a.append_iota()› pro libovolné ‹i› platí
+   ‹a.get( a.size() - 1, i ) == i›,
+ • po volání ‹a.append_const( n )› pro libovolné ‹i› platí
+   ‹a.get( a.size() - 1, i ) == n›,
+ • pro vektor čísel ‹v› volání ‹a.append( v )› vloží ‹v› jako
+   poslední prvek vnějšího pole ‹a›. 
+
+    struct array; /* C */
+
+
+### 3. [‹intmap›]
+
+Navrhněte typ, který bude reprezentovat operaci nad polem celých
+čísel. Vyhodnocení sestavené operace se provede metodou:
+
+ • ‹eval( v )› – aplikuje operaci na vektor celých čísel ‹v›
+   (přepsáním vstupního vektoru),
+
+Celkový efekt operace bude lze postupně zadat připojováním
+elementárních operací „na konec“ stávající operace ‹op› (‹n›
+představuje celé číslo, ‹v› představuje vektor celých čísel):
+
+ • ‹op.add( n )› – přičte ke všem prvkům vstupu hodnotu ‹n› (tzn.
+   ‹out[ i ] = in[ i ] + n›),
+ • ‹op.add( v )› – cyklicky přičte hodnoty z ‹v› ke vstupnímu
+   vektoru (tzn. ‹out[ i ] = in[ i ] + v[ i ]›; padne-li ‹i› mimo
+   rozsah vektoru ‹v›, pokračuje se opět prvním prvkem ‹v›,
+   atd. – můžete předpokládat, že ‹v› není prázdné),
+ • ‹op.rotate( n )› – přesune prvek na indexu ‹i› na index ‹i + n›
+   (tzn. ‹out[ i + n ] = in[ i ]›; je-li ‹i + n› mimo meze,
+   použije se vhodný index v mezích tak, aby operace realizovala
+   rotaci),
+ • ‹op.pop()› – zapomene posledně vloženou elementární operaci.
+
+
+    struct intmap; /* C */
+
+
+### 4. [‹program›]
+
+Implementujte typ ‹program›, který bude reprezentovat výpočet nad
+stavem určeným dvojicí celých čísel. Na konec stávajícího výpočtu
+je možné přidat další krok metodou ‹append›, která přijme
+libovolnou funkci, které lze předat 2 celá čísla. 
+
+    struct program; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹eval›]
+
+Máte zadané následující typy, které reprezentují jednoduchý
+aritmetický výraz. 
+
+    struct constant; /* C */
+    struct add;
+    struct subtract;
+    struct multiply;
+    struct divide;
+
+    using expr = std::variant< constant, add, subtract, multiply, divide >; /* C */
+    using expr_ptr = std::unique_ptr< expr >;
+
+    struct constant /* C */
+    {
+        constant( int v ) : value( v ) {}
+        int value = 0;
+    };
+
+    struct binary /* C */
+    {
+        expr_ptr left, right;
+        binary( expr a, expr b );
+    };
+
+    struct add      : binary { using binary::binary; }; /* C */
+    struct subtract : binary { using binary::binary; };
+    struct multiply : binary { using binary::binary; };
+    struct divide   : binary { using binary::binary; };
+
+    binary::binary( expr a, expr b ) /* C */
+        : left{ std::make_unique< expr >( std::move( a ) ) },
+          right{ std::make_unique< expr >( std::move( b ) ) }
+    {}
+
+Vaším úkolem je naprogramovat funkci ‹eval›, která takto zadaný
+výraz vyhodnotí na celé číslo. 
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 6. [‹anyarr›]
+
+Naprogramujte typ ‹any_array›, který bude reprezentovat dynamické
+pole libovolných hodnot, a bude mít tyto metody:
+
+ • ‹size› – vrátí počet uložených hodnot,
+ • ‹append› – přijme hodnotu libovolného typu a vloží ji
+   na konec pole,
+ • ‹transform_int› – přijme libovolnou unární funkci
+   ‹int f( int )›, a každou uloženou hodnotu ‹x› typu ‹int›
+   upraví na ‹f( x )› (přitom ostatní hodnoty nezmění),
+ • ‹remove_integers› – odstraní hodnoty typu ‹int›,
+ • ‹remove_floats› – odstraní hodnoty typu ‹float› a ‹double›,
+ • ‹equals› – přijme index ‹i› a hodnotu libovolného typu ‹v›
+   a vrátí ‹true› je-li na indexu ‹i› uložena hodnota stejného
+   typu jako ‹v› a tyto hodnoty se rovnají.
+
+Metody ‹remove_integers› a ‹remove_floats› musí mít nejvýše
+lineární časovou složitost, zatímco metoda ‹equals› konstantní. 
+
+    struct any_array; /* C */
+
+
+## r. Řešené úlohy
+
+
+### 1. [‹null›]
+
+V tomto cvičení se budeme zabývat kontejnery, ve kterých mohou
+některé hodnoty chybět – takové hodnoty budeme reprezentovat
+pomocí ‹std::nullopt›. V následovných funkcích nechť platí, že
+výsledek operace, kde alespoň jeden operand je ‹std::nullopt› je
+opět ‹std::nullopt›. Implementujte:
+
+ • ‹filter›, která ze zadané sekvence odstraní prázdné hodnoty,
+ • ‹zip›, která dostane dvě posloupnosti a funkci, kterou po
+   dvojicích aplikuje a tím vytvoří novou posloupnost (jako
+   hodnotu typu ‹std::vector›),
+ • ‹join›, která ze zadaných posloupností a binárního predikátu
+   vytvoří posloupnost dvojic (kartézský součin), ale jen
+   takových, které splňují zadaný predikát.
+
+Hodnotu ‹std::nullopt› interpretovanou jako pravdivostní hodnotu
+chápeme jako ekvivalent ‹false›. 
+
+
+### 2. [‹rel›]
+
+Naprogramujte typ, který bude reprezentovat symetrickou binární
+relaci na celých číslech s těmito metodami:
+
+ • ‹add› poznamená, že zadaná čísla jsou v relaci,
+ • ‹test› ověří, zda jsou zadaná čísla v relaci,
+ • ‹get› vrátí množinu čísel, která jsou se zadaným v relaci,
+ • ‹set_filter› nastaví filtr (binární predikát) – pomyslně
+   z relace odstraní dvojice, které predikát nesplňují,
+ • ‹unset_filter› zruší nastavený filtr.
+
+Pozor, nastavením filtru se nemění sestavená relace, pouze dotazy
+na ni. Je-li filtr odstraněn, relace se tím vrátí do původního
+stavu. 
+
+    struct relation; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹robot›]
+
+Navrhněte typy ‹program› a ‹grid›, které budou reprezentovat
+jednoduchého programovatelného robota, který se pohybuje
+v neomezené dvourozměrné mřížce. Políčka v mřížce mají dva stavy:
+označeno a neoznačeno. Na začátku jsou všechna políčka
+neoznačena, robot stojí na souřadnicích ⟦0, 0⟧ a je orientován
+horizontálně.
+
+Program lze rozšířit metodou ‹append›, která přijme jako parametr
+libovolný typ příkazu. Sestavený program lze vykonat volnou
+funkcí ‹run›, která dostane jako druhý parametr referenci na
+hodnotu typu ‹grid›. Funkce ‹run› jednak upraví vstupní mřížku,
+jednak vrátí koncové souřadnice robota. 
+
+Příkaz ‹walk› robota posune o příslušný počet políček podle
+aktuální orientace:
+
+ • horizontální – kladná čísla znamenají východ,
+ • vertikální – kladná čísla znamenají sever.
+
+Která vzdálenost se použije závisí na tom, je-li startovní
+políčko označené. 
+
+    struct walk /* C */
+    {
+        int if_marked = 0;
+        int if_unmarked = 0;
+    };
+
+Příkaz ‹turn› robota přepíná mezi horizontálním a vertikálním
+směrem pohybu. 
+
+    struct turn {}; /* C */
+
+Příkaz ‹toggle› změní označenost políčka, na kterém robot
+aktuálně stojí. Je-li příznak ‹sticky› nastaven na ‹true›, již
+označené políčko zůstane označené. 
+
+    struct toggle /* C */
+    {
+        bool sticky = false;
+    };
+
+    struct program; /* C */
+    struct grid;
+
+    std::tuple< int, int > run( const program &, grid & ); /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 4. [‹sumseq›]
+
+V tomto cvičení budeme programovat funkce, které pracují se
+součtovými posloupnostmi, které mohou obsahovat prvky dvou typů
+(budeme je označovat jako levý a pravý). Konkrétní reprezentace
+takové posloupnosti není určena – musí být pouze kompatibilní
+mezi jednotlivými funkcemi. 
+
+První funkcí, kterou naprogramujeme, bude ‹select› – má 3
+parametry, 2 obyčejné posloupnosti (obecně různých typů) a
+binární funkci ‹choose›.
+
+Výsledkem bude součtová posloupnost, kde na každé pozici bude
+hodnota ze stejné pozice některé vstupní posloupnosti – která
+to bude určí funkce ‹choose›, které návratová hodonta je typu
+‹choice›: 
+
+    enum class choice { left, right }; /* C */
+
+    // … /* C */
+
+Dále definujeme funkce ‹left› a ‹right›, které ze zadané
+„součtové“ posloupnosti vyberou prvky pouze levého (pravého) typu
+a vrátí je jako obyčejnou posloupnost (reprezentovanou jako
+‹std::vector›). 
+
+    // … /* C */
+
+Konečně definujeme funkci ‹map›, která obdrží součtovou
+posloupnost a dvě funkce, které zobrazí hodnoty levého/pravého
+typu na libovolný společný typ. Výsledkem je obyčejná posloupnost
+vhodného typu (opět reprezentovaná jako ‹std::vector›). 
+
+    // … /* C */
+

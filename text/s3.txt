@@ -1,0 +1,462 @@
+
+# S.3. Součtové typy, řetězce
+
+ 1. ‹a_machine› – jednoduchý virtuální stroj s pamětí,
+ 2. ‹b_chess›   – hrajeme šach,
+ 4. ‹c_real›    – reálná čísla (dále rozšiřuje ‹s2/a_natural›),
+ 3. ‹d_json›    – reprezentace JSON-u použitím ‹std::variant›,
+ 5. ‹e_robots›  – rozšíření ‹s2/c_robots› o programovatelné roboty,
+ 6. ‹f_network› – načítání vstupu pro simulátor z ‹s2/d_network›.
+
+V příkladech ‹a› až ‹c› využijete zejména znalosti z prvních dvou
+bloků, vyžadují navíc pouze výčtové typy (‹enum›) z 9. kapitoly.
+Příklad ‹d› vyžaduje znalosti 9. kapitoly a příklady ‹e›, ‹f›
+vyžadují znalost 11. kapitoly.
+
+
+## a. ‹machine›
+
+V této úloze budete programovat jednoduchý registrový stroj
+(model počítače). Stroj bude mít libovolný počet celočíselných
+registrů a paměť adresovatelnou po bajtech. Registry jsou
+indexované od 1 po ‹INT_MAX›. Každá instrukce jmenuje dva
+registry a jednu přímo zakódovanou hodnotu (angl. immediate).
+
+V každém registru je uložena hodnota typu ‹int32_t›, tzn.
+velikost strojového slova jsou 4 slabiky (bajty). V paměti jsou
+slova uložena tak, že nejvýznamnější slabika má nejnižší adresu
+(tzv. MSB-first). Počáteční hodnoty registrů i paměti jsou nuly.
+
+Stroj má následovné instrukce (kdykoliv je ‹reg_X› použito
+v popisu, myslí se tím samotný registr – jeho hodnota nebo
+úložišě – nikoliv jeho index; sloupec ‹reg_2› má opačný význam,
+vztahuje se k indexu uloženému v instrukci).
+
+ │ opcode │‹reg_2›│ description                                 │
+ ├────────┼───────┼◅────────────────────────────────────────────┤
+ │ ‹mov›  │  ≥ 1  │ kopíruj hodnotu z ‹reg_2› do ‹reg_1›        │
+ │        │  = 0  │ nastav ‹reg_1› na ‹immediate›               │
+ │ ‹add›  │  ≥ 1  │ ulož ‹reg_1 + reg_2› do ‹reg_1›             │
+ │        │  = 0  │ přičti ‹immediate› do ‹reg_1›               │
+ │ ‹mul›  │  ≥ 1  │ ulož ‹reg_1 * reg_2› do ‹reg_1›             │
+ │ ‹jmp›  │  = 0  │ skoč na adresu uloženou v ‹reg_1›           │
+ │        │  ≥ 1  │ skoč na ‹reg_1› je-li ‹reg_2› nenulové      │
+ │ ‹load› │  ≥ 1  │ načti hodnotu z adresy ‹reg_2› do ‹reg_1›   │
+ │ ‹stor› │  ≥ 1  │ zapiš hodnotu ‹reg_1› na adresu ‹reg_2›     │
+ │ ‹halt› │  = 0  │ zastav stroj s výsledkem ‹reg_1›            │
+ │        │  ≥ 1  │ totéž, ale pouze je-li ‹reg_2› nenulový     │
+
+Každá instrukce je v paměti uložena jako 4 slova (adresy slov
+rostou zleva doprava). Vykonání instrukce, která není skokem,
+zvýší programový čítač o 4 slova.
+
+ ┌────────┬───────────┬───────┬───────┐
+ │ opcode │ immediate │ reg_1 │ reg_2 │
+ └────────┴───────────┴───────┴───────┘
+
+Vykonání jednotlivé instrukce smí zabrat nejvýše konstantní čas,
+krom případů, kdy tato přistoupí k dosud nepoužité adrese nebo
+registru. Paměť potřebná pro výpočet by měla být v nejhorším
+případě úměrná součtu nejvyšší použité adresy a nejvyššího
+použitého indexu registru. 
+
+    enum class opcode { mov, add, mul, jmp, load, stor, hlt }; /* C */
+
+    struct machine /* C */
+    {
+Čtení a zápis paměti po jednotlivých slovech. 
+
+        std::int32_t get( std::int32_t addr ) const; /* C */
+        void         set( std::int32_t addr, std::int32_t v );
+
+Spuštění programu, počínaje adresou nula. Vrátí hodnotu
+uloženou v ‹reg_1› zadaném instrukcí ‹hlt›, která výpočet
+ukončila. 
+
+        std::int32_t run(); /* C */
+    };
+
+
+## b. ‹chess›
+
+Cílem tohoto úkolu je naprogramovat běžná pravidla šachu.
+Předepsané typy ‹position›, ‹piece_type›, ‹player› ani ‹result›
+není dovoleno upravovat. 
+
+    struct position /* C */
+    {
+        int file; /* sloupec („písmeno“) – a = 1, b = 2, ... */
+        int rank; /* řádek („číslo“) – 1, 2, …, 8 */
+
+        position( int file, int rank ) : file( file ), rank( rank ) {} /* C */
+
+        bool operator== ( const position &o ) const = default; /* C */
+        auto operator<=>( const position &o ) const = default;
+    };
+
+    enum class piece_type /* C */
+    {
+        pawn, rook, knight, bishop, queen, king
+    };
+
+    enum class player { white, black }; /* C */
+
+Metoda ‹play› může mít jeden z následujících výsledků. Možnosti
+jsou uvedeny v prioritním pořadí, tzn. skutečným výsledkem je
+vždy první aplikovatelná možnost.
+
+├┄┄┄┄┄┄┄┄┄┄┄┄┄┄▻┼◅┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤
+│ ‹capture›     │ tah byl platný a sebral soupeřovu figuru     │
+│ ‹ok›          │ tah byl platný                               │
+│ ‹no_piece›    │ na pozici ‹from› není žádná figura           │
+│ ‹bad_piece›   │ figura na pozici ‹from› nepatří hráči        │
+│ ‹bad_move›    │ tah není pro tuto figuru platný              │
+│ ‹blocked›     │ tah je blokován jinou figurou                │
+│ ‹lapsed›      │ braní mimochodem již nelze provést           │
+│ ‹has_moved›   │ některá figura rošády se už hýbala           │
+│ ‹in_check›    │ hráč byl v šachu a tah by jej neodstranil    │
+│ ‹would_check› │ tah by vystavil hráče šachu                  │
+│ ‹bad_promote› │ pokus o proměnu na pěšce nebo krále          │
+
+Pokus o braní mimochodem v situaci, kdy jsou figury ve špatné
+pozici, je ‹bad_move›. Krom výsledku ‹has_moved› může pokus
+o rošádu skončit těmito chybami:
+
+ • ‹blocked› – v cestě je nějaká figura,
+ • ‹in_check› – král je v šachu,
+ • ‹would_check› – král by prošel nebo skončil v šachu. 
+
+    enum class result /* C */
+    {
+        capture, ok, no_piece, bad_piece, bad_move, blocked, lapsed,
+        in_check, would_check, has_moved, bad_promote
+    };
+
+    struct piece /* C */
+    {
+        player owner;
+        piece_type type;
+    };
+
+    using occupant = std::optional< piece >; /* C */
+
+    class chess /* C */
+    {
+    public:
+
+Sestrojí hru ve výchozí startovní pozici. První volání metody
+‹play› po sestrojení hry indikuje tah bílého hráče. 
+
+        chess(); /* C */
+
+Metoda ‹play› přesune figuru z pole ‹from› na pole ‹to›:
+
+ • umístí-li tah pěšce do jeho poslední řady (řada 8 pro
+   bílého, resp. 1 pro černého), je proměněn na figuru
+   zadanou parametrem ‹promote› (jinak je tento argument
+   ignorován),
+ • rošáda je zadána jako pohyb krále o více než jedno pole,
+ • je-li výsledkem chyba (cokoliv krom ‹capture› nebo ‹ok›),
+   stav hry se nezmění a další volání ‹play› provede tah
+   stejného hráče. 
+
+        result play( position from, position to, /* C */
+                     piece_type promote = piece_type::pawn );
+
+Metoda ‹at› vrátí stav zadaného pole. 
+
+        occupant at( position ) const; /* C */
+    };
+
+
+## c. ‹real›
+
+Předmětem této úlohy je naprogramovat typ ‹real›, který
+reprezentuje reálné číslo s libovolnou přesností a rozsahem.
+
+Z hodnot:
+
+ • ‹a›, ‹b› typu ‹real›,
+ • ‹k› typu ‹int›
+
+nechť je lze utvořit tyto výrazy, které mají vždy přesný
+výsledek:
+
+ • ‹a + b›, ‹a - b›, ‹a * b›, ‹a / b›,
+ • ‹a += b›, ‹a -= b›, ‹a *= b›, ‹a /= b›,
+ • ‹a == b›, ‹a != b›, ‹a < b›, ‹a <= b›, ‹a > b›, ‹a >= b›,
+ • ‹-a› – opačná hodnota,
+ • ‹a.abs()› – absolutní hodnota,
+ • ‹a.reciprocal()› – převrácená hodnota (není definováno pro 0),
+ • ‹a.power( k )› – mocnina (včetně záporné).
+
+Výrazy, které nemají přesnou explicitní (číselnou) reprezentaci
+jsou parametrizované požadovanou přesností ‹p› typu ‹real›:
+
+ • ‹a.sqrt( p )› – druhá odmocnina,
+ • ‹a.exp( p )› – exponenciální funkce (se základem ⟦e⟧),
+ • ‹a.log1p( p )› – přirozený logaritmus ⟦\ln(1 + a)⟧, kde
+   ⟦a ∈ (-1, 1)⟧.
+
+Přesností se myslí absolutní hodnota rozdílu skutečné (přesné) a
+reprezentované hodnoty. Pro aproximaci odmocnin je vhodné použít
+Newtonovu-Raphsonovu metodu (viz ukázka z prvního týdne). Pro
+aproximaci transcendentálních funkcí (exponenciála a logaritmus)
+lze s výhodou použít příslušných mocninných řad. Nezapomeňte
+ověřit, že řady v potřebné oblasti konvergují. Při určování
+přesnosti (počtu členů, které je potřeba sečíst) si dejte pozor
+na situace, kdy členy posloupnosti nejprve rostou a až poté se
+začnou zmenšovat.
+
+Konečně je-li ‹d› hodnota typu ‹double›, nechť jsou přípustné
+tyto konverze:
+
+ • ‹real x( d )›, ‹static_cast< real >( d )›,
+
+Poznámka: abyste se vyhnuli problémům s nejednoznačnými
+konverzemi, je vhodné označit konverzní konstruktory a operátory
+pro hodnoty typu ‹double› klíčovým slovem ‹explicit›. 
+
+    struct real; /* C */
+
+
+## d. ‹json›
+
+Naprogramujte syntaktický analyzátor pro zjednodušený JSON:
+v naší verzi nebudeme vůbec uvažovat „uvozovkované“ řetězce –
+skaláry budou pouze čísla, klíče budou slova bez uvozovek (a tedy
+například nebudou moct obsahovat mezery). Celý dokument se tedy
+skládá z objektů (mapování klíč-hodnota ve složených závorkách),
+polí (seznamů hodnot v hranatých závorkách) a celých čísel.
+
+Gramatika ve formátu EBNF:
+
+    (* toplevel elements *)
+    value   = blank, ( integer | array | object ), blank ;
+    integer = [ '-' ], digits  | '0' ;
+    array   = '[', valist, ']' | '[]' ;
+    object  = '{', kvlist, '}' | '{}' ;
+    
+    (* compound data *)
+    valist  = value,  { ',', value } ;
+    kvlist  = kvpair, { ',', kvpair } ;
+    kvpair  = blank, key, blank, ':', value ;
+    
+    (* lexemes *)
+    digits  = nonzero, { digit } ;
+    nonzero = '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' ;
+    digit   = '0' | nonzero ;
+    key     = keychar, { keychar } ;
+    keychar = ? ASCII upper- or lower-case alphabetical character ? ;
+    blank   = { ? ASCII space, tab or newline character ? } ;
+
+Pro implementaci neterminálu ‹blank› můžete použít funkci
+‹std::isspace›. Rozhraní nechť je nasledovné: 
+
+    struct json_value; /* C */
+    using json_ptr = std::unique_ptr< json_value >;
+    using json_ref = const json_value &;
+
+    enum class json_type { integer, array, object }; /* C */
+
+    struct json_error /* C */
+    {
+        const char *what() const;
+    };
+
+Typ ‹json_value› reprezentuje načtenou stromovou strukturu
+dokumentu. Klademe na něj tyto požadavky:
+
+ • metoda ‹item_at› nechť skončí výjimkou ‹std::out_of_range›
+   neexistuje-li požadovaný prvek,
+ • je-li metodě ‹item_at› objektu typu ‹json_type::object›
+   předáno číslo ⟦n⟧, vrátí ⟦n⟧-tou hodnotu v abecedním pořadí
+   klíčů, přitom odpovídající klíč lze získat metodou ‹key_at›,
+ • metoda ‹length› neselhává (pro celočíselné uzly vrátí
+   nulu). 
+
+    struct json_value /* C */
+    {
+        virtual json_type type() const = 0;
+        virtual int int_value() const = 0;
+        virtual json_ref item_at( int ) const = 0;
+        virtual json_ref item_at( std::string_view ) const = 0;
+        virtual std::string key_at( int i ) const = 0;
+        virtual int length() const = 0;
+        virtual ~json_value() = default;
+    };
+
+Čistá funkce ‹json_parse› analyzuje dokument a vytvoří odpovídající
+stromovou strukturu, nebo skončí výjimkou ‹json_error›:
+
+ • nevyhovuje-li řetězec zadané gramatice gramatice,
+ • objeví-li se v kterémkoliv objektu zdvojený klíč. 
+
+    json_ptr json_parse( std::string_view ); /* C */
+
+Konečně čistá funkce ‹json_validate› rozhodne, je-li vstupní
+dokument správně utvořený (tzn. odpovídá zadané gramatice). Tato
+funkce nesmí skončit výjimkou (krom ‹std::bad_alloc› v situaci,
+kdy během analýzy dojde paměť). 
+
+    bool json_validate( std::string_view ); /* C */
+
+
+## e. ‹robots›
+
+Uvažme hru ‹s2/c_robots› – Vaším úkolem bude nyní naprogramovat
+jednoduchý interpret, který bude hru řídit. Vstupní program
+sestává ze tří částí:
+
+ 1. deklarace, které popisují jak roboty ve hře a jejich
+    startovní pozice, tak případné pomocné proměnné,
+ 2. příkazy, které se provedou jednou na začátku hry,
+ 3. příkazy, které se provedou každý tik, dokud hra neskončí.
+
+Program by mohl vypadat například takto: 
+
+    std::string_view example_1 = R"(with /* C */
+      a  = red   1 @ -5.0 0 0
+      b  = red   1 @  5.0 0 0
+      c  = red   2 @  0.0 0 0
+      g1 = green 2 @ -9.6 0 0
+      g2 = green 2 @  9.6 0 0
+    init
+      let g1 chase a
+      let g2 chase b
+    repeat
+    )";
+
+    std::string_view example_2 = R"(with /* C */
+      r = red   2 @  0.0 0 0
+      g = green 2 @  0.0 0 0
+      b = blue  1 @ -9.6 0 0
+      tick = 0
+    init
+      let r chase g
+      let g go_to @ 1.0 0 0
+    repeat
+      if tick > 9
+        if g is_alive
+           let b chase g
+      set tick := tick + 1
+    )";
+
+Následuje gramatika ve formátu EBNF, která popisuje syntakticky
+platné programy; terminály gramatiky jsou «tokeny», které jsou od
+sebe vždy odděleny alespoň jednou mezerou, nebo předepsaným
+koncem řádku.
+
+    prog = 'with', { decl },
+           'init', { stmt },
+           'repeat', { stmt } ;
+    decl = ident, '=', init, '\n' ;
+    init = color, num, coord | coord | num ;
+
+    color = 'red' | 'green' | 'blue' ;
+    coord = '@', num, num, num ;
+
+    stmt = cmd, '\n' |
+           'if', cond, stmt ;
+    cmd  = 'let', ident, 'chase', ident |
+           'let', ident, 'go_to', expr |
+           'set', ident, ':=', expr |
+           'do', stmt, { stmt }, 'end' ;
+    cond = atom, '=', atom |
+           atom, '<', atom |
+           atom, '>', atom |
+           ident, 'is_alive' ;
+    expr = atom |
+           atom, '+', atom |
+           atom, '-', atom |
+           atom, '*', atom |
+           '[', expr, ']' |
+           '(', expr, ')' ;
+    atom = ident | coord | num;
+
+Krom terminálních řetězců (‹'red'› a pod.) považujeme za tokeny
+také symboly ‹num› a ‹ident›, zadané těmito pravidly:
+
+    num   = [ '-' ], digit, { digit }, [ '.', { digit } ] ;
+    ident = letter, { letter | digit }
+    digit = '0' | '1' | … | '9' ;
+    letter = 'a' | 'b' | … | 'z' | '_' ;
+
+V programu se objevují hodnoty tří typů:
+
+ 1. čísla (hodnoty typu ‹double›),
+ 2. trojice čísel (reprezentuje pozici nebo směr),
+ 3. odkaz na robota.
+
+S hodnotami (a proměnnými, které hodnoty daných typů aktuálně
+obsahují), lze provádět tyto operace:
+
+ 1. čísla lze sčítat, odečítat, násobit a srovnávat (neterminály
+    ‹expr› a ‹cond›),
+ 2. trojice lze sčítat, odečítat a srovnat (ale pouze rovností),
+ 3. roboty lze posílat za jiným robotem nebo na zadané
+    souřadnice (příkaz ‹let›),
+ 4. operace hranaté závorky hodnotu zjednodušuje:
+    
+    ◦ ‹[ robot ]› je aktuální pozice robota (trojice),
+    ◦ ‹[ point ]› je Euklidovská vzdálenost bodu od počátku, resp.
+       velikost směrového vektoru (‹[ p₁ - p₂ ]› tak spočítá
+       vzdálenost bodů ‹p₁› a ‹p₂›.
+
+Operace, které nejsou výše popsané (např. pokus o sečtení
+robotů), nemají určené chování. Totéž platí pro pokus o použití
+nedeklarované proměnné (včetně přiřazení do ní). Podobně není
+určeno chování, nevyhovuje-li vstupní program zadané gramatice.
+
+Robot, kterému bylo uloženo pronásledovat (chase) jiného robota,
+bude na tohoto robota zamčen, až než mu bude uložen jiný cíl,
+nebo cílový robot zanikne. Nemá-li robot žádný jiný příkaz, stojí
+na místě (bez ohledu na barvu).
+
+Program je předán metodě ‹run› třídy ‹game› jako hodnota typu
+‹std::string_view›, návratová hodnota i zde nezmíněná pravidla
+zůstavají v platnosti z příkladu v druhé sadě. 
+
+
+## f. ‹network›
+
+    struct network; /* C */
+
+Navrhněte textový formát pro ukládání informací o sítích tak, jak
+byly definované v příkladu ‹s2/e_network›, který bude mít tyto
+vlastnosti:
+
+ • do jednoho řetězce musí být možno uložit libovolný počet sítí,
+   které mohou být vzájemně propojené směrovači,
+ • výsledek načtení z řetězce nesmí být možné odlišit (použitím
+   veřejného rozhraní) od hodnot, kterých uložením řetězec
+   vznikl,
+ • obsah řetězce musí být plně určen aktuálním stavem vstupních
+   sítí, bez ohledu na posloupnost operací, kterými vznikly –
+   zejména tedy nezmí záležet na pořadí přidávání a propojování
+   (případně rozpojování) uzlů,¹
+ • jako speciální případ předchozího, načtení a následovné
+   uložení sítě musí být idempotentní (výsledný řetězec je
+   identický jako ten, se kterým jsme začali).
+
+Rozhraní je dané těmito dvěma čistými funkcemi (zejména se žádná
+síť nesmí změnit použitím funkce ‹serialize›): 
+
+    std::string serialize( const std::list< network > & ); /* C */
+    std::list< network > deserialize( std::string_view );
+
+Aby se Vám serializace snáze implementovala, přidejte metodám
+‹add_bridge› a ‹add_router› parametr typu ‹std::string_view›,
+který reprezentuje neprázdný identifikátor sestavený z číslic a
+anglických písmen. Identifikátor je unikátní pro danou síť a typ
+uzlu.
+
+Konečně aby bylo možné s načtenou sítí pracovat, přidejte metody
+‹endpoints›, ‹bridges› a ‹routers›, které vrátí vždy
+‹std::vector› ukazatelů vhodného typu. Konkrétní pořadí uzlů
+v seznamu není určeno. 
+
+¹ Samozřejmě záleží na pořadí, ve kterém jsou sítě předány
+  serializační funkci – serializace sítí ‹a, b› se může obecně
+  lišit od serializace ‹b, a›. 
+

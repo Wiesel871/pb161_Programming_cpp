@@ -1,0 +1,879 @@
+
+# Složené hodnoty
+
+V této kapitole samozřejmě pokračujeme s použitím funkcí, skalárů a
+referencí, a přidáváme složené hodnoty: standardní «kontejnery»
+(‹std::vector›, ‹std::set›, ‹std::map›, ‹std::array›) a součinové
+(produktové) typy ‹struct› a ‹std::tuple›.
+
+Ukázky:
+
+ 1. ‹stats›      – záznamové typy, zjednodušený ‹for› cyklus
+ 2. ‹primes›     – vkládání prvků do hodnoty typu ‹std::vector›
+ 3. ‹iterate›    – vytvoření posloupnosti iterací funkce
+ 4. ‹dfs›        – dosažitelnost vrcholu v grafu
+ 5. ‹bfs› †      – nejkratší vzdálenost v neohodnoceném grafu
+
+Elementary exercises:
+
+ 1. ‹fibonacci›  – stará posloupnost, nová signatura
+ 2. ‹reflexive›  – reflexivní uzávěr zadané relace
+ 3. ‹unique›     – odstraněni duplicit ve vektoru
+
+Preparatory exercises:
+
+ 1. ‹minsum›    – dělení posloupnosti čísel podle součtu
+ 2. ‹connected› – rozklad grafu na komponenty souvislosti
+ 3. ‹divisors›  – kontejner jako vstupně-výstupní parametr
+ 4. ‹midpoint›  – kontejner s prvky složeného typu
+ 5. ‹dag› †     – hledání cyklu v orientovaném grafu
+ 6. ‹bipartite› – rozhodování o bipartitnosti grafu
+
+Regular exercises:
+
+ 1. ‹mode›      – nalezněte mód číselné posloupnosti
+ 2. ‹sssp›      – nejkratší cesty z pevně zvoleného vrcholu
+ 3. ‹solve›     – solver pro velmi jednoduchou hru
+ 4. ‹buckets›   – řazení kamenů do kyblíčků podle váhy
+ 5. ‹permute›   – permutace číslic
+ 6. ‹flood›     – semínkové vyplňování s vektorem
+
+### Hlavičkové soubory
+
+Tato kapitola přidává řadu nových povolených hlavičkových souborů:
+
+ • ‹tuple› – definice N-tic ‹std::tuple› a pomocných funkcí,
+ • ‹vector› – definice dynamického pole ‹std::vector›,
+ • ‹set› – podobně, ale pro ‹std::set› a ‹std::multiset›,
+ • ‹map› – umožňuje použití kontejnerů ‹std::map›, ‹std::multimap›,
+ • ‹deque› – definuje oboustrannou frontu ‹std::deque›,
+ • ‹queue› – definuje klasickou frontu ‹std::queue›,
+ • ‹stack› – podobně ale zásobník ‹std::stack›,
+ • ‹utility› – různé pomocné funkce, ‹std::pair›,
+ • ‹ranges› – prozatím zejména ‹std::ranges::subrange›,
+ • ‹numeric› – funkce pro práci (zejména) s číselnými sekvencemi,
+ • ‹cmath› – funkce pro práci s čísly s plovoucí desetinnou čárkou.
+
+
+## d. Demonstrace (ukázky)
+
+
+### 1. [‹stats›]
+
+V této ukázce spočítáme několik jednoduchých statistických
+veličin – míry polohy (průměr, medián) a variance (směrodatnou
+odchylku). Využijeme k tomu záznamové typy a sekvenční typ
+‹std::vector›. Nejprve si definujeme typ pro výsledek naší
+jednoduché analýzy – použijeme k tomu záznamový typ, který
+deklarujeme klíčovým slovem ‹struct›, názvem, a seznamem
+deklarací složek uzavřeným do složených závorek (a jako všechny
+deklarace, ukončíme i tuto středníkem): 
+
+    struct stats /* C */
+    {
+        double median = 0.0;
+        double mean = 0.0;
+        double stddev = 0.0;
+    };
+
+Tím máme definovaný nový typ s názvem ‹stats›, který můžeme dále
+používat jako libovolný jiný typ (zabudovaný, nebo ze standardní
+knihovny). Zejména můžeme vytvářet hodnoty tohoto typu, předávat
+je jako parametry nebo vracet jako výsledky podprogramů.
+
+V této ukázce si zadefinujeme čistou funkci ‹compute_stats›,
+která potřebné veličiny spočítá a vrátí je jako hodnotu typu
+‹stats›. Vstupní parametr ‹data› předáme «konstantní» referencí:
+hodnoty nebudeme nijak měnit (programujeme čistou funkci a ‹data›
+považujeme za vstupní parametr). Zároveň nepotřebujeme vytvořit
+kopii vstupních dat – budeme je pouze číst, taková kopie by tedy
+byla celkem zbytečná a potenciálně drahá (dat, které chceme
+zpracovat, by mohlo být mnoho). 
+
+    stats compute_stats( const std::vector< double > &data ) /* C */
+    {
+        int n = data.size();
+        double sum = 0, square_error_sum = 0;
+        stats result;
+
+Na tomto místě se nám bude hodit nový prvek řízení toku,
+kterému budeme říkat stručný ‹for› cyklus (angl. „range
+‹for›“). Jeho účelem je procházet posloupnost hodnot uloženou
+v «iterovatelném typu» (použitelnost hodnoty ve stručném
+‹for› cyklu lze chápat přímo jako definici iterovatelného
+typu). Do závorky uvádíme deklaraci proměnné cyklu (můžeme
+zde použít zástupné slovo ‹auto›) a dvojtečkou oddělený
+«výraz». Tento výraz musí být iterovatelného typu a výsledná
+iterovatelná hodnota je ta, kterou budeme cyklem procházet. 
+
+        for ( double x_i : data ) /* C */
+
+Cyklus se provede pro každý prvek předané iterovatelné
+hodnoty. Tento prvek je pokaždé uložen do proměnné cyklu
+(která může být referencí – v takovém případě tato
+reference odkazuje přímo na prvek, v opačném případě se
+jedná o kopii). 
+
+            sum += x_i; /* C */
+
+K položkám hodnoty záznamového typu přistupujeme «výrazem»
+‹expr.field›, kde:
+
+ • ‹expr› je «výraz» záznamového typu (zejména to tedy může
+   být název proměnné), následovaný
+ • tečkou (technicky se jedná o operátor s vysokou prioritou),
+ • ‹field› je «jméno» atributu (tzn. na pravé straně tečky
+   «nestojí výraz»).
+
+Je-li výraz ‹expr› l-hodnotou, je l-hodnotou i výraz přístupu
+k položce jako celek a lze do něj tedy přiřadit hodnotu. 
+
+        result.mean = sum / n; /* C */
+
+Medián získáme dobře známým postupem. Za povšimnutí stojí
+«indexace» vektoru ‹data› zápisem indexu do hranatých
+závorek. Obecněji jsou-li ‹x› a ‹i› výrazy, je výraz také ‹x[
+i ]› kde ‹x› je indexovatelného typu (omezení na typ ‹i›
+závisí na typu ‹x›). Je-li ‹x› navíc l-hodnota, je l-hodnotou
+i výraz ‹x[ i ]› jako celek.¹ * 
+
+        if ( n % 2 == 1 ) /* C */
+            result.median = data[ n / 2 ];
+        else
+            result.median = ( data[ n / 2 ] + data[ n / 2 - 1 ] ) / 2;
+
+Konečně spočítáme směrodatnou odchylku. K tomu budeme
+potřebovat dříve vypočítaný průměr. 
+
+        for ( double x_i : data ) /* C */
+            square_error_sum += std::pow( x_i - result.mean, 2 );
+
+        double variance = square_error_sum / ( n - 1 ); /* C */
+        result.stddev = std::sqrt( variance );
+
+        return result; /* C */
+    }
+
+    int main() /* demo */ /* C */
+    {
+        std::vector< double > sample = { 2, 4, 4, 4, 5, 5, 5, 7, 9 };
+        auto s = compute_stats( sample );
+
+        assert( s.mean == 5 ); /* C */
+        assert( s.median == 5 );
+        assert( s.stddev == 2 );
+
+        sample.push_back( 1100 ); /* C */
+        s = compute_stats( sample );
+
+        assert( s.median == 5 ); /* C */
+        assert( s.mean > 100 );
+        assert( s.stddev > 100 );
+    }
+
+¹ V některých případech je ‹x[ i ]› l-hodnotou i v případě, že
+  ‹x› samotné l-hodnota není (opačná implikace tedy obecně
+  neplatí). Výslednou l-hodnotu ale stejně nelze smysluplně
+  použít. 
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹primes›]
+
+Krom jednoduchých výstupních parametrů (kterými jsme se zabývali
+v předchozí kapitole) lze uvažovat i o výstupních parametrech
+složených typů. V této ukázce naprogramujeme funkci ‹primes›,
+která na konec předaného objektu typu ‹std::vector› vloží všechna
+prvočísla ze zadaného rozsahu.
+
+O parametru ‹out› budeme mluvit jako o výstupním parametru, i
+když situace je zde o něco složitější: operace, které můžeme
+se složenou hodnotou provádět, se totiž neomezují pouze na čtení
+a přiřazení. Musíme tedy vědět, jak závisí chování operací, které
+chceme provést, na počáteční hodnotě.
+
+Například operace vložení prvku na konec vektoru bude fungovat
+stejně pro libovolný vektor.¹ Protože žádnou jinou operaci
+s parametrem ‹out› provádět nebudeme, je jeho označení za
+výstupní parametr opodstatněné. 
+
+    void primes( int from, int to, std::vector< int > &out ) /* C */
+    {
+        for ( int candidate = from; candidate < to; ++ candidate )
+        {
+            bool prime = true;
+            int bound = std::sqrt( candidate ) + 1;
+
+Rozhodování o prvočíselnosti kandidáta provedeme naivně,
+zkusmým dělením. 
+
+            for ( int div = 2; div < bound; ++ div ) /* C */
+                if ( div != candidate && candidate % div == 0 )
+                {
+                    prime = false;
+                    break;
+                }
+
+Konečně, je-li kandidát skutečně prvočíslem, vložíme ho
+na konec vektoru odkazovaného parametrem ‹out› (protože
+‹out› je referenčního typu, ‹out› je pouze nové jméno pro
+původní objekt uvedený ve skutečném parametru).
+
+Novým prvkem je zde ale zejména «volání metody».
+Syntakticky se podobá přístupu k položce (viz předchozí
+ukázka), ale je následováno kulatými závorkami a seznamem
+parametrů, stejně jako volání běžného podprogramu. Výraz
+před tečkou se použije jako skrytý parametr metody (ta
+tedy s výslednou hodnotou může pracovat – zde například
+volání ‹out.push_back( x )› modifikuje objekt ‹out›).
+O metodách si toho povíme více v následující kapitole. 
+
+            if ( prime ) /* C */
+                out.push_back( candidate );
+        }
+    }
+
+    int main() /* demo */ /* C */
+    {
+        std::vector< int > p_out;
+        std::vector< int > p7 = { 2, 3, 5 },
+                           p15 = { 2, 3, 5, 7, 11, 13 };
+
+        primes( 2, 7, p_out ); /* C */
+        assert( p_out == p7 );
+        primes( 7, 15, p_out );
+        assert( p_out == p15 );
+    }
+
+¹ Situaci, kdy je vektor „plný“ (obsahuje tolik prvků, že další
+  nelze přidat, i kdyby to kapacita paměti umožnila) můžeme
+  zanedbat: na 64b počítači, který skutečně existuje, nemůže
+  nastat. 
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹closure›]
+
+In this demo, we will check closure properties of relations:
+reflexivity, transitivity and symmetry. A relation is a set of
+pairs, and hence we will represent them as ‹std::set› of
+‹std::pair› instances. We will work with relations on integers.
+Recall that ‹std::set› has an efficient membership test: we will
+be using that a lot in this program. 
+
+    using relation = std::set< std::pair< int, int > >; /* C */
+
+The first predicate checks reflexivity: for any ⟦x⟧ which appears
+in the relation, the pair ⟦(x, x)⟧ must be present. Besides
+membership testing, we will use structured bindings and range
+‹for› loops. Notice that a braced list of values is implicitly
+converted to the correct type (‹std::pair< int, int >›). 
+
+    bool is_reflexive( const relation &r ) /* C */
+    {
+
+Structured bindings are written using ‹auto›, followed by
+square brackets with a list of names to bind to individual
+components of the right-hand side. In this case, the
+right-hand side is the «loop variable» – i.e. each of the
+elements of ‹r› in turn. 
+
+        for ( auto [ x, y ] : r ) /* C */
+        {
+            if ( !r.contains( { x, x } ) )
+                return false;
+            if ( !r.contains( { y, y } ) )
+                return false;
+        }
+
+We have checked all the elements of ‹r› and did not find any
+which would violate the required property. Return ‹true›. 
+
+        return true; /* C */
+    }
+
+Another, even simpler, check is for symmetry. A relation is
+symmetric if for any pair ⟦(x, y)⟧ it also contains the opposite,
+⟦(y, x)⟧. 
+
+    bool is_symmetric( const relation &r ) /* C */
+    {
+        for ( auto [ x, y ] : r )
+            if ( !r.contains( { y, x } ) )
+                return false;
+        return true;
+    }
+
+Finally, a slightly more involved example: transitivity. A
+relation is transitive if ⟦∀x, y, z. (x, y) ∈ r ∧ (y, z) ∈ r →
+(x, z) ∈ r⟧. 
+
+    bool is_transitive( const relation &r ) /* C */
+    {
+        for ( auto [ x, y ] : r )
+            for ( auto [ y_prime, z ] : r )
+                if ( y == y_prime && !r.contains( { x, z } ) )
+                    return false;
+        return true;
+    }
+
+    int main() /* demo */ /* C */
+    {
+        relation r_1{ { 1, 1 }, { 1, 2 } };
+        assert( !is_reflexive( r_1 ) );
+        assert( !is_symmetric( r_1 ) );
+        assert(  is_transitive( r_1 ) );
+
+        relation r_2{ { 1, 1 }, { 1, 2 }, { 2, 2 } }; /* C */
+        assert(  is_reflexive( r_2 ) );
+        assert( !is_symmetric( r_2 ) );
+        assert(  is_transitive( r_2 ) );
+
+        relation r_3{ { 2, 1 }, { 1, 2 }, { 2, 2 } }; /* C */
+        assert( !is_reflexive( r_3 ) );
+        assert(  is_symmetric( r_3 ) );
+        assert( !is_transitive( r_3 ) );
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 4. [‹dfs›]
+
+V této ukázce se budeme zabývat prohledáváním orientovaného
+grafu. Asi nejjednodušším vhodným algoritmem je rekurzivní
+prohledávání do hloubky. Konkrétně nás bude zajímat odpověď na
+otázku „je vrchol ⟦b⟧ dosažitelný z vrcholu ⟦a⟧?“. Budeme navíc
+požadovat, aby byla příslušná cesta neprázdná (tzn. ⟦a⟧ budeme
+považovat za dosažitelné z ⟦a⟧ pouze leží-li na cyklu). 
+
+Vstupní graf bude zadaný za pomoci seznamů následníků: typ
+‹graph› udává pro každý vrchol grafu jeho následníky. Asociativní
+kontejner ‹std::map› ukládá dvojice klíč-hodnota a umožňuje mimo
+jiné efektivně (v logaritmickém čase) nalézt hodnotu podle
+zadaného klíče.
+
+Všimněte si také, že množina vrcholů nemusí nutně sestávat
+z nepřerušené posloupnosti, nebo jen z malých čisel (proto
+používáme ‹std::map› a nikoliv ‹std::vector›). 
+
+    using edges = std::vector< int >; /* C */
+    using graph = std::map< int, edges >;
+
+Krom samotného grafu budeme potřebovat reprezentaci pro «množinu»
+navštívených vrcholů. V grafu s cykly by algoritmus, který si
+takovou množinu neudržuje, vedl na nekonečnou rekurzi (nebo
+nekonečný cyklus). Navíc i v acyklickém grafu bude takový
+algoritmus vyžadovat (v nejhorším případě) exponenciální čas.
+
+Protože sémanticky se jedná o množinu, není asi velkým
+překvapením, že pro její reprezentaci použijeme asociativní
+kontejner ‹std::set›. Vyhledání prvku (resp. test na přítomnost
+prvku) v ‹std::set› má logaritmickou časovou složitost. Podobně
+tak vložení prvku. 
+
+    using visited = std::set< int >; /* C */
+
+Hlavní rekurzivní podprogram bude potřebovat 2 pomocné parametry:
+již zmiňovanou množinu navštívených vrcholů, a navíc pravdivostní
+hodnotu ‹moved›, která řeší případ, kdy potřebujeme zjistit, zda
+je vrchol dosažitelný sám ze sebe. Naivní řešení by totiž pro
+dvojici ⟦(a, a)⟧ vždy vrátilo ‹true› (v rozporu s naším zadáním).
+Proto si v tomto parametru budeme pamatovat, zda jsme se již
+podél nějaké hrany posunuli.
+
+Tento podprogram bude tedy odpovídat na otázku „existuje cesta,
+která začíná ve vrcholu ‹from›, neprochází žádným vrcholem
+v ‹seen›, a zároveň končí ve vrcholu ‹to›?“ Všimněte si ale, že
+množinu ‹seen› předáváme odkazem (referencí) – existuje pouze
+jediná množina navštívených vrcholů, sdílená všemi rekurzivními
+aktivacemi podprogramu. Jakmile tedy vrchol potkáme na
+«libovolné» cestě, bude vyloučen ze zkoumání ve všech ostatních
+větvích výpočtu (tedy i v těch sourozeneckých, nikoliv jen
+v potomcích toho současného). 
+
+    bool is_reachable_rec( const graph &g, int from, int to, /* C */
+                           visited &seen, bool moved )
+    {
+První bázový případ je situace, kdy jsme cílový vrchol našli
+– protože je velmi jednoduchý, vyřešíme jej první. Všimněte
+si kontroly parametru ‹moved›. 
+
+        if ( from == to && moved ) /* C */
+            return true;
+
+Hlavní cyklus pokrývá zbývající případy:
+
+ 1. druhý bázový případ, kdy žádný nenavštívený potomek již
+    neexistuje (tzn. nacházíme se ve slepé větvi a výsledkem
+    je ‹false›), a
+ 2. případ, kdy existuje dosud nenavštívený soused – pak lze
+    ale problém vyřešit rekurzí, protože současný vrchol jsme
+    z problému vyloučili a zbývající problém je tedy menší.
+
+Výsledkem volání metody ‹at› je reference na hodnotu
+přidruženou klíči, který jsme předali v parametru. Proměnná
+‹next› tedy nabývá hodnot, které odpovídají přímým
+následníkům vrcholu ‹from›. 
+
+        for ( auto next : g.at( from ) ) /* C */
+
+V případě, že jsme nalezli nenavštívený vrchol, nejprve
+ho označíme za navštívený a poté provedeme rekurzivní
+volání. Protože jsme se právě posunuli po hraně ‹from,
+next›, nastavujeme parametr ‹moved› na ‹true›. 
+
+            if ( !seen.contains( next ) ) /* C */
+            {
+                seen.insert( next );
+                if ( is_reachable_rec( g, next, to, seen, true ) )
+                    return true;
+            }
+
+Skončí-li cyklus jinak, než návratem z podprogramu, znamená
+to, že jsme vyčerpali všechny možnosti, aniž bychom našli
+přípustnou cestu, která vrcholy ‹from› a ‹to› spojuje. 
+
+        return false; /* C */
+    }
+
+Konečně doplníme jednoduchou funkci, která doplní potřebné
+hodnoty pomocným parametrům. Odpovídá na otázku „lze se do
+vrcholu ‹to› dostat podél jedné nebo více hran, začneme-li ve
+vrcholu ‹to›?“.
+
+Za povšimnutí také stojí, že ‹is_reachable› je čistou funkcí (a
+to i přesto, že ‹is_reachable_rec› čistou funkcí není). 
+
+    bool is_reachable( const graph &g, int from, int to ) /* C */
+    {
+        visited seen;
+        return is_reachable_rec( g, from, to, seen, false );
+    }
+
+    int main() /* demo */ /* C */
+    {
+        graph g{ { 1, { 2, 3, 4 } },
+                 { 2, { 1, 2 } },
+                 { 3, { 3, 4 } },
+                 { 4, {} },
+                 { 5, { 3 }} };
+
+        assert(  is_reachable( g, 1, 1 ) ); /* C */
+        assert( !is_reachable( g, 4, 4 ) );
+        assert(  is_reachable( g, 1, 2 ) );
+        assert(  is_reachable( g, 1, 3 ) );
+        assert(  is_reachable( g, 1, 4 ) );
+        assert( !is_reachable( g, 4, 1 ) );
+        assert(  is_reachable( g, 3, 3 ) );
+        assert( !is_reachable( g, 3, 1 ) );
+        assert(  is_reachable( g, 5, 4 ) );
+        assert( !is_reachable( g, 5, 1 ) );
+        assert( !is_reachable( g, 5, 2 ) );
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹bfs›]
+
+† The goal of this demonstration will be to find the shortest
+distance in an unweighted, directed graph:
+
+ 1. starting from a fixed (given) vertex,
+ 2. to the nearest vertex with an odd value.
+
+The canonical ‘shortest path’ algorithm in this setting is
+«breadth-first search». The algorithm makes use of two data
+structures: a «queue» and a «set», which we will represent using
+the standard C++ containers named, appropriately, ‹std::queue›¹
+and ‹std::set›.
+
+In the previous demonstration, we have represented the graph
+explicitly using adjacency list encoded as instances of
+‹std::vector›. Here, we will take a slightly different approach:
+we well use ‹std::multimap› – as the name suggests, it is related
+to ‹std::map› with one crucial difference: it can associate
+multiple values to each key. Which is exactly what we need to
+represent an directed graph – the values associated with each key
+will be the successors of the vertex given by the key. 
+
+    using graph = std::multimap< int, int >; /* C */
+
+The algorithm consists of a single function, ‹distance_to_odd›,
+which takes the graph ‹g›, as a constant reference, and the
+vertex ‹initial›, as arguments. It then returns the sought
+distance, or if no matching vertex is found, -1. 
+
+    int distance_to_odd( const graph &g, int initial ) /* C */
+    {
+We start by declaring the «visited set», which prevents the
+algorithm from getting stuck in an infinite loop, should it
+encounter a cycle in the input graph (and also helps to keep
+the time complexity under control). 
+
+        std::set< int > visited; /* C */
+
+The next piece of the algorithm is the «exploration queue»:
+we will put two pieces of information into the queue: first,
+the vertex to be explored, second, its BFS distance from
+‹initial›. 
+
+        std::queue< std::pair< int, int > > queue; /* C */
+
+To kickstart the exploration, we place the initial vertex,
+along with distance 0, into the queue: 
+
+        queue.emplace( initial, 0 ); /* C */
+
+Follows the standard BFS loop: 
+
+        while ( !queue.empty() ) /* C */
+        {
+            auto [ vertex, distance ] = queue.front();
+            queue.pop();
+
+To iterate all the successors of a vertex in an
+‹std::multimap›, we will use its ‹equal_range› method,
+which will return a pair of «iterators» – generalized
+pointers, which support a kind of ‘pointer arithmetic’.
+The important part is that an iterator can be incremented
+using the ‹++› operator to get the next element in a
+sequence, and dereferenced using the unary ‹*› operator
+to get the pointed-to element. The result of
+‹equal_range› is a pair of iterators:
+
+ • begin, which points at the first matching key-value
+   pair in the multimap,
+ • end, which points «one past» the last matching
+   element; clearly, if ‹begin == end›, the sequence is
+   empty.
+
+ Incrementing ‹begin› will eventually cause it to become
+ equal to ‹end›, at which point we have reached the end
+ of the sequence. Let's try: 
+
+            auto [ begin, end ] = g.equal_range( vertex ); /* C */
+
+            for ( ; begin != end; ++ begin ) /* C */
+            {
+In the body loop, ‹begin› points, in turn, at each
+matching key-value pair in the graph. To get the
+corresponding value (which is what we care about), we
+extract the second element: 
+
+                auto [ _, next ] = *begin; /* C */
+
+                if ( visited.contains( next ) ) /* C */
+                    continue; /* skip already-visited vertices */
+
+First, let us check whether we have found the vertex
+we were looking for: 
+
+                if ( next % 2 == 1 ) /* C */
+                    return distance + 1;
+
+Otherwise we mark the vertex as visited and put it
+into the queue, continuing the search. 
+
+                visited.insert( next ); /* C */
+                queue.emplace( next, distance + 1 );
+            }
+        }
+
+We have exhausted the queue, and hence all the vertices
+reachable from ‹initial›, without finding an odd-valued
+one. Indicate failure to the caller. 
+
+        return -1; /* C */
+    }
+
+    int main() /* demo */ /* C */
+    {
+        graph g{ { 1, 2 }, { 1, 6 }, { 2, 4 }, { 2, 5 }, { 6, 4 } },
+              h{ { 8, 2 }, { 8, 6 }, { 2, 4 }, { 2, 5 }, { 5, 8 } },
+              i{ { 2, 4 }, { 4, 2 } };
+
+        assert( distance_to_odd( g, 1 ) ==  2 ); /* C */
+        assert( distance_to_odd( g, 2 ) ==  1 );
+        assert( distance_to_odd( g, 6 ) == -1 );
+
+        assert( distance_to_odd( h, 8 ) ==  2 ); /* C */
+        assert( distance_to_odd( h, 5 ) ==  3 );
+        assert( distance_to_odd( i, 2 ) == -1 );
+    }
+
+¹ Strictly speaking, ‹std::queue› is not a container, but rather
+  a container «adaptor». Internally, unless specified otherwise,
+  an ‹std::queue› uses another container, ‹std::deque› to store
+  the data and implement the operations. It would also be
+  possible, though less convenient, to use ‹std::deque›
+  directly. 
+
+## e. Elementární příklady
+
+
+### 1. [‹fibonacci›]
+
+Fill in an existing vector with a Fibonacci sequence (i.e. after
+calling ‹fibonacci( v, n )›, the vector ‹v› should contain the
+first ‹n› Fibonacci numbers, and nothing else). 
+
+    // void fibonacci( … ) /* C */
+
+
+### 2. [‹reflexive›]
+
+Build a reflexive closure of a relation given as a set of pairs,
+returning the result. 
+
+    using relation = std::set< std::pair< int, int > >; /* C */
+
+    relation reflexive( const relation &r ); /* C */
+
+
+### 3. [‹unique›]
+
+Filter out duplicate entries from a vector, maintaining the
+relative order of entries. Return the result as a new vector. 
+
+    std::vector< int > unique( const std::vector< int > & ); /* C */
+
+
+## p. Přípravy
+
+
+### 1. [‹minsum›]
+
+Na vstupu dostanete posloupnost celočíselných hodnot (jako
+instanci kontejneru ‹std::vector›). Vaším úkolem je rozdělit je
+na kratší posloupnosti tak, že každá posloupnost je nejkratší
+možná, ale zároveň je její součet alespoň ‹sum›. Výjimku tvoří
+poslední posloupnost, pro kterou nemusí nutně existovat potřebné
+prvky.
+
+Pořadí prvků musí být zachováno, tzn. zřetězením všech
+posloupností na výstupu musí vzniknout původní posloupnost
+‹numbers›. 
+
+    auto minsum( const std::vector< int > &numbers, int sum ); /* C */
+
+
+### 2. [‹connected›]
+
+Rozložte zadaný neorientovaný graf na souvislé komponenty
+(výsledné komponenty budou reprezentované množinou svých
+vrcholů). Graf je zadaný jako symetrická matice sousednosti.
+Vrcholy jsou očíslované od 1 do ⟦n⟧, kde ⟦n⟧ je velikost vstupní
+matice.
+
+V grafu je hrana ⟦{u, v}⟧ přítomna právě tehdy, je-li na řádku
+⟦u⟧ ve sloupci ⟦v⟧ hodnota ‹true›. 
+
+    using graph = std::vector< std::vector< bool > >; /* C */
+
+    using component = std::set< int >; /* C */
+    using components = std::set< component >;
+
+    components decompose( const graph &g ); /* C */
+
+
+### 3. [‹divisors›]
+
+Nalezněte všechny prvočíselné dělitele čísla ‹num› a vložte je do
+vektoru ‹divs›. Počáteční hodnota parametru ‹divs›:
+
+ • obsahuje právě všechny prvočíselné dělitele všech čísel «ostře
+   menších» než ‹num›,
+ • je vzestupně seřazená.
+
+«Výstupní» podmínkou pro vektor ‹divs› je:
+
+ • obsahuje všechna čísla, která obsahoval na vstupu,
+ • zároveň obsahuje všechny prvočíselné dělitele čísla ‹num›,
+ • je vzestupně seřazený.
+
+Funkce musí pracovat «efektivně». Určit vhodnou časovou složitost
+je v této úloze součástí zadání. 
+
+    void add_divisors( int num, std::vector< int > &divs ); /* C */
+
+
+### 4. [‹midpoints›]
+
+Strukturu ‹point› doplňte tak, aby měla složky ‹x› a ‹y›, kde
+obojí jsou čísla s plovoucí desetinnou čárkou, a to tak, že
+deklarace ‹point p;› vytvoří bod se souřadnicemi ⟦0, 0⟧. 
+
+    struct point; /* C */
+
+Nyní uvažme uzavřenou lomenou čáru. Nahraďte každou úsečku A
+takovou, která začíná prostředním bodem úsečky A a končí
+prostředbním bodem úsečky B, kde B v obrazci následuje
+bezprostředně po A. Vstup je zadán jako sekvence bodů (kde každý
+bod náleží dvěma úsečkám). Poslední úsečka jde z posledního bodu
+do prvního, čím se obrazec uzavře. 
+
+    void midpoints( std::vector< point > &pts ); /* C */
+
+
+### 5. [‹dag›]
+
+† Budeme opět pracovat s orientovaným grafem – tentokrát budeme
+hledat cykly. Existuje na výběr několik algoritmů, ty založené na
+prohledávání do hloubky jsou nejjednodušší. Graf je zadaný jako
+hodnota typu ‹std::multimap› – více se o této reprezentaci
+dozvíte v ukázce ‹d5_bfs›.
+
+Čistá funkce ‹is_dag› nechť vrátí ‹false› právě když ‹g› obsahuje
+cyklus. Pozor, graf nemusí být souvislý. 
+
+    using graph = std::multimap< int, int >; /* C */
+    bool is_dag( const graph &g );
+
+
+### 6. [‹bipartite›]
+
+Rozhodněte, zda je zadaný neorientovaný graf bipartitní (tzn.
+jeho vrcholy lze rozdělit do dvou množin ⟦A, B⟧ tak, že každá
+hrana má jeden vrchol v ⟦A⟧ a jeden v ⟦B⟧). Protože graf je
+neorientovaný, seznamy sousedů na vstupu jsou symetrické. 
+
+    using edges = std::vector< int >; /* C */
+    using graph = std::map< int, edges >;
+
+    bool is_bipartite( const graph &g ); /* C */
+
+
+## r. Řešené úlohy
+
+
+### 1. [‹mode›]
+
+Find the mode (most common value) in a non-empty vector and
+return it. If there are more than one, return the smallest. 
+
+    int mode( const std::vector< int > & ); /* C */
+
+
+### 2. [‹sssp›]
+
+Compute single-source shortest path distances for all vertices in
+an unweighted directed graph. The graph is given using adjacency
+(successor) lists. The result is a map from a vertex to its
+shortest distance from ‹initial›. Vertices which are not
+reachable from ‹initial› should not appear in the result. 
+
+    using edges = std::vector< int >; /* C */
+    using graph = std::map< int, edges >;
+
+    std::map< int, int > shortest( const graph &g, int initial ); /* C */
+
+
+### 3. [‹solve›]
+
+Consider a single-player game that takes place on a 1D playing
+field like this:
+
+       ╭───────────────╮
+       │               ▼
+ ┌───┬───┬───┬───┬───┬───┬───┬───┬───┐
+ │ 2 │ 4 │ … │ … │   │ 2 │   │ … │ 0 │
+ └───┴───┴───┴───┴───┴───┴───┴───┴───┘
+   │       ▲   ▲      │ │      ▲
+   ╰───────╯   ╰──────╯ ╰──────╯
+
+The player starts at the leftmost cell and in each round can
+decide whether to jump left or right. The playing field is given
+by the input vector ‹jumps›. The size of the field is
+‹jumps.size() + 1› (the rightmost cell is always 0). The
+objective is to visit each cell exactly once. 
+
+    bool solve( std::vector< int > jumps ); /* C */
+
+
+### 4. [‹buckets›]
+
+Sort stones into buckets, where each bucket covers a range of
+weights; the range of stone weights to put in each bucket is
+given in an argument – a vector with one element per bucket, each
+element a pair of min/max values (inclusive). Assume the bucket
+ranges do not overlap. Stones are given as a vector of weights.
+Throw away stones which do not fall into any bucket. Return the
+weights of individual buckets. 
+
+    using bucket = std::pair< int, int >; /* C */
+
+    std::vector< int > sort( const std::vector< int > &stones, /* C */
+                             const std::vector< bucket > &buckets );
+
+
+### 5. [‹colour›]
+
+Write a function to decide whether a given graph can be
+3-colored. A correct colouring is an assignment of colours to
+vertices such that no edge connects vertices with the same
+colour. The graph is given as a set of edges. Edges are
+represented as pairs; assume that if ⟦(u, v)⟧ is a part of the
+graph, so is ⟦(v, u)⟧. 
+
+    using graph = std::set< std::pair< int, int > >; /* C */
+    bool has_3colouring( const graph &g );
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 6. [‹flood›]
+
+V tomto cvičení implementujeme tzv. semínkové vyplňování, obvykle
+popsané algoritmem, který:
+
+ 1. dostane na vstupu bitmapu (odélníkovou síť pixelů),
+ 2. počátečnou pozici v síti,
+ 3. barvu výplně (cílovou barvu),
+
+a změní celou souvislou jednobarevnou plochu, která obsahuje
+počáteční pozici, na cílovou barvu.
+
+Budeme uvažovat monochromatický případ – pixely jsou černé nebo
+bílé, resp. 0 nebo 1. Navíc nebudeme měnit vstupní bitmapu, ale
+pouze spočítáme, kolik políček změní barvu a tuto hodnotu
+vrátíme. Příklad (prázdná políčka mají hodnotu 0, vybarvená
+hodnotu 1, startovní pozice má souřadnice 1, 3):
+
+  ┌───┬───┬───┬───┬───┬───┐  ┌───┬───┬───┬───┬───┬───┐
+0 │   │   │   │░░░│   │   │  │░░░│░░░│░░░│░░░│   │   │
+  ├───┼───┼───┼───┼───┼───┤  ├───┼───┼───┼───┼───┼───┤
+1 │   │░░░│   │░░░│   │   │  │░░░│░░░│░░░│░░░│   │   │
+  ├───┼───┼───┼───┼───┼───┤  ├───┼───┼───┼───┼───┼───┤
+2 │   │░░░│░░░│░░░│░░░│░░░│  │░░░│░░░│░░░│░░░│░░░│░░░│
+  ├───┼───┼───┼───┼───┼───┤  ├───┼───┼───┼───┼───┼───┤
+3 │   │ × │   │░░░│   │   │  │░░░│░×░│░░░│░░░│░░░│░░░│
+  ├───┼───┼───┼───┼───┼───┤  ├───┼───┼───┼───┼───┼───┤
+4 │░░░│░░░│░░░│   │░░░│░░░│  │░░░│░░░│░░░│░░░│░░░│░░░│
+  ├───┼───┼───┼───┼───┼───┤  ├───┼───┼───┼───┼───┼───┤
+5 │   │   │   │   │░░░│   │  │░░░│░░░│░░░│░░░│░░░│   │
+  └───┴───┴───┴───┴───┴───┘  └───┴───┴───┴───┴───┴───┘
+    0   1   2   3   4   5      0   1   2   3   4   5
+
+Všimněte si, že „záplava“ se šíří i po diagonálách (např.
+z pozice (2, 3) na (3, 4) a dále na (4, 3)). Dále:
+
+ • vstupní bitmapa je zadaná jako jednorozměrný vektor a šířka,
+ • chybí-li nějaké pixely v posledním řádku, uvažujte jejich
+   hodnotu nulovou,
+ • je-li poslední řádek kompletní, nic nepřidávejte,
+ • je-li startovní pozice, ‹x0› nebo ‹y0›, mimo meze bitmapy
+   (tzn. její šířku a výšku), žádné pixely barvu nezmění.
+
+Poslední parametr, ‹fill›, udává cílovou barvu. Je-li startovní
+pozice cílové barvy, podobně se nic nebude měnit. 
+
+    using grid = std::vector< bool >; /* C */
+
+    int flood( const grid &pixels, int width, /* C */
+               int x0, int y0, bool fill );
+

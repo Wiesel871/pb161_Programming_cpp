@@ -1,0 +1,2185 @@
+
+# K. Vzorová řešení
+
+## 1. Týden 1
+
+
+### e.1. [‹factorial›]
+
+    int factorial( int n ) /* C */
+    {
+        int r = 1;
+
+        for ( ; n > 0; n-- ) /* C */
+            r *= n;
+
+        return r; /* C */
+    }
+
+### e.2. [‹concat›]
+
+    std::uint64_t concat( std::uint64_t a, /* C */
+                          std::uint64_t b, int b_bits )
+    {
+        return a << b_bits | b;
+    }
+
+### e.3. [‹zeros›]
+
+    int zeros( int n, int base, int &order ) /* C */
+    {
+        int result = 0;
+
+        for ( int current_order = 0; n; current_order ++ ) /* C */
+        {
+            if ( n % base == 0 )
+            {
+                order = current_order;
+                ++ result;
+            }
+
+            n /= base; /* C */
+        }
+
+        return result; /* C */
+    }
+
+### e.4. [‹normalize›]
+
+    void normalize( int &p, int &q ) /* C */
+    {
+        int a = std::max( p, q ),
+            b = std::min( p, q );
+
+        while ( b > 0 ) /* C */
+        {
+            a = a % b;
+            std::swap( a, b );
+        }
+
+        p /= a; /* C */
+        q /= a;
+    }
+
+
+### r.1. [‹bitwise›]
+
+    bool table( std::uint8_t op, bool a, bool b, bool c ) /* C */
+    {
+        int shift = ( a ? 4 : 0 ) + ( b ? 2 : 0 ) + ( c ? 1 : 0 );
+        return op & 1 << shift;
+    }
+
+    auto bitwise( std::uint8_t op, auto a, auto b, auto c ) /* C */
+    {
+        decltype( a ) r = 0;
+
+        for ( decltype( a ) mask = 1; mask != 0; mask <<= 1 ) /* C */
+            if ( table( op, a & mask, b & mask, c & mask ) )
+                r |= mask;
+
+        return r; /* C */
+    }
+
+### r.2. [‹euler›]
+
+    long phi( long n ) /* C */
+    {
+        long r = n;
+        long p = 2;
+
+        while ( p <= n ) /* C */
+        {
+            if ( n % p == 0 )
+            {
+                r *= p - 1;
+                r /= p;
+            }
+
+            while ( n % p == 0 ) /* C */
+                n /= p;
+
+            ++ p; /* C */
+        }
+
+        return r; /* C */
+    }
+
+### r.3. [‹hamcode›]
+
+    int even_parity( std::uint8_t x ) /* C */
+    {
+        bool r = true;
+
+        for ( ; x != 0; x >>= 1 ) /* C */
+            if ( x & 1 )
+                r = !r;
+
+        return r; /* C */
+    }
+
+    bool h84_decode( std::uint8_t data, std::uint8_t &out ) /* C */
+    {
+        bool ok = even_parity( data ) &&
+                  even_parity( data & 0b01010101 ) &&
+                  even_parity( data & 0b00110011 ) &&
+                  even_parity( data & 0b00001111 );
+
+        if ( ok ) /* C */
+            out = ( data & 7 ) | ( data & 16 ) >> 1;
+
+        return ok; /* C */
+    }
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.5. [‹cellular›]
+
+    bool table( bool a, bool b, bool c ) /* C */
+    {
+        return ( a && !c ) || ( !a && !b && !c );
+    }
+
+    bool bit( auto word, int pos ) /* C */
+    {
+        const int bitsize = 8 * sizeof( word );
+        const decltype( word ) one = 1;
+
+        if ( pos < 0 || pos >= bitsize ) /* C */
+            return false;
+        else
+            return word & one << pos;
+    }
+
+    auto cellular_step( auto word ) /* C */
+    {
+        const int bitsize = 8 * sizeof( word );
+        decltype( word ) result = 0, new_bit;
+
+        for ( int i = 0; i < bitsize; ++i ) /* C */
+        {
+             new_bit = table( bit( word, i + 1 ),
+                              bit( word, i ),
+                              bit( word, i - 1 ) );
+             result |= new_bit << i;
+        }
+
+        return result; /* C */
+    }
+
+## 2. Týden 2
+
+
+### e.1. [‹fibonacci›]
+
+    void fibonacci( std::vector< int > &v, int n ) /* C */
+    {
+        v.clear();
+
+        if ( n > 0 ) v.push_back( 1 ); /* C */
+        if ( n > 1 ) v.push_back( 1 );
+
+        for ( int i = 2; i < n; ++ i ) /* C */
+            v.push_back( v[ i - 1 ] + v[ i - 2 ] );
+    }
+
+
+### e.2. [‹reflexive›]
+
+    using _pub_::relation; /* C */
+
+    relation reflexive( const relation &r ) /* C */
+    {
+        relation out = r;
+
+        for ( auto [ x, y ] : r ) /* C */
+        {
+            out.emplace( x, x );
+            out.emplace( y, y );
+        }
+
+        return out; /* C */
+    }
+
+### e.3. [‹unique›]
+
+    std::vector< int > unique( const std::vector< int > &v ) /* C */
+    {
+        std::vector< int > out;
+        std::set< int > seen;
+
+        for ( int x : v ) /* C */
+            if ( !seen.count( x ) )
+            {
+                out.push_back( x );
+                seen.insert( x );
+            }
+
+        return out; /* C */
+    }
+
+### r.1. [‹mode›]
+
+    int mode( const std::vector< int > &in ) /* C */
+    {
+        std::map< int, int > freq;
+        int max_val = 0, max_freq = 0;
+
+        for ( int x : in ) /* C */
+            freq[ x ] ++;
+
+        for ( auto [ v, f ] : freq ) /* C */
+            if ( f > max_freq )
+            {
+                max_val = v;
+                max_freq = f;
+            }
+
+        return max_val; /* C */
+    }
+
+### r.2. [‹sssp›]
+
+    using _pub_::graph; /* C */
+
+    std::map< int, int > shortest( const graph &g, int initial ) /* C */
+    {
+        std::map< int, int > dist;
+        std::queue< int > queue;
+        queue.push( initial );
+        dist[ initial ] = 0;
+
+        while ( !queue.empty() ) /* C */
+        {
+            int from = queue.front();
+            queue.pop();
+
+            for ( auto to : g.at( from ) ) /* C */
+            {
+                if ( dist.count( to ) )
+                    continue;
+
+                dist[ to ] = dist[ from ] + 1; /* C */
+                queue.push( to );
+            }
+        }
+
+        return dist; /* C */
+    }
+
+### r.3. [‹solve›]
+
+    bool recurse( int pos, std::vector< bool > &visited, /* C */
+                  const std::vector< int > &jumps )
+    {
+        if ( pos == int( jumps.size() ) )
+        {
+            int cnt = std::count( visited.begin(), visited.end(),
+                                  true );
+            return int( jumps.size() ) == cnt;
+        }
+
+        if ( pos < 0 || pos >= int( visited.size() ) || visited[ pos ] ) /* C */
+            return false;
+
+        visited[ pos ] = true; /* C */
+        bool won = recurse( pos - jumps[ pos ], visited, jumps ) ||
+                   recurse( pos + jumps[ pos ], visited, jumps );
+        visited[ pos ] = false;
+        return won;
+    }
+
+    bool solve( std::vector< int > jumps ) /* C */
+    {
+        std::vector< bool > visited( jumps.size(), false );
+        return recurse( 0, visited, jumps );
+    }
+
+### r.4. [‹buckets›]
+
+    using _pub_::bucket; /* C */
+
+    std::vector< int > sort( const std::vector< int > &stones, /* C */
+                             const std::vector< bucket > &buckets )
+    {
+        std::vector< int > out( buckets.size(), 0 );
+
+        for ( int s : stones ) /* C */
+            for ( size_t i = 0; i < buckets.size(); ++ i )
+            {
+                auto [ min, max ] = buckets[ i ];
+
+                if ( s >= min && s <= max ) /* C */
+                    out[ i ] += s;
+            }
+
+        return out; /* C */
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.6. [‹flood›]
+
+    using _pub_::grid; /* C */
+
+    int flood( const grid &pixels, int width, /* C */
+               int x0, int y0, bool fill )
+    {
+        grid work = pixels;
+        int count = 0;
+        int height = pixels.size() / width;
+        std::queue< std::pair< int, int > > todo;
+
+        if ( pixels.size() % width ) /* C */
+            ++ height;
+
+        while ( static_cast< int >( work.size() ) < width * height ) /* C */
+            work.push_back( false );
+
+        auto flip = [&]( int x, int y ) /* C */
+        {
+            int idx = y * width + x;
+
+            if ( x >= 0 && x < width  && /* C */
+                 y >= 0 && y < height && work[ idx ] != fill )
+            {
+                todo.emplace( x, y );
+                work[ idx ] = fill;
+                ++ count;
+            }
+        };
+
+        flip( x0, y0 ); /* C */
+
+        while ( !todo.empty() ) /* C */
+        {
+            auto [ x, y ] = todo.front();
+            todo.pop();
+
+            for ( int dx : { -1, 0, 1 } ) /* C */
+                for ( int dy : { -1, 0, 1 } )
+                    if ( dx || dy )
+                        flip( x + dx, y + dy );
+        }
+
+        return count; /* C */
+    }
+
+
+## 3. Týden 3
+
+
+### e.2. [‹cartesian›]
+
+This is a solution that uses the friend syntax. For a solution
+which uses the method syntax, see ‹cartesian.alt.cpp›. 
+
+    struct cartesian /* C */
+    {
+        double real, imag;
+
+        friend cartesian operator+( cartesian a, cartesian b ) /* C */
+        {
+You may not know this syntax yet. In a return statement,
+braces without a type name call the constructor of the
+return type. I.e. ‹{ a, b }› in this context is the same
+as ‹cartesian( a, b )›. 
+
+            return { a.real + b.real, a.imag + b.imag }; /* C */
+        }
+
+        friend cartesian operator-( cartesian a, cartesian b ) /* C */
+        {
+            return { a.real - b.real, a.imag - b.imag };
+        }
+
+        friend cartesian operator-( cartesian a ) /* C */
+        {
+            return { -a.real, -a.imag };
+        }
+
+        friend bool operator==( cartesian a, cartesian b ) /* C */
+        {
+            return a.real == b.real && a.imag == b.imag;
+        }
+    };
+
+    cartesian make_cartesian( double r, double i ) /* C */
+    {
+        return { .real = r, .imag = i };
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.1. [‹poly›]
+
+    struct poly /* C */
+    {
+        std::vector< int > cs;
+
+        void set( int p, int c ) /* C */
+        {
+            cs.resize( std::max( degree(), p + 1 ), 0 );
+            cs[ p ] = c;
+        }
+
+        int get( int p ) const /* C */
+        {
+            return p < degree() ? cs[ p ] : 0;
+        }
+
+        int degree() const { return cs.size(); } /* C */
+
+        static void check_bounds( int64_t v ) /* C */
+        {
+            brq::precondition( v >= INT_MIN && v <= INT_MAX );
+        }
+
+        poly operator+( const poly &o ) const /* C */
+        {
+            poly rv;
+
+            for ( int i = 0; i < std::max( degree(), o.degree() ); ++i ) /* C */
+            {
+                check_bounds( int64_t( get( i ) ) + o.get( i ) );
+                rv.set( i, get( i ) + o.get( i ) );
+            }
+
+            return rv; /* C */
+        }
+
+        poly operator*( const poly &o ) const /* C */
+        {
+            poly rv;
+
+            for ( int i = 0; i < degree(); ++i ) /* C */
+                for ( int j = 0; j < o.degree(); ++j )
+                {
+                    check_bounds( int64_t( get( i ) ) * o.get( j ) );
+                    check_bounds( rv.get( i + j ) + int64_t( get( i ) ) * o.get( j ) );
+                    rv.set( i + j,
+                            rv.get( i + j ) + get( i ) * o.get( j ) );
+                }
+
+            return rv; /* C */
+        }
+
+        bool operator==( const poly &o ) const /* C */
+        {
+            for ( int i = 0; i < std::max( degree(), o.degree() ); ++i )
+                if ( get( i ) != o.get( i ) )
+                    return false;
+            return true;
+        }
+    };
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.2. [‹qsort›]
+
+    struct array /* C */
+    {
+        std::vector< int > vec;
+
+        int get( int i ) const { return vec[ i ]; } /* C */
+        void append( int x ) { vec.push_back( x ); }
+
+        int partition( int pivot, int low, int high ) /* C */
+        {
+            while ( vec[ low ] < pivot ) /* the pivot must be in there */
+                ++ low;
+
+            int p_index = low; /* C */
+
+shuffle anything < pivot to the front while remembering where
+(in the second half) we stashed the pivot itself 
+
+            for ( int i = low + 1; i < high; ++i ) /* C */
+            {
+                if ( vec[ i ] < pivot )
+                    std::swap( vec[ low++ ], vec[ i ] );
+                if ( vec[ i ] == pivot )
+                    p_index = i;
+            }
+
+put the pivot in its place between the partitions 
+
+            std::swap( vec[ p_index ], vec[ low ] ); /* C */
+
+            return low; /* C */
+        }
+
+        void partition( int pivot ) /* C */
+        {
+            partition( pivot, 0, vec.size() );
+        }
+
+        void sort( int low, int high ) /* C */
+        {
+            if ( high - low <= 1 )
+                return;
+
+            int pivot = vec[ low ]; /* whatever */ /* C */
+            int p_index = partition( pivot, low, high );
+            sort( low, p_index );
+            sort( p_index + 1, high );
+        }
+
+        void sort() /* C */
+        {
+            sort( 0, vec.size() );
+        }
+    };
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.3. [‹ttt›]
+
+    struct tictactoe /* C */
+    {
+        int player = -1;
+        std::array< int, 9 > board{};
+
+        int index( int x, int y ) const { return x * 3 + y; } /* C */
+
+        int read( int x, int y ) const /* C */
+        {
+            return board[ index( x, y ) ];
+        }
+
+        void play( int x, int y ) /* C */
+        {
+            board[ index( x, y ) ] = player;
+            player *= -1;
+        }
+
+        int all_of( int x, int y, int dx, int dy ) const /* C */
+        {
+            int w = read( x, y );
+
+            for ( int i = 0; i < 3; ++i ) /* C */
+                if ( w != read( x + dx * i, y + dy * i ) )
+                    return 0;
+
+            return w; /* C */
+        }
+
+        int winner() const /* C */
+        {
+            for ( int i = 0; i < 3; ++i )
+            {
+                if ( int w = all_of( i, 0, 0, 1 ); w != 0 )
+                    return w;
+                if ( int w = all_of( 0, i, 1, 0 ); w != 0 )
+                    return w;
+            }
+
+            if ( int w = all_of( 0, 0, 1, 1 ); w != 0 ) /* C */
+                return w;
+            if ( int w = all_of( 0, 2, 1, -1 ); w != 0 )
+                return w;
+
+            return 0; /* C */
+        }
+    };
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.4. [‹flight›]
+
+    struct flight /* C */
+    {
+        using bound_t = std::tuple< double, double >;
+
+        double climb = 0, y = 0; /* C */
+        int x = 0;
+        std::vector< bound_t > bounds{ { -10, 10 } };
+        bool flying = true;
+
+        void append( double l, double h ) /* C */
+        {
+            brq::precondition( l < h );
+            bounds.emplace_back( l, h );
+        }
+
+        int size() const { return bounds.size(); } /* C */
+        bool finished() const { return x == size() - 1; }
+        void set_climb( double c ) { climb = c; }
+
+        bool clear() const /* C */
+        {
+            auto [ l, h ] = bounds[ x ];
+            return l < y && y < h;
+        }
+
+        bool move( int l ) /* C */
+        {
+            if ( !flying )
+                return false;
+
+            while ( l-- > 0 && x < size() - 1 ) /* C */
+            {
+                ++ x;
+                y += climb;
+
+                if ( !clear() ) /* C */
+                    return flying = false;
+            }
+
+            return true; /* C */
+        }
+    };
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.5. [‹qfield›]
+
+    struct qf; /* C */
+
+    qf make_qf( int a_nom, int a_den, int b_nom, int b_den ); /* C */
+    qf make_qf( rat a, rat b );
+
+    struct qf /* C */
+    {
+        rat u, v;
+
+        friend bool operator==( const qf &a, const qf &b ) = default; /* C */
+
+        friend qf operator+( const qf &a, const qf &b ) /* C */
+        {
+            return make_qf( a.u + b.u, a.v + b.v );
+        }
+
+        friend qf operator*( const qf &a, const qf &b ) /* C */
+        {
+            auto two = make_rat( 2, 1 );
+            return make_qf( a.u * b.u + two * a.v * b.v,
+                            a.u * b.v + a.v * b.u );
+        }
+    };
+
+    qf make_qf( int a_nom, int a_den, int b_nom, int b_den ) /* C */
+    {
+        return make_qf( make_rat( a_nom, a_den ),
+                        make_rat( b_nom, b_den ) );
+    }
+
+    qf make_qf( rat u, rat v ) /* C */
+    {
+        return qf{ .u = u, .v = v };
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.6. [‹life›]
+
+    using _pub_::grid; /* C */
+
+    bool updated( int x, int y, const grid &cells ) /* C */
+    {
+        int count = 0;
+        bool alive = cells.count( { x, y } );
+
+        for ( int dx : { -1, 0, 1 } ) /* C */
+            for ( int dy : { -1, 0, 1 } )
+                if ( dx || dy )
+                    count += cells.count( { x + dx, y + dy } );
+
+        return alive ? count == 2 || count == 3 : count == 3; /* C */
+    }
+
+    grid life( const grid &cells, int n ) /* C */
+    {
+        if ( n == 0 )
+            return cells;
+
+        grid todo, ngen; /* C */
+
+        for ( auto [ x, y ] : cells ) /* C */
+            for ( int dx : { -1, 0, 1 } )
+                for ( int dy : { -1, 0, 1 } )
+                    todo.emplace( x + dx, y + dy );
+
+        for ( auto [ x, y ] : todo ) /* C */
+            if ( updated( x, y, cells ) )
+                ngen.emplace( x, y );
+
+        return life( ngen , n - 1 ); /* C */
+    }
+
+
+## 4. Týden 4
+
+
+### e.3. [‹force›]
+
+    struct force /* C */
+    {
+        double x, y, z; /* cartesian components of the force */
+
+        force( double x, double y, double z ) /* C */
+            : x( x ), y( y ), z( z ) {}
+
+We only define multiplication by a scalar (‹double›) from
+left, since we only need that here, but it would be equally
+valid to flip the operand types (and define scalar
+multiplication on the right). 
+
+        friend force operator*( double s, force f ) /* C */
+        {
+            return { s * f.x, s * f.y, s * f.z };
+        }
+
+Bog-standard vector addition. 
+
+        friend force operator+( force a, force b ) /* C */
+        {
+            return { a.x + b.x, a.y + b.y, a.z + b.z };
+        }
+
+Fuzzy vector equality. Two vectors are equal when all their
+components are equal. 
+
+        friend bool operator==( force a, force b ) /* C */
+        {
+            return std::fabs( a.x - b.x ) < 1e-10 &&
+                   std::fabs( a.y - b.y ) < 1e-10 &&
+                   std::fabs( a.z - b.z ) < 1e-10;
+        }
+    };
+
+## 5. Týden 5
+
+
+### e.3. [‹iota›]
+
+    struct iota_iterator /* C */
+    {
+        using iterator = iota_iterator;
+        int _val;
+        bool operator==( iterator o ) const { return _val == o._val; };
+        bool operator!=( iterator o ) const { return _val != o._val; };
+        iota_iterator &operator++() { ++ _val; return *this; }
+        int operator*() const { return _val; }
+    };
+
+    struct iota /* C */
+    {
+        int _start, _end;
+
+        iota_iterator begin() const { return { _start }; } /* C */
+        iota_iterator end()   const { return { _end }; }
+        iota( int s, int e ) : _start( s ), _end( e ) {}
+    };
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.2. [‹zipper›]
+
+    struct node /* C */
+    {
+        using ptr = std::unique_ptr< node >;
+        int value;
+        ptr next;
+        node( int v, ptr n ) : value( v ), next( std::move( n ) ) {}
+    };
+
+    class zipper /* C */
+    {
+        int _focus;
+        using node_ptr = std::unique_ptr< node >;
+        node_ptr _left, _right;
+
+    public: /* C */
+        zipper( int f ) : _focus( f ) {}
+
+        bool shift( node_ptr &a, node_ptr &b ) /* C */
+        {
+            auto new_b = std::move( b->next );
+            auto new_a = std::move( b );
+            new_a->next = std::move( a );
+
+            std::swap( new_a->value, _focus ); /* C */
+
+            b = std::move( new_b ); /* C */
+            a = std::move( new_a );
+
+            return true; /* C */
+        }
+
+        void push( node_ptr &p, int v ) /* C */
+        {
+            p = std::make_unique< node >( v, std::move( p ) );
+        }
+
+        bool shift_left() /* C */
+        {
+            return _left  ? shift( _right, _left ) : false;
+        }
+
+        bool shift_right() /* C */
+        {
+            return _right ? shift( _left, _right ) : false;
+        }
+
+        void insert_left( int v )  { push( _left,  v ); } /* C */
+        void insert_right( int v ) { push( _right, v ); }
+
+        int &focus()       { return _focus; } /* C */
+        int  focus() const { return _focus; }
+    };
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.4. [‹diff›]
+
+    struct node /* C */
+    {
+        using ptr = std::shared_ptr< node >;
+        enum op_t { cnst, var, add, mul, exp } op;
+        int num = 0;
+        ptr l, r;
+    };
+
+    class expr /* C */
+    {
+    public:
+        node::ptr ptr;
+        expr() : ptr( std::make_shared< node >() ) {}
+        expr( int c ) : expr() { ptr->num = c; ptr->op = node::cnst; }
+        expr( node::op_t o, node::ptr l = nullptr,
+              node::ptr r = nullptr )
+            : expr()
+        {
+            ptr->op = o;
+            ptr->l = l;
+            ptr->r = r;
+        }
+        expr( node::ptr p ) :ptr( p ) {}
+
+        friend expr expnat( expr e ) /* C */
+        {
+            return { node::exp, e.ptr };
+        }
+
+        friend expr operator+( expr a, expr b ) /* C */
+        {
+            return { node::add, a.ptr, b.ptr };
+        }
+
+        friend expr operator*( expr a, expr b ) /* C */
+        {
+            return { node::mul, a.ptr, b.ptr };
+        }
+    };
+
+    const expr x{ node::var }; /* C */
+
+    double eval( expr e, double v ) /* C */
+    {
+        switch ( e.ptr->op )
+        {
+            case node::cnst: return e.ptr->num;
+            case node::var: return v;
+            case node::add: return eval( e.ptr->l, v ) + eval( e.ptr->r, v );
+            case node::mul: return eval( e.ptr->l, v ) * eval( e.ptr->r, v );
+            case node::exp: return std::exp( eval( e.ptr->l, v ) );
+        }
+        abort();
+    }
+
+    expr diff( expr e ) /* C */
+    {
+        switch ( e.ptr->op )
+        {
+            case node::cnst: return { 0 };
+            case node::var:  return { 1 };
+            case node::add:
+                return diff( e.ptr->l ) + diff( e.ptr->r );
+            case node::mul:
+                return diff( e.ptr->l ) * e.ptr->r +
+                       diff( e.ptr->r ) * e.ptr->l;
+            case node::exp:
+                return e * diff( e.ptr->l );
+        }
+        abort();
+    }
+
+## 6. Týden 6
+
+
+### r.2. [‹circuit›]
+
+The base class. We keep track of the inputs using raw pointers,
+since we do not own them. We use a ‹protected virtual› method to
+implement the ‘business logic’ that changes from class to class,
+while the outside interface is defined entirely using standard
+(non-virtual) methods. 
+
+    class component /* C */
+    {
+        component *left = nullptr,
+                  *right = nullptr;
+
+    protected: /* C */
+        virtual bool eval( bool, bool ) = 0;
+
+    public: /* C */
+        void connect( int n, component &c )
+        {
+            ( n ? right : left ) = &c;
+        }
+
+        bool read() /* C */
+        {
+            return eval( left ? left->read() : false,
+                         right ? right->read() : false );
+        }
+
+        virtual ~component() = default; /* C */
+    };
+
+The NAND gate and the ‹source› component are trivial enough. 
+
+    class nand : public component /* C */
+    {
+        bool eval( bool x, bool y ) override { return !( x && y ); }
+    };
+
+    class source : public component /* C */
+    {
+        bool eval( bool, bool ) override { return true; }
+    };
+
+The ‹delay› component provides one bit of memory. Reading the
+component will cause the value to be updated (‹read› always calls
+‹eval› internally). This class is also the reason why ‹eval›
+cannot be marked ‹const›. 
+
+    class delay : public component /* C */
+    {
+        bool _value = false;
+        bool eval( bool x, bool ) override
+        {
+            bool rv = _value;
+            _value = x;
+            return rv;
+        }
+    };
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.6. [‹while›]
+
+    class statement; /* C */
+    using state = std::map< char, int >;
+    using stmt_ptr = std::unique_ptr< statement >;
+
+    class statement /* C */
+    {
+    public:
+        std::string print() const
+        {
+            brq::string_builder b;
+            b << "\n";
+            print( b, 0 );
+            return b.buffer();
+        }
+
+        virtual void print( brq::string_builder &, int ) const = 0; /* C */
+
+        state eval( state s, int counter ) const /* C */
+        {
+            update( s, counter );
+            assert( counter >= 0 );
+            return s;
+        }
+
+        virtual void update( state &s, int &ctr ) const = 0; /* C */
+        virtual ~statement() = default;
+    };
+
+    class stmt_inc : public statement /* C */
+    {
+        char _var;
+    public:
+        stmt_inc( char v ) : _var( v ) {}
+
+        void print( brq::string_builder &b, int i ) const override /* C */
+        {
+            b << brq::pad( i, ' ' ) << brq::mark << brq::rawchr( _var ) << "++\n";
+        }
+
+        void update( state &s, int &counter ) const override /* C */
+        {
+            if ( !counter )
+                return;
+
+            auto &v = s[ _var ]; /* C */
+
+            ++ v; /* C */
+            v %= 16;
+        }
+    };
+
+    class stmt_while : public statement /* C */
+    {
+        char _v_1, _v_2;
+        stmt_ptr _body;
+
+    public: /* C */
+        stmt_while( char v1, char v2, stmt_ptr b )
+            : _v_1( v1 ), _v_2( v2 ), _body( std::move( b ) )
+        {}
+
+        void print( brq::string_builder &b, int i ) const override /* C */
+        {
+            b << brq::pad( i, ' ' ) << brq::mark
+              << "while " << brq::rawchr( _v_1 ) << " != " << brq::rawchr( _v_2 ) << "\n";
+            _body->print( b, i + 2 );
+        }
+
+        void update( state &s, int &counter ) const override /* C */
+        {
+            while ( counter && --counter && s[ _v_1 ] != s[ _v_2 ] )
+                _body->update( s, counter );
+        }
+    };
+
+    class stmt_block : public statement /* C */
+    {
+        std::vector< stmt_ptr > _body;
+
+    public: /* C */
+        void append( stmt_ptr stmt )
+        {
+            _body.emplace_back( std::move( stmt ) );
+        }
+
+        void print( brq::string_builder &b, int i ) const override /* C */
+        {
+            for ( const auto &s : _body )
+                s->print( b, i );
+        }
+
+        void update( state &s, int &ctr ) const override /* C */
+        {
+            for ( const auto &stmt : _body )
+                stmt->update( s, ctr );
+        }
+    };
+
+
+## 7. Týden 7
+
+
+### e.2. [‹counter›]
+
+    using _pub_::counter; /* C */
+
+    struct counted /* C */
+    {
+        counted() { ++ counter; }
+
+        counted( const counted & ) { ++counter; } /* C */
+        counted( counted && ) { ++counter; }
+
+        counted &operator=( const counted & ) = default; /* C */
+        counted &operator=( counted && ) = default;
+
+        ~counted() { --counter; } /* C */
+    };
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.1. [‹printing›]
+
+    class job /* C */
+    {
+        int _id;
+        int _owner;
+        int _pages;
+
+    public: /* C */
+
+        job( int id, int owner, int pages ) /* C */
+            : _id( id ), _owner( owner ), _pages( pages )
+        {}
+
+        job( job && ) = default; /* C */
+        job( const job & ) = delete;
+        job &operator=( const job & ) = delete;
+
+        int id() const { return _id; } /* C */
+        int page_count() const { return _pages; }
+        int owner() const { return _owner; }
+    };
+
+    class queue /* C */
+    {
+        std::map< int, job > _jobs;
+        int _count = 0;
+    public:
+
+        int dequeue() /* C */
+        {
+            const auto &item = *_jobs.begin();
+            int id = item.first;
+            _count -= item.second.page_count();
+            _jobs.erase( id );
+            return id;
+        }
+
+        void enqueue( job &&j ) /* C */
+        {
+            int id = j.id();
+            _count += j.page_count();
+            _jobs.emplace( id, std::move( j ) );
+        }
+
+        job release( int id ) /* C */
+        {
+            job rv( std::move( _jobs.at( id ) ) );
+            _jobs.erase( id );
+            _count -= rv.page_count();
+            return rv;
+        }
+
+        int page_count() const /* C */
+        {
+            return _count;
+        }
+    };
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.2. [‹bsearch›]
+
+    using _pub_::token; /* C */
+
+    class flat_map /* C */
+    {
+        std::vector< std::pair< int, token > > _data;
+    public:
+
+        std::pair< int, bool > index( int k ) const /* C */
+        {
+            int low = 0, high = _data.size();
+
+            while ( low < high ) /* C */
+            {
+                int mid = ( low + high ) / 2;
+
+                if ( k < _data[ mid ].first ) /* C */
+                    high = mid;
+                else if ( k > _data[ mid ].first )
+                    low = mid + 1;
+                else
+                    return { mid, true };
+            }
+
+            assert( low <= int( _data.size() ) ); /* C */
+            assert( low == int( _data.size() ) || _data[ low ].first != k );
+            return { low, false };
+        }
+
+        bool contains( int k ) const /* C */
+        {
+            return index( k ).second;
+        }
+
+        bool emplace( int k, int v ) /* C */
+        {
+            auto [ idx, found ] = index( k );
+
+            if ( !found ) /* C */
+                _data.emplace( _data.begin() + idx, std::move( k ), v );
+
+            return !found; /* C */
+        }
+
+        int index_or_throw( int k ) const /* C */
+        {
+            auto [ idx, found ] = index( k );
+            if ( !found )
+                throw std::out_of_range( "indexing flat_map" );
+            return idx;
+        }
+
+        token &at( int k ) /* C */
+        {
+            return _data[ index_or_throw( k ) ].second;
+        }
+
+        const token &at( int k ) const /* C */
+        {
+            return _data[ index_or_throw( k ) ].second;
+        }
+    };
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.4. [‹tinyvec›]
+
+    using _pub_::token; /* C */
+    using _pub_::insufficient_space;
+
+    struct tiny_vector /* C */
+    {
+        std::array< uint8_t, 32 > _mem;
+        int _count = 0;
+
+        token *slot( int i ) /* C */
+        {
+            assert( i >= 0 );
+            assert( i < _count );
+            return reinterpret_cast< token * >( _mem.begin() ) + i;
+        }
+
+        const token *slot( int i ) const /* C */
+        {
+            return reinterpret_cast< const token * >( _mem.begin() ) + i;
+        }
+
+        const token &front() const { return *slot( 0 ); } /* C */
+        const token &back() const { return *slot( _count - 1 ); }
+
+        token &front() { return *slot( 0 ); } /* C */
+        token &back() { return *slot( _count - 1 ); }
+
+        ~tiny_vector() /* C */
+        {
+            while ( _count )
+                erase( _count - 1 );
+        }
+
+        void erase( int idx ) /* C */
+        {
+            std::destroy_at( slot( idx ) );
+
+            for ( int i = idx; i < _count - 1; ++i ) /* C */
+            {
+                std::uninitialized_move_n( slot( i + 1 ), 1, slot( i ) );
+                std::destroy_at( slot( i + 1 ) );
+            }
+
+            -- _count; /* C */
+        }
+
+        void insert( int idx, token &&v ) /* C */
+        {
+            const unsigned count = _count;
+
+            if ( count == _mem.size() / sizeof( token ) ) /* C */
+                throw insufficient_space();
+
+            ++ _count; /* C */
+
+            for ( int i = _count - 1; i > idx; --i ) /* C */
+            {
+                std::uninitialized_move_n( slot( i - 1 ), 1, slot( i ) );
+                std::destroy_at( slot( i - 1 ) );
+            }
+
+            std::uninitialized_move_n( &v, 1, slot( idx ) ); /* C */
+        }
+    };
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.5. [‹lock›]
+
+    using _pub_::mutex; /* C */
+
+    class lock /* C */
+    {
+        mutex *_mutex;
+    public:
+        lock( mutex &m );
+        ~lock();
+
+        lock( const lock & ) = delete; /* C */
+        lock &operator=( const lock & ) = delete;
+
+        lock( lock && ); /* C */
+        lock &operator=( lock && );
+    };
+
+    lock::lock( mutex &m ) /* C */
+        : _mutex( &m )
+    {
+        _mutex->lock();
+    }
+
+    lock::~lock() /* C */
+    {
+        if ( _mutex )
+            _mutex->unlock();
+    }
+
+    lock::lock( lock &&o ) /* C */
+        : _mutex( o._mutex )
+    {
+        o._mutex = nullptr;
+    }
+
+    lock &lock::operator=( lock &&o ) /* C */
+    {
+        if ( _mutex )
+            _mutex->unlock();
+        _mutex = o._mutex;
+        o._mutex = nullptr;
+        return *this;
+    }
+
+## 8. Týden 8
+
+
+### e.2. [‹accumulate›]
+
+    auto accumulate( auto f, const std::vector< int > &vec ) /* C */
+    {
+        int sum = 0;
+
+        for ( int x : vec ) /* C */
+            sum += f( x );
+
+        return sum; /* C */
+    };
+
+## 9. Týden 9
+
+
+### r.1. [‹null›]
+
+    auto filter( const auto &seq ) /* C */
+    {
+        std::vector< std::decay_t< decltype( **seq.begin() ) > > out;
+
+        for ( const auto &x : seq ) /* C */
+            if ( x.has_value() )
+                out.push_back( *x );
+
+        return out; /* C */
+    }
+
+    auto zip( const auto &seq_a, const auto &seq_b, auto f ) /* C */
+    {
+        using res_t = decltype( f( **seq_a.begin(), **seq_b.begin() ) );
+        std::vector< std::optional< std::decay_t< res_t > > > out;
+
+        auto it_a = seq_a.begin(); /* C */
+        auto it_b = seq_b.begin();
+
+        while ( it_a != seq_a.end() && it_b != seq_b.end() ) /* C */
+        {
+            if ( it_a->has_value() && it_b->has_value() )
+                out.push_back( f( **it_a, **it_b ) );
+            else
+                out.push_back( std::nullopt );
+
+            ++ it_a; /* C */
+            ++ it_b;
+        }
+
+        return out; /* C */
+    }
+
+    auto join( const auto &seq_a, const auto &seq_b, auto f ) /* C */
+    {
+        using type_a = std::decay_t< decltype( **seq_a.begin() ) >;
+        using type_b = std::decay_t< decltype( **seq_b.begin() ) >;
+        std::vector< std::tuple< type_a, type_b > > out;
+
+        for ( const auto &a : seq_a ) /* C */
+            for ( const auto &b : seq_b )
+                if ( a.has_value() && b.has_value() && f( *a, *b ) )
+                    out.emplace_back( *a, *b );
+
+        return out; /* C */
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.2. [‹rel›]
+
+    struct relation /* C */
+    {
+        std::map< int, std::set< int > > rel;
+        std::function< bool( int, int ) > filter;
+
+        void set_filter( auto f ) { filter = f; } /* C */
+        void unset_filter() { filter = {}; }
+
+        bool test( int a, int b ) const /* C */
+        {
+             return ( !filter || filter( a, b ) ) &&
+                    rel.contains( a ) &&
+                    rel.at( a ).contains( b );
+        }
+
+        auto get( int a ) const /* C */
+        {
+            std::set< int > out;
+
+            if ( rel.contains( a ) ) /* C */
+                for ( int b : rel.at( a ) )
+                    if ( !filter || filter( a, b ) )
+                        out.insert( b );
+
+            return out; /* C */
+        }
+
+        void add( int a, int b ) /* C */
+        {
+            rel[ a ].insert( b );
+            rel[ b ].insert( a );
+        }
+    };
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.3. [‹robot›]
+
+    using _pub_::walk; /* C */
+    using _pub_::turn;
+    using _pub_::toggle;
+
+    struct program /* C */
+    {
+        using command = std::variant< walk, turn, toggle >;
+        std::vector< command > commands;
+
+        void append( auto c ) /* C */
+        {
+            commands.emplace_back( c );
+        }
+    };
+
+    struct grid /* C */
+    {
+        using position_t = std::tuple< int, int >;
+        int x = 0, y = 0;
+        bool horizontal = true;
+        std::set< position_t > marked;
+
+        position_t robot() const /* C */
+        {
+            return { x, y };
+        }
+
+        bool on_marked() const /* C */
+        {
+            return marked.contains( robot() );
+        }
+
+        void exec( toggle t ) /* C */
+        {
+            if ( on_marked() )
+            {
+                if ( !t.sticky )
+                    marked.erase( robot() );
+            }
+            else
+                marked.insert( robot() );
+        }
+
+        void exec( turn ) /* C */
+        {
+            horizontal = !horizontal;
+        }
+
+        void exec( walk w ) /* C */
+        {
+            auto &coord = horizontal ? x : y;
+            coord += on_marked() ? w.if_marked : w.if_unmarked;
+        }
+    };
+
+    std::tuple< int, int > run( const program &p, grid &g ) /* C */
+    {
+        for ( auto cmd : p.commands )
+            std::visit( [&]( auto c ) { g.exec( c ); }, cmd );
+
+        return { g.x, g.y }; /* C */
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.4. [‹sumseq›]
+
+    using _pub_::choice; /* C */
+
+    auto select( const auto &l, const auto &r, auto choose ) /* C */
+    {
+        using type_l = std::decay_t< decltype( *l.begin() ) >;
+        using type_r = std::decay_t< decltype( *r.begin() ) >;
+
+        std::vector< std::variant< type_l, type_r > > out; /* C */
+
+        auto it_l = l.begin(); /* C */
+        auto it_r = r.begin();
+
+        while ( it_l != l.end() && it_r != r.end() ) /* C */
+        {
+            switch ( choose( *it_l, *it_r ) )
+            {
+                case choice::left: out.emplace_back( *it_l ); break;
+                case choice::right: out.emplace_back( *it_r ); break;
+            }
+
+            ++ it_l; /* C */
+            ++ it_r;
+        }
+
+        return out; /* C */
+    }
+
+    auto project( const auto &seq, auto proj ) /* C */
+    {
+        using type = std::decay_t< decltype( *proj( &*seq.begin() ) ) >;
+        std::vector< type > out;
+
+        for ( const auto &x : seq ) /* C */
+            if ( auto ptr = proj( &x ) )
+                out.push_back( *ptr );
+
+        return out; /* C */
+    }
+
+    auto left( const auto &seq ) /* C */
+    {
+        return project( seq, []( auto *x ) { return std::get_if< 0 >( x ); } );
+    }
+
+    auto right( const auto &seq ) /* C */
+    {
+        return project( seq, []( auto *x ) { return std::get_if< 1 >( x ); } );
+    }
+
+    auto map( const auto &seq, auto left, auto right ) /* C */
+    {
+        using common_t = decltype( left( std::get< 0 >( *seq.begin() ) ) );
+        std::vector< std::decay_t< common_t > > out;
+
+        for ( const auto &x : seq ) /* C */
+            if ( auto ptr = std::get_if< 0 >( &x ) )
+                out.push_back( left( *ptr ) );
+            else
+                out.push_back( right( *std::get_if< 1 >( &x ) ) );
+
+        return out; /* C */
+    }
+
+## 10. Týden 10
+
+
+### r.1. [‹priority›]
+
+    using _pub_::task; /* C */
+
+    bool sched_cmp( const task &a, const task &b ) /* C */
+    {
+        auto key = []( const task &t )
+        {
+            return std::pair( t.priority, -t.id );
+        };
+
+        return key( a ) < key( b ); /* C */
+    }
+
+    struct sched_queue /* C */
+    {
+        std::vector< task > tasks;
+        bool complete = true;
+
+        void fix() /* C */
+        {
+            if ( !complete )
+                std::push_heap( tasks.begin(), tasks.end(), sched_cmp );
+            complete = true;
+        }
+
+        void add( task t ) /* C */
+        {
+            fix();
+            tasks.push_back( t );
+            complete = false;
+            fix();
+        }
+
+        task &demote() /* C */
+        {
+            fix();
+            std::pop_heap( tasks.begin(), tasks.end(), sched_cmp );
+            complete = false;
+            -- tasks.back().priority;
+            return tasks.back();
+        }
+
+        void reset() /* C */
+        {
+            for ( auto &t : tasks )
+                t.priority = t.static_priority;
+            std::make_heap( tasks.begin(), tasks.end(), sched_cmp );
+            complete = true;
+        }
+
+        const task &peek() const /* C */
+        {
+            const auto &top = tasks.front(), &demoted = tasks.back();
+
+            if ( complete || sched_cmp( demoted, top ) ) /* C */
+                return top;
+            else
+                return demoted;
+        }
+    };
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.2. [‹join›]
+
+    void join( auto a, auto b, unsigned i, unsigned j, auto &out ) /* C */
+    {
+        auto a_cmp = [&]( const auto &u, const auto &v )
+        {
+            return u[ i ] < v[ i ];
+        };
+
+        auto b_cmp = [&]( const auto &u, const auto &v ) /* C */
+        {
+            return u[ j ] < v[ j ];
+        };
+
+        std::sort( a.begin(), a.end(), a_cmp ); /* C */
+        std::sort( b.begin(), b.end(), b_cmp );
+
+        auto it_a = a.begin(); /* C */
+        auto it_b = b.begin();
+
+        for ( ; it_a != a.end(); ++it_a ) /* C */
+        {
+
+            while ( it_b != b.end() && ( *it_b )[ j ] < ( *it_a )[ i ] ) /* C */
+                ++it_b;
+
+            for ( auto it = it_b; /* C */
+                  it != b.end() && ( *it )[ j ] == ( *it_a )[ i ];
+                  ++it )
+            {
+                auto &out_row = out.emplace_back();
+
+                unsigned col = 0; /* C */
+                unsigned n = it_a->size();
+                unsigned m = it->size();
+
+                for ( col = 0; col < n; ++ col ) /* C */
+                    out_row[ col ] = ( *it_a )[ col ];
+                for ( ; col < n + m - 1; ++ col )
+                    out_row[ col ] = ( *it )[ col - n < j ? col - n : col - n + 1 ];
+            }
+        }
+    }
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.3. [‹sorted›]
+
+    auto sorted_ranges( const auto &in, int n ) /* C */
+    {
+        std::vector< std::tuple< int, int > > out;
+        auto row_b = in.begin(), row_e = row_b + n;
+
+        while ( row_b != in.end() ) /* C */
+        {
+            int len_max = 0;
+            int idx_max;
+            auto it = row_b;
+
+            while ( it != row_e ) /* C */
+            {
+                auto next = std::is_sorted_until( it, row_e );
+                int len = std::distance( it, next );
+
+                if ( len > len_max ) /* C */
+                {
+                    idx_max = std::distance( row_b, it );
+                    len_max = len;
+                }
+
+                it = next; /* C */
+            }
+
+            out.emplace_back( idx_max, len_max ); /* C */
+            std::advance( row_b, n );
+            std::advance( row_e, n );
+        }
+
+        return out; /* C */
+    }
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.4. [‹rotsort›]
+
+    bool rotate_sort( auto &seq, int n ) /* C */
+    {
+        std::vector< int > rot;
+
+        for ( auto it = seq.begin(); it != seq.end(); std::advance( it, n ) ) /* C */
+        {
+            auto end = std::next( it, n );
+            auto mid = std::is_sorted_until( it, end );
+
+            if ( mid == end ) /* C */
+                rot.push_back( 0 );
+            else if ( std::is_sorted( mid, end ) && *it >= *std::next( it, n - 1 ) )
+                rot.push_back( std::distance( it, mid ) );
+            else
+                return false;
+        }
+
+        auto b = seq.begin(); /* C */
+
+        for ( unsigned i = 0; i < rot.size(); ++i ) /* C */
+            std::rotate( std::next( b, i * n ),
+                         std::next( b, i * n + rot[ i ] ),
+                         std::next( b, i * n + n ) );
+
+        return true; /* C */
+    }
+
+
+### r.5. [‹permute›]
+
+    using _pub_::to_digits; /* C */
+
+    unsigned from_digits( const std::vector< unsigned > &digits, int base ) /* C */
+    {
+        unsigned r = 0;
+
+        for ( unsigned d : digits ) /* C */
+        {
+            r *= base;
+            r += d;
+        }
+
+        return r; /* C */
+    }
+
+    std::vector< unsigned > permute_digits( unsigned n, int base ) /* C */
+    {
+        std::set< unsigned > r;
+        auto digits = to_digits( n, base );
+        std::sort( digits.begin(), digits.end() );
+
+        do /* C */
+            r.insert( from_digits( digits, base ) );
+        while ( std::next_permutation( digits.begin(), digits.end() ) );
+
+        return std::vector< unsigned >( r.begin(), r.end() ); /* C */
+    }
+
+## 11. Týden 11
+
+
+### e.1. [‹digraph›]
+
+    struct strmap /* C */
+    {
+        std::map< std::string, int > m;
+
+        int operator[]( std::string s ) const /* C */
+        {
+            return m.contains( s ) ? m.find( s )->second : 0;
+        }
+
+        void add( std::string s ) /* C */
+        {
+            m[ s ] ++;
+        }
+    };
+
+    strmap digraph_freq( std::string_view s ) /* C */
+    {
+        strmap m;
+
+        for ( size_t i = 0; i < s.size() - 1; ++i ) /* C */
+            if ( std::isalpha( s[ i ] ) && std::isalpha( s[ i + 1 ] ) )
+                m.add( std::string( s.substr( i, 2 ) ) );
+
+        return m; /* C */
+    }
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.1. [‹expr›]
+
+    struct validate /* C */
+    {
+        std::string_view todo;
+
+        char peek() { return todo.empty() ? 0 : todo[ 0 ]; } /* C */
+        char fetch() { auto c = peek(); todo.remove_prefix( 1 ); return c; }
+
+        void ws() /* C */
+        {
+             while ( std::isspace( peek() ) )
+                 fetch();
+        }
+
+        bool maybe_ident() /* C */
+        {
+            int i = 0;
+            while ( std::isalpha( peek() ) )
+                ++i, fetch();
+            return i;
+        }
+
+        bool maybe_num() /* C */
+        {
+            int i = 0;
+            while ( std::isdigit( peek() ) )
+                ++ i, fetch();
+            return i;
+        }
+
+        bool factor() /* C */
+        {
+            ws();
+
+            if ( peek() == '(' ) /* C */
+            {
+                fetch();
+                if ( !expr() ) return false;
+                if ( ws(), fetch() != ')' ) return false;
+                return true;
+            }
+            else
+                return maybe_num() || maybe_ident();
+        }
+
+        bool list( auto f, char c ) /* C */
+        {
+            ws();
+            if ( !f() ) return false;
+            while ( ws(), peek() == c )
+                if ( fetch(), !f() )
+                    return false;
+            return true;
+        }
+
+        bool expr() /* C */
+        {
+            return list( [&]{ return term(); }, '+' );
+        }
+
+        bool term() /* C */
+        {
+            return list( [&]{ return factor(); }, '*' );
+        }
+
+        bool top() /* C */
+        {
+            return expr() && todo.empty();
+        }
+    };
+
+    bool expr_valid( std::string_view s ) /* C */
+    {
+        return validate{ s }.top();
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.2. [‹stmt›]
+
+    struct validate /* C */
+    {
+        std::string_view todo;
+
+        std::string_view peek() /* C */
+        {
+            while ( !todo.empty() && std::isspace( todo[ 0 ] ) )
+                todo.remove_prefix( 1 );
+
+            unsigned i = 0; /* C */
+
+            while ( i < todo.size() && !std::isspace( todo[ i ] ) ) /* C */
+                ++ i;
+
+            return todo.substr( 0, i ); /* C */
+        }
+
+        std::string_view fetch() /* C */
+        {
+            auto rv = peek();
+            todo.remove_prefix( rv.size() );
+            return rv;
+        }
+
+        bool is_ident( std::string_view s ) /* C */
+        {
+            for ( auto c : s )
+                if ( !std::isalpha( c ) )
+                    return false;
+            return true;
+        }
+
+        bool ident() /* C */
+        {
+            return is_ident( fetch() );
+        }
+
+        bool atom() /* C */
+        {
+            auto next = fetch();
+
+            if ( next == "0" || next == "1" ) /* C */
+                return true;
+            else
+                return is_ident( next );
+        }
+
+        bool expr() /* C */
+        {
+            if ( !atom() ) return false;
+
+            if ( peek() == "+" || peek() == "-" ) /* C */
+            {
+                fetch();
+
+                if ( !atom() ) /* C */
+                    return false;
+            }
+
+            return true; /* C */
+        }
+
+        bool stmt() /* C */
+        {
+            auto next = fetch();
+
+            if ( next == "if" ) /* C */
+            {
+                if ( !expr() ) return false;
+                if ( fetch() != "then" ) return false;
+                if ( !stmt() ) return false;
+            }
+            else if ( next == "while" )
+            {
+                if ( !expr() ) return false;
+                if ( fetch() != "do" ) return false;
+                if ( !stmt() ) return false;
+            }
+            else if ( next == "set" )
+            {
+                if ( !ident() ) return false;
+                if ( fetch() != ":=" ) return false;
+                if ( !expr() ) return false;
+            }
+            else if ( next == "begin" )
+            {
+                if ( !stmt() ) return false;
+                while ( peek() != "end" )
+                    if ( !stmt() ) return false;
+                if ( fetch() != "end" )
+                    assert( false );
+            }
+            else if ( next == "skip" )
+                return true;
+            else
+                return false;
+
+            return true; /* C */
+        }
+
+        bool top() /* C */
+        {
+            return stmt() && todo.empty();
+        }
+    };
+
+    bool stmt_valid( std::string_view s ) /* C */
+    {
+        return validate{ s }.top();
+    }
+
+## 12. Týden 12
+
+
+### e.1. [‹force›]
+
+    class force /* C */
+    {
+        double x = 0, y = 0, z = 0;
+    public:
+        force( double x, double y, double z )
+            : x( x ), y( y ), z( z )
+        {}
+
+        force() = default; /* C */
+
+        bool operator==( const force &f ) const /* C */
+        {
+            return std::fabs( f.x - x ) < 1e-10 &&
+                   std::fabs( f.y - y ) < 1e-10 &&
+                   std::fabs( f.z - z ) < 1e-10;
+        }
+
+        friend std::ostream &operator<<( std::ostream &o, /* C */
+                                         const force &f )
+        {
+            return o << "[" << f.x << " " << f.y << " " << f.z << "]";
+        }
+
+        friend std::istream &operator>>( std::istream &i, force &f ) /* C */
+        {
+            char ch;
+
+            if ( !( i >> ch ) || ch != '[' ) /* C */
+                i.setstate( i.failbit );
+
+            i >> f.x >> f.y >> f.z; /* C */
+
+            if ( !( i >> ch ) || ch != ']' ) /* C */
+                i.setstate( i.failbit );
+
+            return i; /* C */
+        }
+    };
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.5. [‹json›]
+
+    using _pub_::str_dict; /* C */
+
+    std::string escape( const std::string &in ) /* C */
+    {
+        std::ostringstream ostr;
+
+        for ( char c : in ) /* C */
+        {
+            if ( c == '\\' || c == '"' )
+                ostr << "\\";
+            ostr << c;
+        }
+
+        return ostr.str(); /* C */
+    }
+
+    std::string to_json( const str_dict &dict ) /* C */
+    {
+        std::ostringstream ostr;
+
+        ostr << "{"; /* C */
+        bool comma = false;
+
+        for ( auto [ k, v ] : dict ) /* C */
+        {
+            ostr << ( comma ? ", " : " " );
+            comma = true;
+            ostr << "\"" << escape( k ) << "\": \"" << escape( v ) << "\"";
+        }
+
+        ostr << ( comma ? " }" : "}" ); /* C */
+
+        return ostr.str(); /* C */
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### r.6. [‹cpp›]
+
+    inline auto split( const std::string &sv, char delim ) /* C */
+    {
+        if ( auto offset = sv.find( delim ); offset != sv.npos )
+            return std::pair( sv.substr( 0, offset ), sv.substr( offset + 1, sv.npos ) );
+        else
+            return std::pair( sv, std::string() );
+    }
+
+    class preprocessor /* C */
+    {
+        std::set< std::string > defs;
+        std::stack< bool > _emit;
+    public:
+        std::string out;
+
+        bool emit() const { return _emit.empty() || _emit.top(); } /* C */
+
+        void process( const std::string &line ) /* C */
+        {
+            auto [ dir, args ] = split( line, ' ' );
+
+            if ( dir == "#ifdef" ) /* C */
+                _emit.push( defs.count( args ) );
+            if ( dir == "#endif" )
+                _emit.pop();
+
+            if ( emit() ) /* C */
+            {
+                if ( dir == "#define" )
+                    defs.insert( args );
+                if ( dir == "#undef" )
+                    defs.erase( args );
+                if ( dir == "#include" )
+                    read( args.substr( 1, args.size() - 2 ) );
+            }
+        }
+
+        void read( const std::string &filename ) /* C */
+        {
+            std::ifstream in( filename ); /* NB. Fails quietly. */
+            std::string line;
+
+            while ( std::getline( in, line ) ) /* C */
+                if ( !line.empty() && line[ 0 ] == '#' )
+                    process( line );
+                else if ( emit() )
+                    out += line + "\n";
+        }
+    };
+
+    std::string cpp( const std::string &filename ) /* C */
+    {
+        preprocessor p;
+        p.read( filename );
+        return p.out;
+    }

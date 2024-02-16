@@ -1,0 +1,29 @@
+# Vstup a výstup
+
+Demonstrations:
+
+ 1. ‹files›      – opening files, reading and writing strings
+ 2. ‹streams›    – from values to strings and back
+ 3. ‹format›     – overloading formatting operators
+
+Elementary exercises:
+
+ 1. ‹force›      – input and output operators
+
+Preparatory exercises:
+
+ 1. ‹set›        – read and write sets of numbers,
+ 2. ‹fixnum›     – fixed point numbers with formatted IO,
+ 3. ‹tmpfile›    – an auto-erasing temporary file
+ 4. ‹parse›      – parser for a simple low-level language,
+ 5. ‹grep›       – print matching lines,
+ 6. ‹csv›        – parse comma-separated numeric data.
+
+Regular exercises:
+
+ 1. ‹xxx›
+ 2. ‹xxx›
+ 3. ‹xxx›
+ 4. ‹xxx›
+ 5. ‹json›       – format a string → string map as JSON
+ 6. ‹cpp› †      – a very simple C preprocessor

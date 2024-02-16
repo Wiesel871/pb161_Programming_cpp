@@ -1,0 +1,797 @@
+
+# Iterators
+
+XXX
+
+Demonstrations:
+
+ 1. ‹queue›    – an iterable queue
+ 2. ‹split›    – chop up a ‹string_view› into pieces
+ 3. ‹glob›     – iterate over matches of a pattern in a string
+
+Elementary exercises:
+
+ 1. ‹iota›     – an iterable sequence of integers
+ 2. ‹view›     – iterate a slice of an existing collection
+ 3. ‹skip›     – iterate every n-th item (a stride) of a collection
+
+Preparatory exercises:
+
+ 1. ‹seq›      – generic sequences
+ 2. ‹filter›   – filtered sequences
+ 3. ‹zip›      – iterate two sequences in lockstep
+ 4. ‹nibble›   – a fixed-size nibble array
+ 5. ‹tree›     – in-order iteration of a tree
+ 6. ‹scan›     – generalized prefix sum
+
+Regular exercises:
+
+ 1. ‹map›      – applying a function to a sequence
+ 2. ‹range›    – views with a shared backing store
+ 3. ‹permute›  – iterate all permutations of a sequence
+ 4. ‹critbit›  – iterate a ‘critbit’ binary trie in order
+ 5. ‹matrix› † – iterate a compact rectangular array
+ 6. ‹bits›     – iterate bits in a word
+
+
+## d. Demonstrace (ukázky)
+
+
+### 1. [‹split›]
+
+Let's implement a pure function ‹split›, which given a string
+view ‹s› and a delimiter ‹delim›, produces a pair of string_views
+‹a› and ‹b› such that:
+
+ • ‹delim› is not in ‹a›,
+ • and either
+   ◦ ‹s == a + delim + b› if ‹delim› was present in ‹s›,
+   ◦ ‹s == a› and ‹b› is empty otherwise 
+
+    using split_view = std::pair< std::string_view, std::string_view >; /* C */
+
+    split_view split( std::string_view s, char delim ) /* C */
+    {
+        size_t idx = s.find( delim );
+        if ( idx == s.npos )
+            return { s, "" };
+        else
+            return { s.substr( 0, idx ), s.substr( idx + 1, s.npos ) };
+    }
+
+    int main() /* demo */ /* C */
+    {
+        auto [ a, b ] = split( "hello world", ' ' );
+        assert( a == "hello" );
+        assert( b == "world" );
+
+        auto [ c, d ] = split( "hello world", '!' ); /* C */
+        assert( c == "hello world" );
+        assert( d == "" );
+
+        return 0; /* C */
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹glob›]
+
+V této ukázce budeme implementovat jednoduché srovnání řetězce se
+vzorkem, který má dva typy zástupných znaků:
+
+ • ‹*› nahrazuje libovolnou posloupnost znaků (i prázdnou),
+ • ‹%› funguje stejně, ale místo nejdelší možné posloupnosti
+   vybere nejkratší možnou (rozdíl se projeví pouze v přiřazení
+   podřetězců jednotlivým zástupným znakům; viz také ‹main›).
+
+Speciální znaky lze „vypnout“ tím, že jim předepíšeme znak ‹\›.
+
+Krom samotné informace, zda zadaný řetězec vzorku vyhovuje,
+budeme také požadovat řetězce, které ve zpracovaném textu
+odpovídaly jednotlivým zástupným znakům (např. proto, abychom je
+mohli něčím nahradit) – těmto budeme říkat „zachycené“ (angl.
+captured). 
+
+Samotné hledání vzorku implementujeme rekurzivně. Aktuální
+„pohled“ do vzorku i do řetězce budeme reprezentovat typem
+‹std::string_view›, stejně tak zachycené podřetězce.
+
+Parametr ‹pat› reprezentuje vzorek, který musíme v řetězci ‹str›
+nalézt. Rekurzivní volání odstraňují znaky ze začátku ‹pat›
+a/nebo ‹str› tak, aby tyto obsahovaly dosud nezpracované sufixy.
+
+Parametry ‹c_idx› a ‹c_len› popisují právě řešený zástupný znak –
+‹c_idx› je jeho pořadové číslo (a tedy index v parametru
+‹capture›, kterému odpovídá) a ‹c_len› je délka prozatím
+zachyceného podřetězce (je-li ‹c_len› nula, žádný zástupný znak
+aktivní není.) 
+
+    bool glob_match( std::string_view pat, /* C */
+                     std::string_view str,
+                     std::vector< std::string_view > &capture,
+                     int c_idx, int c_len )
+    {
+Nejprve vyřešíme triviální případy: prázdný řetězec vyhovuje
+prázdnému vzorku, nebo vzorku který obsahuje jediný zástupný
+znak, naopak je-li jedna strana neprázdná a druhá prázdná,
+shoda je vyloučena. 
+
+        if ( str.empty() && ( pat == "" || pat == "*" || pat == "%" ) ) /* C */
+            return true;
+        if ( pat.empty() || str.empty() )
+            return false;
+
+Nemáme-li rozpracovaný žádný zástupný znak, poznačíme si
+možný začátek zachyceného řetězce. Není-li následující znak
+zástupný, poznačený začátek se při zpracování dalšího znaku
+vzorku posune. Nemůžeme se zde rozhodovat podle prvního znaku
+vzorku, protože ten již může být rozpracovaný. 
+
+        if ( !c_len ) /* C */
+            capture[ c_idx ] = str;
+
+Zpracování zástupného znaku má dvě možná pokračování:
+zachycení můžeme ukončit a pokračovat ve srovnání vzorku
+dalším znakem. V takovém případě se posuneme se na další
+index ‹c_idx› a vynulujeme ‹c_len›. Posun na další znak
+vzorku realizuje metoda ‹substr› typu ‹std::string_view› –
+první parametr je index, od kterého má nový pohled začínat,
+druhý (volitelný) určuje délku nového pohledu (implicitně je
+maximální možná, tzn. do konce „rodičovského“ pohledu).
+
+Vede-li navíc ukončení záchytu k celkovému úspěchu, uložíme
+výsledný zachycený řetězec na příslušný index seznamu
+‹capture›. 
+
+        auto end_capture = [&] /* C */
+        {
+            auto p_suf = pat.substr( 1 );
+            bool m = glob_match( p_suf, str, capture, c_idx + 1, 0 );
+            if ( m )
+                capture[ c_idx ] = capture[ c_idx ].substr( 0, c_len );
+            return m;
+        };
+
+Druhou možností je rozpracovaný zachycený řetězec prodloužit
+o jeden znak a pokračovat tak v zpracování aktivního
+zástupného znaku. Vzorek tedy zachováme (první znak je stále
+zástupný) a ve zpracovaném řetězci se o jeden znak posuneme
+(opět metodou ‹substr›).  
+
+        auto extend_capture = [&] /* C */
+        {
+            auto s_suf = str.substr( 1 );
+            return glob_match( pat, s_suf, capture, c_idx, c_len + 1 );
+        };
+
+Začíná-li vzorek speciálním znakem (zástupným nebo ‹\›),
+zpracujeme jej. Nejkratší shodu se pokusíme přednostně
+ukončit a prodloužíme ji pouze v případě, kdy toto rozhodnutí
+nevede k nalezení shody. Naopak hladovou (nejdelší) shodu se
+prioritně pokusíme prodloužit, a ukončíme ji pouze v situaci,
+kdy by prodloužení zabránilo nalezení shody. 
+
+        switch ( pat[ 0 ] ) /* C */
+        {
+            case '%': return end_capture() || extend_capture();
+            case '*': return extend_capture() || end_capture();
+            case '\\': pat.remove_prefix( 1 ); break;
+            default: ;
+        }
+
+Je-li vzorek nebo řetězec vyčerpán, nebo vzorek začíná
+obyčejným znakem, který se neshoduje s odpovídajícím znakem
+řetězce, shodu jsme nenašli. 
+
+        if ( pat.empty() || str.empty() || pat[ 0 ] != str[ 0 ] ) /* C */
+            return false;
+
+V opačném případě je možné dosud nalezenou shodu prodloužit
+o jeden znak a pokračovat ve zpracování sufixů. 
+
+        pat.remove_prefix( 1 ); /* C */
+        str.remove_prefix( 1 );
+
+        return glob_match( pat, str, capture, c_idx, 0 ); /* C */
+    }
+
+Před samotným rekurzivním zpracováním si nachystáme seznam
+zachycených řetězců (abychom nemuseli při zpracování jednotlivých
+znaků neustále kontrolovat, máme-li v ‹capture› dostatek místa).
+Pro pohodlnější použití zachycené řetězce předáme volajícímu
+jako součást návratové hodnoty. 
+
+    auto glob_match( std::string_view pat, std::string_view str ) /* C */
+    {
+        std::vector< std::string_view > capture;
+        char prev = 0;
+
+        for ( char c : pat ) /* C */
+        {
+            if ( ( c == '*' || c == '%' ) && prev != '\\' )
+                capture.emplace_back();
+            prev = c;
+        }
+
+        bool match = glob_match( pat, str, capture, 0, 0 ); /* C */
+
+        if ( !match ) /* C */
+            capture.clear();
+
+        return std::tuple{ match, capture }; /* C */
+    }
+
+    int main() /* demo */ /* C */
+    {
+        using sv_vec = std::vector< std::string_view >;
+
+        bool m; /* C */
+        sv_vec capture;
+
+        std::tie( m, capture ) = glob_match( "%.*", "x.y.z" ); /* C */
+        assert(( m && capture == sv_vec{ "x", "y.z" } ));
+
+        std::tie( m, capture ) = glob_match( "*.%", "x.y.z" ); /* C */
+        assert(( m && capture == sv_vec{ "x.y", "z" } ));
+
+        std::tie( m, capture ) = glob_match( "%.%", "x.y.z" ); /* C */
+        assert(( m && capture == sv_vec{ "x", "y.z" } ));
+
+        std::tie( m, capture ) = glob_match( "\\%.%", "%.y.z" ); /* C */
+        assert(( m && capture == sv_vec{ "y.z" } ));
+
+        std::tie( m, capture ) = glob_match( "%.%", "x:y:z" ); /* C */
+        assert(( !m && capture == sv_vec{} ));
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹splitter›]
+
+† In this demo, we will implement a full-featured «input
+iterator»: the most basic kind of iterator that can be used to
+obtain values (as opposed to updating them, as done by an «output
+iterator»).
+
+A common task is to split a string into words, lines or other
+delimiter-separated items. This is one of the cases where the
+standard library does not offer any good solutions: hence, we
+will roll our own. The class will be called ‹splitter› and will
+take 2 parameters: the string (‹string_view› to be exact) to be
+split, and the delimiter (for simplicity limited to a single
+character).
+
+The splitter is based on ‹string_view› to make the whole affair
+‘zero-copy’: the string data is never copied. The downside is
+that the input string (the one being split) must ‘outlive’ the
+‹splitter› instance. 
+
+We will re-use the ‹split› function from previous demo and use it
+as the ‘workhorse’ of the ‹splitter›. 
+
+    using split_view = std::pair< std::string_view, std::string_view >; /* C */
+
+    split_view split( std::string_view s, char delim ) /* C */
+    {
+        size_t idx = s.find( delim );
+        if ( idx == s.npos )
+            return { s, {} };
+        else
+            return { s.substr( 0, idx ), s.substr( idx + 1, s.npos ) };
+    }
+
+The ‹splitter› class itself doesn't do much: its main role is to
+create iterators, via ‹begin› and ‹end›. To this end, it must of
+course remember the input string and the delimiter. 
+
+    struct splitter /* C */
+    {
+        using value_type = std::string_view;
+        std::string_view _str;
+        char _delim;
+
+Real iterators «must» provide ‹operator->› – the one that is
+invoked when we say ‹iter->foo()›. For this particular
+use-case, this is a little vexing: ‹operator->› «must» return
+either a raw pointer, or an instance of a class with
+overloaded ‹operator->›. Clearly, that chain must end
+somewhere – sooner or later, we must have an «address» of the
+item to which the iterator points.
+
+This is inconvenient, because we want to construct that item
+‘on the fly’ – whenever it is needed – and return it from the
+dereference operator (unary ‹*›) «by value», not by
+reference.
+
+The above two requirements are clearly contradictory: as you
+surely know, returning the address of a local variable won't
+do. This is where ‹proxy› comes into play: its role is to
+hold a copy of the item that has sufficiently long lifetime.
+
+Later, we will return ‹proxy› instances by value, hence
+‹proxy› itself will be a temporary object. Since temporary
+objects live until the ‘end of statement’ (i.e. until the
+nearest semicolon, give or take), we can return the address
+of its own attribute. That address will be good until the
+entire statement finishes executing, which is good enough:
+that means when we write ‹iter->foo()›, the proxy constructed
+by ‹operator->›, and hence the ‹string_view› stored in its
+attribute, will still exist when ‹foo› gets executed. 
+
+        struct proxy /* C */
+        {
+            value_type v;
+            value_type *operator->() { return &v; }
+        };
+
+        struct iterator /* C */
+        {
+There are 5 ‘nested types’ that iterators must provide.
+The probably most important is ‹value_type›, which is the
+type of the element that we get when we dereference the
+iterator. 
+
+            using value_type = splitter::value_type; /* C */
+
+The ‹iterator_category› type describes what kind of
+iterator this is, so that generic algorithms can take
+advantage of the extra guarantees that some iterators
+provide. This is a humble «input iterator», and hence
+gets ‹std::input_iterator_tag› as its category. 
+
+            using iterator_category = std::input_iterator_tag; /* C */
+
+The remaining 3 types exist to make writing generic
+algorithms somewhat easier. The ‹difference_type› is what
+you would get by subtracting two iterators – the
+‘default’ is ‹ptrdiff_t›, so we use that, even though our
+iterators cannot be subtracted. 
+
+            using difference_type = std::ptrdiff_t; /* C */
+
+The last two are ‘decorated’ versions of ‹value_type›: a
+pointer, which is straightforward (but do remember to take
+‹const›-ness into account)… 
+
+            using pointer = value_type *; /* C */
+
+… and a reference (same ‹const› caveat applies). However,
+you might find it surprising that the latter is not
+actually a reference type in this case. Why? Because
+‹reference› is defined as ‘what the dereference operator
+returns’, and our ‹operator*› returns a value, not a
+reference. Input iterators have an exception here: all
+higher iterator types (forward, bidirectional and random)
+must make ‹reference› an actual reference type. 
+
+            using reference = value_type; /* C */
+
+Now, finally, for the implementation. The data members
+(and the constructor, and the assignment operator) are
+all straightforward. The ‹_str› attribute represents the
+reminder of the string that still needs to be split, and
+will be an empty string for the ‹end› iterator. Remember
+that ‹string_view› does not hold any data, so we are
+«not» making copies of the input string. 
+
+            std::string_view _str; /* C */
+            char _delim;
+
+            iterator( std::string_view s, char d ) /* C */
+                : _str( s ), _delim( d )
+            {}
+
+            iterator( const iterator & ) = default; /* C */
+            iterator &operator=( const iterator & ) = default;
+
+The pre-increment and post-increment operators are
+reasonably simple. As is usual, we implement the latter
+in terms of the former. 
+
+            iterator &operator++() /* C */
+            {
+                _str = split( _str, _delim ).second;
+                return *this;
+            }
+
+            iterator operator++( int ) /* C */
+            {
+                auto orig = *this;
+                ++*this;
+                return orig;
+            }
+
+Dereference would be unremarkable, except for the part
+where we return a value instead of a reference (we could
+use the ‹reference› nested type here to make it clear we
+are adhering to iterator requirements, but that would be
+likely more confusing, considering how ‹reference› is not
+a reference). Do note the ‹const› here. 
+
+            value_type operator*() const /* C */
+            {
+                return split( _str, _delim ).first;
+            }
+
+This is what gets called when we write ‹iter->foo›. See
+‹proxy› above for a detailed explanation of how and why
+this works. Also, ‹const› again. 
+
+            proxy operator->() const /* C */
+            {
+                return { **this };
+            }
+
+Finally, equality. There is a trap or two that we need to
+avoid: first and foremost, ‹string_view› comparison
+operators compare «content» (i.e. the actual strings) –
+this is not what we want, since it could get really slow,
+even though it would ‘work’.
+
+The other possible trap is that on many implementations,
+string literals with equal content get equal addresses,
+i.e. the ‹begin› of two different ‹std::string_view( "" )›
+instances would compare equal, but this is «not»
+guaranteed by the standard. It just happens to work by
+accident on many systems. 
+
+            bool operator==( const iterator &o ) const /* C */
+            {
+                return ( _str.empty() && o._str.empty() ) ||
+                       ( _str.begin() == o._str.begin() );
+            }
+        };
+
+        auto begin() const { return iterator( _str, _delim ); } /* C */
+        auto end()   const { return iterator( {},   _delim ); }
+
+        splitter( std::string_view str, char delim ) /* C */
+            : _str( str ), _delim( delim )
+        {}
+    };
+
+    int main() /* demo */ /* C */
+    {
+        auto s = splitter( "quick brown fox", ' ' );
+        auto e = std::vector{ "quick", "brown", "fox" };
+
+        auto iseq = [&]{ return std::equal( s.begin(), s.end(), /* C */
+                                            e.begin(), e.end() ); };
+
+        assert( iseq() ); /* C */
+
+        s = splitter( "", ' ' ); /* C */
+        assert( !iseq() );
+        e.clear();
+        assert( iseq() );
+
+        s = splitter( "hello", ' ' ); /* C */
+        e = std::vector{ "hello" };
+        assert( iseq() );
+
+        s = splitter( "hello", 'l' ); /* C */
+        e = std::vector{ "he", "", "o" };
+        assert( iseq() );
+    }
+
+## e. Elementární příklady
+
+
+### 1. [‹digraph›]
+
+We will write a simple function, ‹digraph_freq›, which accepts a
+string and computes the frequency of all (alphabetic) digraphs.
+The exact signature is up to you, in particular the return type.
+The only requirement is that the returned value can be indexed
+using strings and this returns the count (or 0 if the input
+string is not a correct digraph). This must also work on
+‹const› instances of the return value. For examples see ‹main›.
+
+
+Define ‹digraph_freq› here, along with any helper functions or
+classes. 
+
+
+## p. Přípravy
+
+
+### 1. [‹rewrap›]
+
+V tomto příkladu budeme pracovat s textem. Procedura ‹rewrap›
+dostane odkaz (referenci) na řetězec, který obsahuje text složený
+ze slov oddělených mezerami (U+0020) nebo znaky nového řádku
+(U+000A). Dva nebo více znaků konce řádku těsně za sebou chápeme
+jako oddělovač odstavců.
+
+Dále dostane celočíselný počet sloupců (znaků) ‹cols›, který
+určují, jak dlouhý může být jeden řádek. Procedura pak
+přeformátuje vstupní řetězec tak, aby:
+
+ 1. bylo zachováno rozdělení na odstavce,
+ 2. jednotlivý řádek textu nepřesáhl ‹cols›,
+ 3. zachová celistvost slov (tzn. smí měnit pouze mezery a znaky
+    nového řádku),
+ 4. každý řádek byl nejdelší možný.
+
+Můžete předpokládat, že žádné slovo není delší než ‹cols› a že
+každá mezera sousedí po obou stranách se slovem. 
+
+    void rewrap( std::u32string &str, int cols ); /* C */
+
+
+### 2. [‹grammar›]
+
+Regulární gramatika má pravidla tvaru ⟦A → xB⟧ nebo ⟦A → x⟧ kde
+⟦A⟧, ⟦B⟧ jsou neterminály a ⟦x⟧ je terminál. 
+
+Navrhněte typ ‹grammar›, kterého hodnoty lze implicitně sestrojit
+a který má tyto 2 metody:
+
+ • ‹add_rule›, které lze předat 2 nebo 3 parametry:
+   a. jeden znak, který reprezentuje levou stranu (velké písmeno
+      anglické abecedy) a
+   b. jeden terminál (malé písmeno), nebo jeden terminál a jeden
+      neterminál,
+ • ‹generate›, která přijme 2 parametry: startovní neterminál a
+   kladné celé číslo, které reprezentuje maximální délku slova;
+   výsledkem bude seznam (‹std::vector›) všech řetězců (slov),
+   které lze takto vygenerovat, a to v lexikografickém pořadí. 
+
+    class grammar; /* C */
+
+
+### 3. [‹linear›]
+
+Ve cvičení ‹07/p6_linear› jsme napsali jednoduchý program, který
+řeší systémy lineárních rovnic o dvou neznámých. Tento program
+nyní rozšíříme o načítání vstupu z řetězce. 
+
+Naprogramujte čistou funkci ‹solve›, která má jediný parametr
+(řetězec předaný jako hodnota typu ‹std::string_view›). Vstup
+obsahuje právě dvě rovnice, na každém řádku jedna, se dvěma
+jednopísmennými proměnnými a celočíselnými koeficienty. Každý
+člen je oddělen od operátorů (‹+› a ‹-›) a znaku rovnosti
+mezerami, jednotlivý člen (koeficient včetně znaménka a případná
+proměnná) naopak mezery neobsahuje. Není-li vstup v očekávaném
+formátu, situaci řešte jak uznáte za vhodné (můžete např. ukončit
+funkci výjimkou ‹no_parse›).
+
+Výsledkem bude dvojice čísel typu ‹double›. Pořadí výsledku nechť
+je abecední (např. dvojice ‹x›, ‹y›). Jinak se funkce ‹solve›
+chová stejně, jak je popsáno v zmiňovaném příkladu
+‹07/p6_linear›. 
+
+    struct no_solution : std::exception {}; /* C */
+    struct no_parse    : std::exception {};
+
+    std::pair< double, double > solve( std::string_view eq ); /* C */
+
+
+### 4. [‹words›]
+
+Napište čistou funkci, která spočítá naivní rozdělení textu na
+jednotlivá slova.¹ Budeme uvažovat pouze bílé vs nebílé znaky
+(kódové body), a za slova budeme považovat libovolnou neprázdnou
+sekvenci nebílých znaků. Unicode obsahuje tyto bílé znaky
+(označené vlastností ‹White_Space›):
+
+> ‹U+0009› – ‹U+000D›, ‹U+0020›, ‹U+0085›, ‹U+00A0›, ‹U+1680›,
+> ‹U+2000› – ‹U+200A›, ‹U+2028›, ‹U+2029›, ‹U+202F›, ‹U+205F›,
+> ‹U+3000›.
+
+Dále budeme považovat za bílé i znaky ‹U+200B›, ‹U+2060›, které
+logicky (ale ne vizuálně) slova oddělují (tyto znaky vlastností
+‹White_Space› označeny nejsou).
+
+Vstupem funkce je pohled na text, výstupem funkce je seznam
+(‹std::vector›) pohledů, které vymezují jednotlivá identifikovaná
+slova. 
+
+    std::vector< std::u32string_view > words( std::u32string_view ); /* C */
+
+¹ Skutečná segmentace textu je «velmi» složitá a prakticky jediná
+  možnost je použít stávající knihovny, pro C++ např. ICU4C
+  (balík knihoven, který má dohromady cca 100MiB a jen hlavičkové
+  soubory mají cca 120 tisíc řádků). 
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹chords›]
+
+V tomto cvičení se budeme zabývat hudebními akordy. Nezapomeňte
+kód dekomponovat do smysluplných celků. 
+
+Tzv. „západní“ hudební tradice používá 12 tónů. Sousední tóny
+jsou vzdálené jeden půltón (100 centů). Základní akordy jsou
+vystavěny z malých (300 centů) a velkých (400 centů) tercií.
+Budeme se zabývat pouze akordy v základním tvaru, tzn. základní
+tón je zároveň basovým. K zápisu budeme používat německé
+názvosloví:
+
+ • c, d, e, f, g, a, h jsou „základní“ tóny bez posuvek (♮),
+ • cis, dis, eis = f, fis, gis, ais, his = c → s křížkem (♯),
+ • ces = h, des, es, fes = e, ges, as, b → tóny s béčkem (♭).
+
+Základní noty (♮) jsou vzdálené 200 centů, s výjimkou dvojic e/f
+a h/c, které jsou vzdálené pouze 100 centů. Béčko odečítá a
+křížek přičítá k hodnotě noty 100 centů. Zjednodušená pravidla
+pro používání názvů tónů při stavbě akordů:
+
+ • v tóninách C, G, D, A, E, H, Fis, Cis → používáme křížky,
+ • tóniny F, B, Es, As, Des, Ges, Ces → používáme béčka,
+ • béčka a křížky (v základních akordech) nemícháme,
+ • dvojitá béčka a křížky neuvažujeme,
+ • místo eis, his, ces, fes, použijeme f, c, h, e.
+
+Čistá kvinta je 700 centů, zatímco malá septima je 1000 centů.
+Intervaly (vyjádřené v centech) skládáme sčítáním mod 1200,
+přitom konvenčně chápeme tón c jako nulu.
+
+Je-li například základní tón g, tzn. 700 centů, přičtením čisté
+kvinty dostaneme 1400 mod 1200 = 200 centů, neboli tón d. Mezi
+tóny g a d je tedy interval čisté kvinty. 
+
+Durový kvintakord stavíme od základního tónu tóniny přidáním
+velké tercie a další malé tercie, například c → c e g nebo e → e
+gis h. 
+
+    std::string major_5( std::string key ); /* C */
+
+Mollový kvintakord stavíme od sexty (900 centů) paralelní durové
+tóniny přidáním malé tercie a další velké tercie, např.
+c → a c e, nebo e → cis e gis. 
+
+    std::string minor_5( std::string key ); /* C */
+
+Dominantní septakord stavíme od kvinty durové tóniny, např.
+v tónině C bude postaven na tónu g, a vznikne přidáním jedné
+velké a dvou malých tercií (celkem 4 tóny), například tedy
+f → c e g b. 
+
+    std::string dominant_7( std::string key ); /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 6. [‹fixnum›]
+
+V tomto cvičení implementujeme čísla s pevnou desetinnou čárkou,
+konkrétně se 6 desítkovými číslicemi před a dvěma za desetinnou
+čárkou. Čísla budou tedy tvaru ‹123456.78›. 
+
+Typ ‹bad_format› budeme používat jako výjimku, která indikuje, že
+pokus o načtení čísla z řetězce selhalo. 
+
+    struct bad_format; /* C */
+
+Typ ‹fixnum› nechť poskytuje tyto operace:
+
+ • sčítání, odečítání a násobení (operátory ‹+›, ‹-› a ‹*›),
+ • sestrojení z celého čísla,
+ • sestrojení z řetězce zadaného v desítkové soustavě (desetinná
+   část je nepovinná) – je-li řetězec neplatný, konstruktor
+   nechť skončí výjimkou ‹bad_format›,
+ • srovnání dvou hodnot operátory ‹==› a ‹!=›.
+
+Všechny aritmetické operace nechť zaokrouhlují směrem k nule na
+nejbližší reprezentovatelné číslo. 
+
+    struct fixnum; /* C */
+
+
+## r. Řešené úlohy
+
+
+### 1. [‹expr›]
+
+Napište čistou funkci ‹expr_valid›, která rozhodne, je-li vstupní
+řetězec výrazem, který vyhovuje následující gramatice:
+
+    expr   = ws, term, { ws, '+', term } ;
+    term   = ws, factor, { ws, '*', factor } ;
+    factor = ws, ( '(', expr, ws, ')' | ident | num ) ;
+    ws     = { ? std::isspace ? } ;
+    ident  = letter, { letter } ;
+    num    = digit, { digit } ;
+    letter = 'a' | 'b' | … | 'z' ;
+    digit  = '0' | '1' | … | '9' ; 
+
+    bool expr_valid( std::string_view ); /* C */
+
+
+### 2. [‹stmt›]
+
+Napište čistou funkci ‹stmt_valid›, která rozhodne, je-li vstupní
+řetězec příkazem jazyka zadaného následující gramatikou:
+
+    stmt = 'if', expr, 'then', stmt
+         | 'while', expr, 'do', stmt
+         | 'begin', stmt, { stmt }, 'end'
+         | 'set', ident, ':=', expr
+         | 'skip' ;
+    expr = atom | atom '+' atom | atom '-' atom ;
+    atom = '0' | '1' | ident ;
+
+Terminály (a neterminál ‹ident›) jsou od sebe na vstupu odděleny
+právě jednou mezerou. Pro ‹ident› použijte tuto definici:
+
+    ident = letter, { letter } ;
+    letter = 'a' | 'b' | … | 'z' ; 
+
+    bool stmt_valid( std::string_view ); /* C */
+
+
+### 4. [‹pretty›]
+
+In this exercise, we will write a pretty-printer for simple
+arithmetic expressions, with 3 operation types: addition,
+multiplication and equality, written as ‹+›, ‹*› and ‹=›
+respectively. The goal is to print the expression with as few
+parentheses as possible.
+
+Assume full associativity for all operations. The precedence
+order is the usual one: multiplication binds most tightly, while
+equality most loosely.
+
+The formatting is done by calling a ‹print› method on the root of
+the expression to be printed. 
+
+    class node; /* C */
+    class addition;
+    class multiplication;
+    class equality;
+    class constant;
+
+    using node_ptr = std::unique_ptr< node >; /* C */
+
+    node_ptr read( std::string_view expr ); /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹json›]
+
+The goal of this exercise is to implement a printer for JSON,
+invoked as a ‹print› method available on each ‹node›. It should
+take no arguments and return an instance of ‹std::string›. For
+simplicity, the only scalar values you need to implement are
+integers. Then there are 2 composite data types:
+
+ • arrays, which represent a sequence of arbitrary values,
+ • objects, which map strings to arbitrary values.
+
+Both composite types are «heterogeneous» (the items can be of
+different types). They are formatted as follows:
+
+ • array: ‹[ 1, [ 2, 3 ], 4 ]›,
+ • object: ‹{ "key₁": 7, "key₂": [ 1, 2 ] }›.
+
+To further simplify matters, we will not deal with line breaks or
+indentation – format everything as a single line. 
+
+    class node; /* C */
+    using node_ptr = std::unique_ptr< node >;
+    using node_ref = const node &;
+
+The ‹number› class is to be constructed from an ‹int›, has no
+children, and needs no methods besides ‹print›. 
+
+    class number; /* C */
+
+The ‹object› and ‹array› classes represent composite JSON data.
+They should be both default-constructible, resulting in an empty
+collection. Both should have an ‹append› method: for ‹object›, it
+takes an ‹std::string› (the key) and a ‹node_ptr›, while for
+‹array›, only the latter. In both cases, print items in the order
+in which they were appended. Duplicated keys are ignored (i.e.
+first occurrence wins). 
+
+    class object; /* C */
+    class array;
+

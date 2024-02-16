@@ -1,0 +1,73 @@
+# Dědičnost a pozdní vazba
+
+This week will be about objects in the OOP (object-oriented
+programming) sense and about inheritance-based polymorphism. In OOP,
+classes are rarely designed in isolation: instead, new classes are
+«derived» from an existing «base class» (the derived class «inherits
+from» the base class). The derived class retains all the attributes
+(data) and methods (behaviours) of the base (parent) class, and
+usually adds something on top, or at least modifies some of the
+behaviours.
+
+So far, we have worked with «composition» (though we rarely called
+it that). We say objects (or classes) are composed when attributes
+of classes are other classes (e.g. standard containers). The
+relationship between the outer class and its attributes is known as
+‘has-a’: a circle «has a» center, a polynomial «has a» sequence of
+coefficients, etc.
+
+Inheritance gives rise to a different type of relationship, known as
+‘is-a’: a few stereotypical examples:
+
+ • a circle «is a» shape,
+ • a ball «is a» solid, a cube «is a» solid too,
+ • a force «is a» vector (and so is velocity).
+
+This is where «polymorphism» comes into play: a function which
+doesn't care about the particulars of a shape or a solid or a vector
+can accept an instance of the «base class». However, each instance
+of a derived class «is an» instance of the base class too, and hence
+can be used in its place. This is known as the Liskov substitution
+principle.
+
+An important caveat: this «does not work» when passing objects «by
+value», because in general, the base class and the derived class do
+not have the same size. Languages like Python or Java side-step this
+issue by always passing objects by reference. In C++, we have to do
+that explicitly «if» we want to use inheritance-based polymorphism.
+Of course, this also works with pointers (including smart ones, like
+‹std::unique_ptr›).
+
+With this bit of theory out of the way, let's look at some practical
+examples: the rest of theory (late binding in particular) will be
+explained in demonstrations:
+
+ 1. ‹account›    – a simple inheritance example
+ 2. ‹shapes›     – polymorphism and late dispatch
+ 3. ‹expr›       – dynamic and static types, more polymorphism
+ 4. ‹destroy›    – virtual destructors
+ 5. ‹factory›    – polymorphic return values
+
+Elementary exercises:
+
+ 1. ‹resistance› – compute resistance of a simple circuit
+ 2. ‹perimeter›  – shapes and their perimeter length
+ 3. ‹fight›      – rock, paper and scissors
+
+Preparatory exercises:
+
+ 1. ‹prisoner›  – the famous dilemma
+ 2. ‹bexpr›     – boolean expressions with variables
+ 3. ‹sexpr›     – a tree made of lists (lisp style)
+ 4. ‹network›   – a network of counters
+ 5. ‹filter›    – filter items from a data source
+ 6. ‹geometry›  – shapes and visitors
+
+Regular exercises:
+
+ 1. ‹bom›        – polymorphism and collections
+ 2. ‹circuit›    – calling virtual methods within the class
+ 3. ‹loops›      – circuits with loops
+ 4. ‹xxx›
+ 5. ‹xxx›
+ 6. ‹while›      – interpreting while programs using an AST

@@ -1,0 +1,251 @@
+
+# Knihovna algoritmů
+
+Přípravy:¹
+
+ 1. ‹set›       – množinové operace,
+ 2. ‹wsort›     – paralelní řazení dvou posloupností,
+ 3. ‹distinct›  – počítání unikátních prvků,
+ 4. ‹reorder›   – stabilní řazení s malou množinou klíčů,
+ 5. ‹strides›   – řazení již seřazených běhů,
+ 6. ‹intervals› – jednoduchý algoritmus v duchu ‹std›.
+
+¹ Tato kapitola neobsahuje ukázky ani elementární příklady –
+  potřebné informace naleznete v přednášce.
+
+
+## p. Přípravy
+
+
+### 1. [‹set›]
+
+Implementujte množinu libovolných celých čísel, s těmito
+operacemi:
+
+ • sjednocení operátorem ‹|›,
+ • průnik operátorem ‹&›,
+ • rozdíl operátorem ‹-›,
+ • uspořádání inkluzí relačními operátory.
+
+Všechny výše uvedené operace musí být nejvýše lineární v součtu
+velikostí vstupních množin. Typ ‹set› doplňte metodami ‹add›
+(přidá prvek) a ‹has› (ověří přítomnost prvku), které mají
+nejvýše logaritmickou složitost. 
+
+    struct set; /* C */
+
+
+### 2. [‹wsort›]
+
+Implementujte generický podprogram ‹weighted_sort( seq₁, seq₂,
+weight )› kde:
+
+ 1. ‹seq₁› a ‹seq₂› jsou dva stejně dlouhé vektory prvků blíže
+    neurčeného typu (nemusí být možné je kopírovat),
+ 2. ‹weight› je funkce, která jako parametry přijme jeden prvek
+    ze ‹seq₁› a jeden prvek ze ‹seq₂› a přiřadí jim celočíselnou
+    váhu.
+
+Vaším úkolem je paralelně přeuspořádat obě sekvence ‹seq₁›,
+‹seq₂› tak, aby na konci pro každý platný index ‹i ≥ 1› platilo:
+
+    weight( seq₁[ i - 1 ], seq₂[ i - 1 ] ) <=
+    weight( seq₁[ i ], seq₂[ i ] )
+
+Paralelnost přeuspořádání v tomto případě znamená, že:
+
+ • byl-li původní prvek ‹seq₁[ i ]› přesunut na novou pozici
+   ‹seq₁[ j ]›,
+ • byl zároveň prvek ‹seq₂[ i ]› přesunut na pozici ‹seq₂[ j ]›.
+
+
+
+### 3. [‹distinct›]
+
+Napište čistou, generickou funkci ‹distinct( s )›, která spočítá,
+kolik různých prvků se objevuje ve vzestupně seřazené
+posloupnosti ‹s›. Zadaná posloupnost je hodnota typu, který
+poskytuje metody ‹begin› a ‹end›; výsledné iterátory lze
+efektivně (v konstantním čase) posouvat o libovolný počet pozic
+(např. funkcí ‹std::next›) a lze také efektivně získat vzdálenost
+dvou iterátorů (např. funkcí ‹std::distance›). Prvky nemusí být
+možné kopírovat, ale lze je libovolně srovnávat a přesouvat.
+
+Funkce musí pracovat v čase nejvýše ⟦O(k⋅\log(n))⟧, kde ⟦k⟧ je
+počet různých prvků (výsledek volání ‹distinct›) a ⟦n⟧ je délka
+vstupní posloupnosti. 
+
+
+### 4. [‹reorder›]
+
+Napište podprogram ‹reorder( s, weight )›, který pro zadanou
+posloupnost ‹s› a funkci ‹weight› na místě přeuspořádá ‹s› tak,
+že pro ⟦u < w⟧ budou prvky s váhou ⟦u⟧ předcházet prvkům s váhou
+⟦w⟧. Zároveň pro prvky se stejnou váhou platí, že se objeví ve
+stejném pořadí, v jakém byly v původní posloupnosti ‹s›.
+
+Podprogram musí pracovat v čase nejvýše ⟦O(k⋅n)⟧ kde ⟦k⟧ je počet
+různých vah, které se objeví na vstupu, a ⟦n⟧ je délka
+posloupnosti ‹s›. Je také povoleno využít lineární množství
+dodatečné paměti. 
+
+
+### 5. [‹strides›]
+
+Naprogramujte generickou proceduru ‹stride_sort( seq, key )›,
+která seřadí vstupní posloupnost ‹seq› podle klíče zadaného
+unární funkcí ‹key›, a to v čase O(⟦k⋅log(k) + n⟧), kde ⟦k⟧ je
+počet již správně seřazených běhů.
+
+Běhy ve vstupní posloupnosti se «nepřekrývají», tzn. pro
+libovolné dva běhy ⟦s⟧, ⟦t⟧ platí buď ⟦max(s) < min(t)⟧ nebo
+naopak ⟦max(t) < min(s)⟧. Pro zcela seřazený vstup je ⟦k = 1⟧.
+
+Zvažte jak, a za jakou cenu, by šlo algoritmus zobecnit tak, aby
+se vstupní běhy mohly překrývat (a zároveň zůstal pro malá ⟦k⟧
+výrazně efektivnější než obecné řazení). 
+
+
+### 6. [‹intervals›]
+
+Naprogramujte proceduru ‹intervals›, která z posloupnosti ⟦k⟧
+dvojic (zleva uzavřených, zprava otevřených intervalů) vytvoří
+vzestupně seřazenou posloupnost ⟦n⟧ prvků tak, že každá hodnota,
+která spadá do některého vstupního intervalu, se ve výstupní
+posloupnosti objeví právě jednou.
+
+Procedura ‹intervals› bude mít rozhraní podobné standardním
+algoritmům:
+
+ • vstupem bude dvojice (rozsah) iterátorů, které zadávají
+   sekvenci dvojic–intervalů (‹std::tuple›),
+ • a výstupní iterátor, do kterého zapíše výslednou posloupnost.
+
+Můžete předpokládat, že prvky (a tedy i intervaly zadané jako
+jejich dvojice) lze kopírovat a přiřazovat. Algoritmus by měl mít
+složitost ⟦O(n + k⋅log(k))⟧. 
+
+
+## r. Řešené úlohy
+
+
+### 1. [‹priority›]
+
+Navrhněte typ ‹sched_queue›, který bude udržovat prioritní frontu
+hodnot typu ‹task›, uspořádanou podle složky ‹priority›. Mají-li
+dva prvky stejnou prioritu, přednost má ten s nižším ‹id›. Typ
+‹task› nemodifikujte. 
+
+    struct task /* C */
+    {
+        int priority, static_priority, id;
+    };
+
+Typ ‹sched_queue› nechť poskytuje tyto operace:
+
+ • ‹add› vloží prvek do fronty,
+ • ‹peek› vrátí konstantní odkaz na prvek s nejvyšší prioritou,
+ • ‹demote› podobně, ale vrátí nekonstantní odkaz a zároveň prvku
+   sníží prioritu o jedna,
+ • ‹reset› nastaví prioritu všech prvků na jejich hodnotu
+   ‹static_priority›.
+
+Všechny operace s výjimkou ‹peek› mohou zneplatnit reference
+vrácené některým předchozím voláním ‹peek› nebo ‹demote›. 
+
+    struct sched_queue; /* C */
+
+
+### 2. [‹join›]
+
+Naprogramujte generickou proceduru ‹join›, která bude mít 5
+parametrů:
+
+ • dvě relace ⟦A, B⟧ na ⟦n⟧ resp. ⟦m⟧ hodnotách typu ‹T›,
+   reprezentované jako ‹std::vector› hodnot typu ‹std::array›,
+ • číslo ⟦j < n⟧ určující sloupec (index) v první relaci a číslo
+   ⟦k < m⟧ podobně určující sloupec ve druhé relaci,
+ • výstupní vektor vhodného typu, do kterého zapíše výsledek.
+
+Procedura nesmí vstupní parametry (zejména vstupní relace) nijak
+měnit. Hodnoty v relacích lze kopírovat a implicitně sestrojovat.
+
+Výsledkem bude jediná relace ⟦R⟧ na ⟦n + m - 1⟧ hodnotách taková,
+že:
+
+ • ⟦(a₀, …, aⱼ, …, aₙ, b₀, …, bₖ₋₁, bₖ₊₁, …, bₘ) ∈ R⟧ právě když
+ • ⟦(a₀, …, aₙ) ∈ A⟧ a zároveň
+ • ⟦(b₀, …, bₖ₋₁, aⱼ, bₖ₊₁, … bₘ) ∈ B⟧.
+
+V relačních databázových systémech se této operaci říká přirozené
+spojení (za předpokladu, že ⟦i, j⟧ označují jediný společný
+sloupec). 
+
+
+### 3. [‹sorted›]
+
+Napište čistou funkci ‹sorted_ranges›, která na vstupu dostane
+kontejner (nebo rozsah ve smyslu ‹std::range›) a kladné číslo
+‹n›. Vstupní posloupnost interpretujte jako obdélníkové pole
+šířky ‹n›. Můžete předpokládat:
+
+ • iterátory lze efektivně posouvat o zadaný počet pozic (např.
+   funkcí ‹std::next›),
+ • délka vstupní posloupnosti je dělitelná ‹n›.
+
+Výstupem bude ‹std::vector› dvojic (index, délka), které pro
+každý řádek vstupu udávají nejdelší uspořádanou posloupnost
+nacházející se na tomto řádku. Je-li takových posloupností víc,
+použije se index první z nich. Celková složitost nechť je ⟦O(m)⟧
+kde ⟦m⟧ je délka vstupní posloupnosti. 
+
+
+### 4. [‹rotsort›]
+
+Napište funkci ‹rotate_sort›, která dostane podobně jako
+v předchozím cvičení na vstupu kontejner (nebo rozsah ve smyslu
+‹std::range›) a kladné číslo ‹n›; vstupní posloupnost
+pak interpretuje jako obdélníkové pole šířky ‹n›. Můžete
+předpokládat, že:
+
+ • iterátory lze efektivně posouvat o zadaný počet pozic (např.
+   funkcí ‹std::next›),
+ • délka vstupní posloupnosti je dělitelná ‹n›.
+
+Funkce ověří, je-li možné každý řádek vzestupně seřadit jednou
+rotací (tzn. existuje-li ‹k› takové, že posunem prvků o ‹k› mod
+‹n› doprava nebo doleva vznikne seřazená posloupnost). Je-li to
+možné, tyto rotace provede a vrátí ‹true›. Jinak vstupní sekvenci
+nijak nemodifikuje a vrátí ‹false›. Celková složitost nechť je
+⟦O(m)⟧ kde ⟦m⟧ je délka vstupní posloupnosti. 
+
+
+### 5. [‹permute›]
+
+Given a number ‹n› and a base ‹b›, find all numbers whose digits
+(in base ‹b›) are a permutation of the digits of ‹n› and return
+them as a vector of integers. Each such number should appear
+exactly once.
+
+Examples:
+
+    (125)₁₀ → { 125, 152, 215, 251, 512, 521 }
+    (1f1)₁₆ → { (1f1)₁₆, (f11)₁₆, (11f)₁₆ }
+    (20)₁₀  → { 20, 2 } 
+
+    std::vector< unsigned > permute_digits( unsigned n, int base ); /* C */
+
+    std::vector< unsigned > to_digits( unsigned n, int base, int fill = 0 ) /* C */
+    {
+        std::vector< unsigned > ds;
+
+        while ( n > 0 || fill > 0 ) /* C */
+        {
+            ds.push_back( n % base );
+            n /= base;
+            -- fill;
+        }
+
+        return ds; /* C */
+    }
+

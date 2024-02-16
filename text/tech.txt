@@ -1,0 +1,532 @@
+
+# T. Technické informace
+
+Tato kapitola obsahuje informace o technické realizaci předmětu,
+a to zejména:
+
+ • jak se pracuje s kostrami úloh,
+ • jak sdílet obrazovku (terminál) ve cvičení,
+ • jak se odevzdávají úkoly,
+ • kde najdete výsledky testů a jak je přečtete,
+ • kde najdete hodnocení kvality kódu (učitelské recenze),
+ • jak získáte kód pro vzájemné recenze.
+
+## Informační systém
+
+Informační systém tvoří primární „rozhraní“ pro stahování studijních
+materiálů, odevzdávání řešení, získání výsledků vyhodnocení a čtení
+recenzí. Zároveň slouží jako hlavní komunikační kanál mezi studenty
+a učiteli, prostřednictvím diskusního fóra.
+
+### Diskusní fórum
+
+Máte-li dotazy k úlohám, organizaci, atp., využijte k jejich
+položení prosím vždy přednostně diskusní fórum.¹ Ke každé kapitole a
+ke každému příkladu ze sady vytvoříme samostatné vlákno, kam patří
+dotazy specifické pro tuto kapitolu nebo tento příklad. Pro řešení
+obecných organizačních záležitostí a technických problémů jsou
+podobně v diskusním fóru nachystaná vlákna.
+
+Než položíte libovolný dotaz, přečtěte si relevantní část dosavadní
+diskuse – je možné, že na stejný problém už někdo narazil. Máte-li
+ve fóru dotaz, na který se Vám nedostalo do druhého pracovního dne
+reakce, připomeňte se prosím tím, že na tento svůj příspěvek
+odpovíte.
+
+Máte-li dotaz k výsledku testu, nikdy tento výsledek nevkládejte do
+příspěvku (podobně nikdy nevkládejte části řešení příkladu). Učitelé
+mají přístup k obsahu Vašich poznámkových bloků, i k Vámi odevzdaným
+souborům. Je-li to pro pochopení kontextu ostatními čtenáři potřeba,
+odpovídající učitel chybějící informace doplní dle uvážení.
+
+¹ Nebojte se do fóra napsat – když si s něčím nevíte rady a/nebo
+  nemůžete najít v materiálech, rádi Vám pomůžeme nebo Vás
+  nasměrujeme na místo, kde odpověď naleznete.
+
+### Stažení koster
+
+Kostry naleznete ve «studijních materiálech» v ISu: ‹Student› →
+‹PB161› → ‹Studijní materály› → ‹Učební materiály›. Každá kapitola
+má vlastní složku, pojmenovanou ‹00› (tento úvod a materiály
+k nultému cvičení), ‹01› (první běžná kapitola), ‹02›, …, ‹12›.
+Veškeré soubory stáhnete jednoduše tak, že na složku kliknete pravým
+tlačítkem a vyberete možnost ‹Stáhnout jako ZIP›. Stažený soubor
+rozbalte a můžete řešit.
+
+### Odevzdání řešení
+
+Vypracované příklady můžete odevzdat do «odevzdávárny» v ISu:
+‹Student› → ‹PB161› → ‹Odevzdávárny›. Pro přípravy používejte
+odpovídající složky s názvy ‹01›, …, ‹12›. Pro příklady ze sad pak
+‹s1_a_csv›, atp. (složky začínající ‹s1› pro první, ‹s2› pro druhou
+a ‹s3› pro třetí sadu).
+
+Soubor vložíte výběrem možnosti ‹Soubor – nahrát› (první ikonka na
+liště nad seznamem souborů). Tímto způsobem můžete najednou nahrát
+souborů několik (například všechny přípravy z dané kapitoly). Vždy
+se ujistěte, že vkládáte správnou verzi souboru (a že nemáte
+v textovém editoru neuložené změny). «Pozor!» Všechny vložené
+soubory se musí jmenovat stejně jako v kostrách, jinak nebudou
+rozeznány (IS při vkládání automaticky předřadí Vaše UČO – to je
+v pořádku, název souboru po vložení do ISu «neměňte») .
+
+O každém odevzdaném souboru (i nerozeznaném) se Vám v poznámkovém
+bloku ‹log› objeví záznam. Tento záznam i výsledky testu syntaxe by
+se měl objevit do několika minut od odevzdání (nemáte-li ani po 15
+minutách výsledky, napište prosím do diskusního fóra).
+
+Archiv všech souborů, které jste úspěšně odevzdali, naleznete ve
+složce ‹Private› ve studijních materiálech (‹Student› → ‹PB161› →
+‹Studijní materiály› → ‹Private›).
+
+### Výsledky automatických testů
+
+Automatickou zpětnou vazbu k odevzdaným úlohám budete dostávat
+prostřednictvím tzv. «poznámkových bloků» v ISu. Ke každé
+odevzdávárně existuje odpovídající poznámkový blok, ve kterém
+naleznete aktuální výsledky testů. Pro přípravy bude blok vypadat
+přibližně takto:
+
+    testing verity of submission from 2022-09-17 22:43 CEST
+    subtest p1_foo passed    [0.5]
+    subtest p2_bar failed
+    subtest p3_baz failed
+    subtest p4_quux passed   [0.5]
+    subtest p5_wibble passed [0.5]
+    subtest p6_xyzzy failed
+       {bližší popis chyby}
+    verity test failed
+    
+    testing syntax of submission from 2022-09-17 22:43 CEST
+    subtest p1_foo passed
+    subtest p2_bar failed
+      {bližší popis chyby}
+    subtest p3_baz failed
+      {bližší popis chyby}
+    subtest p4_quux passed
+    subtest p5_wibble passed
+    subtest p6_xyzzy passed
+    syntax test failed
+    
+    testing sanity of submission from 2022-09-17 22:43 CEST
+    subtest p1_foo passed    [  1]
+    subtest p2_bar failed
+    subtest p3_baz failed
+    subtest p4_quux passed   [  1]
+    subtest p5_wibble passed [  1]
+    subtest p6_xyzzy passed  [  1]
+    sanity test failed
+    
+    best submission: 2022-09-17 22:43 CEST worth *5.5 point(s)
+
+Jednak si všimněte, že každý odstavec má «vlastní časové razítko»,
+které určuje, ke kterému odevzdání daný výstup patří. Tato časová
+razítka nemusí být stejná. V hranatých závorkách jsou uvedeny dílčí
+body, za hvězdičkou na posledním řádku pak celkový bodový zisk za
+tuto kapitolu.
+
+Také si všimněte, že ‹best submission› se vztahuje na jedno
+konkrétní odevzdání jako celek: v situaci, kdy odstavec „verity“ a
+odstavec „sanity“ nemají stejné časové razítko, «nemusí» být celkový
+bodový zisk součtem všech dílčích bodů.  O konečném zisku rozhoduje
+vždy poslední odevzdání před příslušným termínem (opět jako jeden
+celek).¹
+
+Výstup pro příklady ze sad je podobný, uvažme například:
+
+    testing verity of submission from 2022-10-11 21:14 CEST
+    subtest foo-small passed
+    subtest foo-large passed
+    verity test passed          [ 10]
+    
+    testing syntax of submission from 2022-10-14 23:54 CEST
+    subtest build passed
+    syntax test passed
+    
+    testing sanity of submission from 2022-10-14 23:54 CEST
+    subtest foo passed
+    sanity test passed
+    
+    best submission: 2022-10-11 21:14 CEST worth *10 point(s)
+
+Opět si všimněte, že časová razítka se mohou lišit (a v případě
+příkladů ze sady bude k této situaci docházet poměrně často, vždy
+tedy nejprve ověřte, ke kterému odevzdání se který odstavec vztahuje
+a pak až jej dále interpretujte).
+
+¹ Můžete si tak odevzdáním nefunkčních řešení na poslední chvíli
+  snížit výsledný bodový zisk. Uvažte situaci, kdy máte v pátek 4
+  body za sanity příkladů p1, p2, p3, p6 a 1 bod za verity p1, p2.
+  V sobotu odevzdáte řešení, kde p1 neprochází sanity testem, ale p4
+  ano a navíc projdou verity testy příklady p4 a p6. Váš výsledný
+  zisk bude 5.5 bodu. Tento mechanismus Vám nikdy nesníží výsledný
+  bodový zisk pod již jednou dosaženou hranici „best submission“.
+
+### Recenze
+
+Vám adresované recenze, podobně jako archiv odevzdaných souborů,
+naleznete ve složce ‹Private› ve studijních materiálech (‹Student› →
+‹PB161› → ‹Studijní materiály› → ‹Private›). Shrnutí bodového zisku
+za tyto recenze pak naleznete v poznámkovém bloku ‹reviews›.
+
+### Další poznámkové bloky
+
+Blok ‹corr› obsahuje záznamy o manuálních bodových korekcích (např.
+v situaci, kdy byl Váš bodový zisk ovlivněn chybou v testech).
+Podobně se zde objeví záznamy o penalizaci za opisování.
+
+Blok ‹log› obsahuje záznam o všech odevzdaných souborech, včetně
+těch, které nebyly rozeznány. Nedostanete-li po odevzdání příkladu
+výsledek testů, ověřte si v tomto poznámkovém bloku, že soubor byl
+správně rozeznán.
+
+Blok ‹misc› obsahuje záznamy o Vaší aktivitě ve cvičení (netýká se
+bodů za vzájemné recenze ani vnitrosemestrální testy). Nemáte-li
+před koncem cvičení, ve kterém jste řešili příklad u tabule, záznam
+v tomto bloku, připomeňte se svému cvičícímu.
+
+Konečně blok ‹sum› obsahuje souhrn bodů, které jste dosud získali, a
+které ještě získat můžete. Dostanete-li se do situace, kdy Vám ani
+zisk všech zbývajících bodů nebude stačit pro splnění podmínek
+předmětu, tento blok Vás o tom bude informovat. Tento blok má navíc
+přístupnou statistiku bodů – můžete tak srovnat svůj dosavadní
+bodový zisk se svými spolužáky.
+
+Je-li blok ‹sum› v rozporu s pravidly uvedenými v tomto dokumentu,
+přednost mají pravidla zde uvedená. Podobně mají v případě
+nesrovnalosti přednost dílčí poznámkové bloky. Dojde-li k takovéto
+neshodě, informujte nás o tom prosím v diskusním fóru. Případná
+známka uvedená v poznámkovém bloku ‹sum› je podobně pouze
+informativní – rozhoduje vždy známka zapsaná v hodnocení předmětu.
+
+## Studentský server ‹aisa›
+
+Použití serveru ‹aisa› pro odevzdávání příkladů je zcela volitelné a
+vše potřebné můžete vždy udělat i prostřednictvím ISu. Nevíte-li si
+s něčím z níže uvedeného rady, použijte IS.
+
+Na server ‹aisa› se přihlásíte programem ‹ssh›, který je k dispozici
+v prakticky každém moderním operačním systému (v OS Windows skrze
+WSL¹ – Windows Subsystem for Linux). Konkrétní příkaz (za ‹xlogin›
+doplňte ten svůj):
+
+    $ ssh xlogin@aisa.fi.muni.cz
+
+Program se zeptá na heslo: použijte to fakultní (to stejné, které
+používáte k přihlášení na ostatní fakultní počítače, nebo např. ve
+‹fadmin›-u nebo fakultním ‹gitlab›-u).
+
+¹ Jako alternativu, nechcete-li z nějakého důvodu WSL instalovat,
+  lze použít program ‹putty›.
+
+### Pracovní stanice
+
+Veškeré instrukce, které zde uvádíme pro použití na stroji ‹aisa›
+platí beze změn také na libovolné školní UNIX-ové pracovní stanici
+(tzn. z fakultních počítačů není potřeba se hlásit na stroj ‹aisa›,
+navíc mají sdílený domovský adresář, takže svoje soubory z tohoto
+serveru přímo vidíte, jako by byly uloženy na pracovní stanici).
+
+### Stažení koster
+
+Aktuální zdrojový balík stáhnete příkazem:
+
+    $ pb161 update
+
+Stažené soubory pak naleznete ve složce ‹~/pb161›. Je bezpečné tento
+příkaz použít i v případě, že ve své kopii již máte rozpracovaná
+řešení – systém je při aktualizaci nepřepisuje. Došlo-li ke změně
+kostry u příkladu, který máte lokálně modifikovaný, aktualizovanou
+kostru naleznete v souboru s dodatečnou příponou ‹.pristine›, např.
+‹01/e2_concat.cpp.pristine›. V takovém případě si můžete obě verze
+srovnat příkazem ‹diff›:
+
+    $ diff -u e2_concat.cpp e2_concat.cpp.pristine
+
+Případné relevantní změny si pak již lehce přenesete do svého
+řešení.
+
+Krom samotného zdrojového balíku Vám příkaz ‹pb161 update› stáhne i
+veškeré recenze (jak od učitelů, tak od spolužáků). To, že máte
+k dispozici nové recenze, uvidíte ve výpisu. Recenze najdete ve
+složce ‹~/pb161/reviews›.
+
+### Odevzdání řešení
+
+Odevzdat vypracované (nebo i rozpracované) řešení můžete ze složky
+s relevantními soubory takto:
+
+    $ cd ~/pb161/01
+    $ pb161 submit
+
+Přidáte-li přepínač ‹--wait›, příkaz vyčká na vyhodnocení testů fáze
+„syntax“ a jakmile je výsledek k dispozici, vypíše obsah příslušného
+poznámkového bloku. Chcete-li si ověřit co a kdy jste odevzdali,
+můžete použít příkaz
+
+    $ pb161 status
+
+nebo se podívat do informačního systému (blíže popsáno v sekci T.1).
+
+«Pozor!» Odevzdáváte-li stejnou sadu příprav jak v ISu tak
+prostřednictvím příkazu ‹pb161›, ujistěte se, že odevzdáváte vždy
+všechny příklady.
+
+### Sdílení terminálu
+
+Řešíte-li příklad typu ‹r› ve cvičení, bude se Vám pravděpodobně
+hodit režim sdílení terminálu s cvičícím (který tak bude moct
+promítat Váš zdrojový kód na plátno, případně do něj jednoduše
+zasáhnout).
+
+Protože se sdílí pouze terminál, budete se muset spokojit
+s negrafickým textovým editorem (doporučujeme použít ‹micro›,
+případně ‹vim› umíte-li ho ovládat). Spojení navážete příkazem:
+
+    $ pb161 beamer
+
+Protože příkaz vytvoří nové sezení, nezapomeňte se přesunout do
+správné složky příkazem ‹cd ~/pb161/NN›.
+
+### Recenze
+
+Příkaz ‹pb161 update› krom zdrojového balíku stahuje také:
+
+ 1. zdrojové kódy, které máte možnost recenzovat, a to do složky
+    ‹~/pb161/to_review›,
+ 2. recenze, které jste na svůj kód obdrželi (jak od spolužáků, tak
+    od vyučujících), a to do stávajících složek zdrojového balíku
+    (tzn. recenze na příklady z první kapitoly se Vám objeví ve
+    složce ‹~/pb161/01› – že se jedná o recenzi poznáte podle jména
+    souboru, který bude začínat uživatelským jménem autora recenze,
+    např. ‹xrockai.00123.p1_nhamming.cpp›).
+
+Chcete-li vypracované recenze odeslat:
+
+ 1. přesuňte se do složky ‹~/pb161/to_review› a
+ 2. zadejte příkaz ‹pb161 submit›, případně doplněný o seznam
+    souborů, které hodláte odeslat (jinak se odešlou všechny, které
+    obsahují jakýkoliv přidaný komentář).
+
+## Kostry úloh
+
+Pracujete-li na studentském serveru ‹aisa›, můžete pro překlad
+jednotlivých příkladů použít přiložený soubor ‹makefile›, a to
+zadáním příkazu
+
+    $ make příklad
+
+kde ‹příklad› je název souboru bez přípony (např. tedy ‹make
+e1_factorial›). Tento příkaz postupně:
+
+ 1. přeloží Vaše řešení překladačem ‹gcc›,
+ 2. spustí přiložené testy,
+ 3. spustí kontrolu nástrojem ‹valgrind›.
+
+Selže-li některý krok, další už se provádět nebude. Povede-li se
+překlad v prvním kroku, v pracovním adresáři naleznete spustitelný
+soubor s názvem ‹příklad›, se kterým můžete dále pracovat (např. ho
+ladit/krokovat nástrojem ‹gdb›).
+
+Existující přeložené soubory můžete smazat příkazem ‹make clean›
+(vynutíte tak jejich opětovný překlad a spuštění všech kontrol).
+
+### Textový editor
+
+Na stroji ‹aisa› je k dispozici jednoduchý editor ‹micro›, který má
+podobné ovládání jako klasické textové editory, které pracují
+v grafickém režimu, a který má slušnou podporu pro práci se
+zdrojovým kódem. Doporučujeme zejména méně pokročilým. Další
+možností jsou samozřejmě pokročilé editory ‹vim› a ‹emacs›.
+
+Mimo lokálně dostupné editory si můžete ve svém oblíbeném editoru,
+který máte nainstalovaný u sebe, nastavit režim vzdálené editace
+(použitím protokolu ‹ssh›). Minimálně ve VS Code je takový režim
+k dispozici a je uspokojivě funkční.
+
+### Vlastní prostředí
+
+Každý příklad je zcela obsažen v jednom standardním zdrojovém
+souboru, proto je jejich překlad velmi jednoduchý. Pravděpodobně
+každé IDE zvládne s příklady bez problémů pracovat (spouštět, ladit,
+atp.), musí ale běžet na systému typu POSIX (splňují všechny OS krom
+Windows – zde ale můžete využít WSL a případně jeho
+«integraci do VS Code¹»).
+
+Krom IDE můžete také použít dodaný soubor ‹makefile›, pouze si
+v nadřazené složce (tzn. «vedle» složek ‹01›, ‹02›, atd.) vytvořte
+soubor ‹local.mk›, ve kterém nastavíte, jak se na Vašem systému
+spouští potřebné příkazy. Implicitní nastavení je toto, a funguje-li
+Vám, není potřeba soubor ‹local.mk› vůbec vytvářet:
+
+    CC = cc
+    VALGRIND = valgrind
+
+Můžete samozřejmě příklady překládat a kontrolovat i ručně.
+
+¹ ‹https://code.visualstudio.com/docs/remote/wsl›
+
+# U. Doporučení k zápisu kódu
+
+Tato sekce rozvádí obecné principy zápisu kódu s důrazem na
+čitelnost a korektnost. Samozřejmě žádná sada pravidel nemůže
+zaručit, že napíšete dobrý (korektní a čitelný) program, o nic více,
+než může zaručit, že napíšete dobrou povídku nebo namalujete dobrý
+obraz. Přesto ve všech těchto případech pravidla existují a jejich
+dodržování má obvykle na výsledek pozitivní dopad.
+
+Každé pravidlo má samozřejmě nějaké výjimky. Tyto jsou ale výjimkami
+proto, že nastávají «výjimečně». Některá pravidla připouští výjimky
+častěji než jiná: 
+
+### 1. Dekompozice
+
+Vůbec nejdůležitější úlohou programátora je rozdělit problém tak,
+aby byl schopen každou část správně vyřešit a dílčí výsledky pak
+poskládat do korektního celku.
+
+ A. Kód musí být rozdělen do ucelených jednotek (kde jednotkou
+    rozumíme funkci, typ, modul, atd.) přiměřené velikosti, které
+    lze studovat a používat nezávisle na sobě.
+ B. Jednotky musí být od sebe odděleny jasným «rozhraním», které by
+    mělo být jednodušší a uchopitelnější, než kdybychom použití
+    jednotky nahradili její definicí.
+ C. Každá jednotka by měla mít «jeden» dobře definovaný účel, který
+    je zachycený především v jejím pojmenování a případně rozvedený
+    v komentáři.
+ D. Máte-li problém jednotku dobře pojmenovat, může to být známka
+    toho, že dělá příliš mnoho věcí.
+ E. Jednotka by měla realizovat vhodnou «abstrakci», tzn. měla by
+    být «obecná» – zkuste si představit, že dostanete k řešení
+    nějaký jiný (ale dostatečně příbuzný) problém: bude Vám tato
+    konkrétní jednotka k něčemu dobrá, aniž byste ji museli
+    (výrazně) upravovat?
+ F. Má-li jednotka parametr, který fakticky identifikuje místo ve
+    kterém ji používáte (bez ohledu na to, je-li to z jeho názvu
+    patrné), je to často známka špatně zvolené abstrakce. Máte-li
+    parametr, který by bylo lze pojmenovat ‹called_from_bar›, je to
+    jasná známka tohoto problému.
+ G. Daný podproblém by měl být vyřešen v programu pouze jednou –
+    nedaří-li se Vám sjednotit různé varianty stejného nebo velmi
+    podobného kódu (aniž byste se uchýlili k taktice z bodu d), může
+    to být známka nesprávně zvolené dekompozice. Zkuste se zamyslet,
+    není-li možné problém rozložit na podproblémy jinak.
+
+### 2. Jména
+
+Dobře zvolená jména velmi ulehčují čtení kódu, ale jsou i dobrým
+vodítkem při dekompozici a výstavbě abstrakcí.
+
+ A. Všechny entity ve zdrojovém kódu nesou «anglická» jména.
+    Angličtina je univerzální jazyk programátorů.
+ B. Jméno musí být «výstižné» a «popisné»: v místě použití je
+    obvykle jméno náš hlavní (a často jediný) «zdroj informací»
+    o jmenované entitě. Nutnost hledat deklaraci nebo definici
+    (protože ze jména není jasné, co volaná funkce dělá, nebo jaký
+    má použitá proměnná význam) čtenáře nesmírně zdržuje.¹
+ C. Jména «lokálního» významu mohou být méně informativní: je mnohem
+    větší šance, že význam jmenované entity si pamatujeme, protože
+    byla definována před chvílí (např. lokální proměnná v krátké
+    funkci).
+ D. Obecněji, informační obsah jména by měl být přímo úměrný jeho
+    rozsahu platnosti a nepřímo úměrný frekvenci použití: globální
+    jméno musí být informativní, protože jeho definice je „daleko“
+    (takže si ji už nepamatujeme) a zároveň se nepoužívá příliš
+    často (takže si nepamatujeme ani to, co jsme se dozvěděli, když
+    jsme ho potkali naposled).
+ E. Jméno parametru má dvojí funkci: krom toho, že ho používáme
+    v těle funkce (kde se z pohledu pojmenování chová podobně jako
+    lokální proměnná), slouží jako dokumentace funkce jako celku.
+    Pro parametry volíme popisnější jména, než by zaručovalo jejich
+    použití ve funkci samotné – mají totiž dodatečný globální
+    význam.
+ F. Některé entity mají ustálené názvy – je rozumné se jich držet,
+    protože čtenář automaticky rozumí jejich významu, i přes
+    obvyklou stručnost. Zároveň je potřeba se vyvarovat použití
+    takovýchto ustálených jmen pro nesouvisející entity.  Typickým
+    příkladem jsou iterační proměnné ‹i› a ‹j›.
+ G. Jména s velkým rozsahem platnosti by měla být také
+    «zapamatovatelná». Je vždy lepší si přímo vzpomenout na jméno
+    funkce, kterou právě potřebuji, než ho vyhledávat (podobně jako
+    je lepší znát slovo, než ho jít hledat ve slovníku).
+ H. Použitý slovní druh by měl odpovídat druhu entity, kterou
+    pojmenovává. Proměnné a typy pojmenováváme přednostně
+    podstatnými jmény, funkce přednostně slovesy.
+ I. Rodiny příbuzných nebo souvisejících entit pojmenováváme podle
+    společného schématu (‹table_name›, ‹table_size›, ‹table_items› –
+    nikoliv např. ‹items_in_table›; ‹list_parser›, ‹string_parser›,
+    ‹set_parser›; ‹find_min›, ‹find_max›, ‹erase_max› – nikoliv
+    např. ‹erase_maximum› nebo ‹erase_greatest› nebo ‹max_remove›).
+ J. Jména by měla brát do úvahy kontext, ve kterém jsou platná.
+    Neopakujte typ proměnné v jejím názvu (‹cars›, nikoliv
+    ‹list_of_cars› ani ‹set_of_cars›) nemá-li tento typ speciální
+    význam. Podobně jméno nadřazeného typu nepatří do jmen jeho
+    metod (třída ‹list› by měla mít metodu ‹length›, nikoliv
+    ‹list_length›).
+ K. Dávejte si pozor na překlepy a pravopisné chyby. Zbytečně
+    znesnadňují pochopení a (zejména v kombinaci s našeptávačem)
+    lehce vedou na skutečné chyby způsobené záměnou podobných ale
+    jinak napsaných jmen. Navíc kód s překlepy v názvech působí
+    značně neprofesionálně.
+
+¹ Nejde zde pouze o samotný fakt, že je potřeba něco vyhledat. Mohlo
+  by se zdát, že tento problém řeší IDE, které nás umí „poslat“ na
+  příslušnou definici samo. Hlavní zdržení ve skutečnosti spočívá
+  v tom, že musíme přerušit čtení předchozího celku. Na rozdíl od
+  počítače je pro člověka „zanořování“ a zejména pak „vynořování“ na
+  pomyslném zásobníku docela drahou operací.
+
+### 3. Stav a data
+
+Udržet si přehled o tom, co se v programu děje, jaké jsou vztahy
+mezi různými stavovými proměnnými, co může a co nemůže nastat, je
+jedna z nejtěžších částí programování.
+
+TBD: Vstupní podmínky, invarianty, …
+
+### 4. Řízení toku
+
+Přehledný, logický a co nejvíce lineární sled kroků nám ulehčuje
+pochopení algoritmu. Časté, komplikované větvení je naopak těžké
+sledovat a odvádí pozornost od pochopení důležitých myšlenek.
+
+TBD.
+
+### 5. Volba algoritmů a datových struktur
+
+TBD.
+
+### 6. Komentáře
+
+Nejde-li myšlenku předat jinak, vysvětlíme ji doprovodným
+komentářem. Čím těžší myšlenka, tím větší je potřeba komentovat.
+
+ A. Podobně jako jména entit, komentáře které jsou součástí kódu
+    píšeme anglicky.²
+ B. Případný komentář jednotky kódu by měl vysvětlit především „co“
+    a „proč“ (tzn. jaký plní tato jednotka účel a za jakých
+    okolností ji lze použít).
+ C. Komentář by také neměl zbytečně duplikovat informace, které jsou
+    k nalezení v hlavičce nebo jiné „nekomentářové“ části kódu –
+    jestli máte například potřebu komentovat parametr funkce,
+    zvažte, jestli by nešlo tento parametr lépe pojmenovat nebo
+    otypovat.
+ D. Komentář by «neměl» zbytečně duplikovat samotný spustitelný kód
+    (tzn. neměl by se zdlouhavě zabývat tím „jak“ jednotka vnitřně
+    pracuje). Zejména jsou nevhodné komentáře typu „zvýšíme
+    proměnnou i o jedna“ – komentář lze použít k vysvětlení «proč»
+    je tato operace potřebná – co daná operace dělá si může kažďý
+    přečíst v samotném kódu.
+
+² Tato sbírka samotná představuje ústupek z tohoto pravidla: smyslem
+  našich komentářů je naučit Vás poměrně těžké a často nové
+  koncepty, a její cirkulace je omezená. Zkušenost z dřívějších let
+  ukazuje, že pro studenty je anglický výklad značnou bariérou
+  pochopení. Přesto se snažte vlastní kód komentovat anglicky –
+  výjimku lze udělat pouze pro rozsáhlejší komentáře, které byste
+  jinak nedokázali srozumitelně formulovat. V praxi je angličtina
+  zcela běžně bezpodmínečně vyžadovaná.
+
+### 7. Formální úprava
+
+TBD.

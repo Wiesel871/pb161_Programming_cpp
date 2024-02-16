@@ -1,0 +1,1531 @@
+
+# Dědičnost a pozdní vazba
+
+This week will be about objects in the OOP (object-oriented
+programming) sense and about inheritance-based polymorphism. In OOP,
+classes are rarely designed in isolation: instead, new classes are
+«derived» from an existing «base class» (the derived class «inherits
+from» the base class). The derived class retains all the attributes
+(data) and methods (behaviours) of the base (parent) class, and
+usually adds something on top, or at least modifies some of the
+behaviours.
+
+So far, we have worked with «composition» (though we rarely called
+it that). We say objects (or classes) are composed when attributes
+of classes are other classes (e.g. standard containers). The
+relationship between the outer class and its attributes is known as
+‘has-a’: a circle «has a» center, a polynomial «has a» sequence of
+coefficients, etc.
+
+Inheritance gives rise to a different type of relationship, known as
+‘is-a’: a few stereotypical examples:
+
+ • a circle «is a» shape,
+ • a ball «is a» solid, a cube «is a» solid too,
+ • a force «is a» vector (and so is velocity).
+
+This is where «polymorphism» comes into play: a function which
+doesn't care about the particulars of a shape or a solid or a vector
+can accept an instance of the «base class». However, each instance
+of a derived class «is an» instance of the base class too, and hence
+can be used in its place. This is known as the Liskov substitution
+principle.
+
+An important caveat: this «does not work» when passing objects «by
+value», because in general, the base class and the derived class do
+not have the same size. Languages like Python or Java side-step this
+issue by always passing objects by reference. In C++, we have to do
+that explicitly «if» we want to use inheritance-based polymorphism.
+Of course, this also works with pointers (including smart ones, like
+‹std::unique_ptr›).
+
+With this bit of theory out of the way, let's look at some practical
+examples: the rest of theory (late binding in particular) will be
+explained in demonstrations:
+
+ 1. ‹account›    – a simple inheritance example
+ 2. ‹shapes›     – polymorphism and late dispatch
+ 3. ‹expr›       – dynamic and static types, more polymorphism
+ 4. ‹destroy›    – virtual destructors
+ 5. ‹factory›    – polymorphic return values
+
+Elementary exercises:
+
+ 1. ‹resistance› – compute resistance of a simple circuit
+ 2. ‹perimeter›  – shapes and their perimeter length
+ 3. ‹fight›      – rock, paper and scissors
+
+Preparatory exercises:
+
+ 1. ‹prisoner›  – the famous dilemma
+ 2. ‹bexpr›     – boolean expressions with variables
+ 3. ‹sexpr›     – a tree made of lists (lisp style)
+ 4. ‹network›   – a network of counters
+ 5. ‹filter›    – filter items from a data source
+ 6. ‹geometry›  – shapes and visitors
+
+Regular exercises:
+
+ 1. ‹bom›        – polymorphism and collections
+ 2. ‹circuit›    – calling virtual methods within the class
+ 3. ‹loops›      – circuits with loops
+ 4. ‹xxx›
+ 5. ‹xxx›
+ 6. ‹while›      – interpreting while programs using an AST
+
+
+## d. Demonstrace (ukázky)
+
+
+### 1. [‹account›]
+
+In this example, we will demonstrate the syntax and most basic
+use of inheritance. Polymorphism will not enter the picture yet
+(but we will get to that very soon: in the next example). We will
+consider bank accounts (a favourite subject, surely). 
+
+We will start with a simple, vanilla account that has a balance,
+can withdraw and deposit money. We have seen this before. 
+
+    class account /* C */
+    {
+The first new piece of syntax is the ‹protected› keyword.
+This is related to inheritance: unlike ‹private›, it lets
+«subclasses» (or rather «subclass methods») access the
+members declared in a ‹protected› section. We also notice
+that the balance is signed, even though in this class, that
+is not strictly necessary: we will need that in one of the
+subclasses (yes, the system is «already» breaking down a
+little). 
+
+    protected: /* C */
+        int _balance;
+
+    public: /* C */
+
+We allow an account to be constructed with an initial
+balance. We also allow it to be default-constructed,
+initializing the balance to 0. 
+
+        account( int initial = 0 ) /* C */
+            : _balance( initial )
+        {}
+
+Standard stuff. 
+
+        bool withdraw( int sum ) /* C */
+        {
+            if ( _balance > sum )
+            {
+                _balance -= sum;
+                return true;
+            }
+
+            return false; /* C */
+        }
+
+        void deposit( int sum ) { _balance += sum; } /* C */
+        int balance() const { return _balance; }
+    };
+
+With the base class in place, we can define a «derived» class.
+The syntax for inheritance adds a colon, ‹:›, after the class
+name and a list of classes to inherit from, with access type
+qualifiers. We will always use ‹public› inheritance. Also, did
+you know that naming things is hard? 
+
+    class account_with_overdraft : public account /* C */
+    {
+The derived class has, ostensibly, a single attribute.
+However, all the attributes of all base classes are also
+present automatically. That is, there already is an ‹int
+_balance› attribute in this class, inherited from ‹account›.
+We will use it below. 
+
+    protected: /* C */
+        int _overdraft;
+
+    public: /* C */
+
+This is another new piece of syntax that we will need: a
+constructor of a derived class must first call the
+constructors of all base classes. Since this happens «before»
+any attributes of the derived class are constructed, this
+call comes «first» in the «initialization section». The
+derived-class constructor is free to choose which
+(overloaded) constructor of the base class to call. If the
+call is omitted, the «default constructor» of the base class
+will be called. 
+
+        account_with_overdraft( int initial = 0, int overdraft = 0 ) /* C */
+            : account( initial ), _overdraft( overdraft )
+        {}
+
+The methods defined in a base class are automatically
+available in the derived class as well (same as attributes).
+However, unlike attributes, we can replace inherited methods
+with versions more suitable for the derived class. In this
+case, we need to adjust the behaviour of ‹withdraw›. 
+
+        bool withdraw( int sum ) /* C */
+        {
+            if ( _balance + _overdraft > sum )
+            {
+                _balance -= sum;
+                return true;
+            }
+
+            return false; /* C */
+        }
+    };
+
+Here is another example based on the same language features. 
+
+    class account_with_interest : public account /* C */
+    {
+    protected:
+        int _rate; /* percent per annum */
+
+    public: /* C */
+
+        account_with_interest( int initial = 0, int rate = 0 ) /* C */
+            : account( initial ), _rate( rate )
+        {}
+
+In this case, all the inherited methods can be used directly.
+However, we need to «add» a new method, to compute and
+deposit the interest. Since naming things is hard, we will
+call it ‹next_year›. The formula is also pretty lame. 
+
+        void next_year() /* C */
+        {
+            _balance += ( _balance * _rate ) / 100;
+        }
+    };
+
+The way objects are used in this exercise is not super useful:
+the goal was to demonstrate the syntax and basic properties of
+inheritance. In modern practice, code re-use through inheritance
+is frowned upon (except perhaps for mixins, which are however out
+of scope for this subject). The main use-case for inheritance is
+«subtype polymorphism», which we will explore in the next unit,
+‹shapes.cpp›. 
+
+    int main() /* demo */ /* C */
+    {
+We first make a normal account and check that it behaves as
+expected. Nothing much to see here. 
+
+        account a( 100 ); /* C */
+        assert( a.balance() == 100 );
+        assert( a.withdraw( 50 ) );
+        assert( !a.withdraw( 100 ) );
+        a.deposit( 10 );
+        assert( a.balance() == 60 );
+
+Let's try the first derived variant, an account with
+overdraft. We notice that it's possible to have a negative
+balance now. 
+
+        account_with_overdraft awo( 100, 100 ); /* C */
+        assert( awo.balance() == 100 );
+        assert( awo.withdraw( 50 ) );
+        assert( awo.withdraw( 100 ) );
+        awo.deposit( 10 );
+        assert( awo.balance() == -40 );
+
+And finally, let's try the other account variant, with
+interest. 
+
+        account_with_interest awi( 100, 20 ); /* C */
+        assert( awi.balance() == 100 );
+        assert( awi.withdraw( 50 ) );
+        assert( !awi.withdraw( 100 ) );
+        awi.deposit( 10 );
+        assert( awi.balance() == 60 );
+        awi.next_year();
+        assert( awi.balance() == 72 );
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹shapes›]
+
+The inheritance model in C++ is an instance of a more general
+notion, known as «subtyping». The defining characteristic of
+subtyping is the Liskov substitution principle: a value which
+belongs to a «subtype» (a derived class) can be used whenever a
+variable stores, or a formal argument expects, a value that
+belongs to a «supertype» (the base class). As mentioned earlier,
+in C++ this only extends to values passed by «reference» or
+through pointers. 
+
+We will first define a couple useful type aliases to represent
+points and bounding boxes. 
+
+    using point = std::pair< double, double >; /* C */
+    using bounding_box = std::pair< point, point >;
+
+Subtype polymorphism is, in C++, implemented via «late binding»:
+the decision which method should be called is postponed to
+runtime (with normal functions and methods, this happens during
+compile time). The decision whether to use early binding (static
+dispatch) or late binding (dynamic dispatch) is made by the
+programmer on a method-by-method basis. In other words, some
+methods of a class can use static dispatch, while others use
+dynamic dispatch. 
+
+    class shape /* C */
+    {
+    public:
+
+To instruct the compiler to use dynamic dispatch for a given
+method, put the keyword ‹virtual› in front of that method's
+return type. Unlike normal methods, a ‹virtual› method may be
+left «unimplemented»: this is denoted by the ‹= 0› at the end
+of the declaration. If a class has a method like this, it is
+marked as «abstract» and it becomes impossible to create
+instances of this class: the only way to use it is as a «base
+class», through inheritance. This is commonly done to define
+«interfaces». In our case, we will declare two such methods.
+
+
+        virtual double area() const = 0; /* C */
+        virtual bounding_box box() const = 0;
+
+A class which introduces ‹virtual› methods also needs to have
+a «destructor» marked as ‹virtual›. We will discuss this in
+more detail in a later unit. For now, simply consider this to
+be an arbitrary rule. 
+
+        virtual ~shape() = default; /* C */
+    };
+
+As soon as the interface is defined, we can start working with
+arbitrary classes which implement this interface, even those that
+have not been defined yet. We will start by writing a simple
+«polymorphic function» which accepts arbitrary shapes and
+computes the ratio of their area to the area of their bounding
+box. 
+
+    double box_coverage( const shape &s ) /* C */
+    {
+Hopefully, you remember structured bindings (if not, revisit
+e.g. ‹03/rel.cpp›). 
+
+        auto [ ll, ur ] = s.box(); /* C */
+        auto [ left, bottom ] = ll;
+        auto [ right, top ] = ur;
+
+        return s.area() / ( ( right - left ) * ( top - bottom ) ); /* C */
+    }
+
+Another function: this time, it accepts two instances of ‹shape›.
+The values it actually receives may be, however, of any type
+derived from ‹shape›. In fact, ‹a› and ‹b› may be each an
+instances of a different derived class. 
+
+    bool box_collide( const shape &sh_a, const shape &sh_b ) /* C */
+    {
+A helper function (lambda) to decide whether a point is
+inside (or on the boundary) of a bounding box. 
+
+        auto in_box = []( const bounding_box &box, const point &pt ) /* C */
+        {
+            auto [ x, y ] = pt;
+            auto [ ll, ur ] = box;
+            auto [ left, bottom ] = ll;
+            auto [ right, top ] = ur;
+
+            return x >= left && x <= right && y >= bottom && y <= top; /* C */
+        };
+
+        auto [ a, b ] = sh_a.box(); /* C */
+        auto box = sh_b.box();
+
+The two boxes collide if either of the corners of one is in
+the other box. 
+
+        return in_box( box, a ) || in_box( box, b ); /* C */
+    }
+
+We now have the interface and two functions that are defined in
+terms of that interface. To make some use of the functions,
+however, we need to be able to make instances of ‹shape›, and as
+we have seen earlier, that is only possible by deriving classes
+which provide implementations of the virtual methods declared in
+the base class. Let's start by defining a circle. 
+
+    class circle : public shape /* C */
+    {
+        point _center;
+        double _radius;
+    public:
+
+The base class has a default constructor, so we do not need
+to explicitly call it here. 
+
+        circle( point c, double r ) : _center( c ), _radius( r ) {} /* C */
+
+Now we need to implement the ‹virtual› methods defined in the
+base class. In this case, we can omit the ‹virtual› keyword,
+but we should specify that this method «overrides» one from a
+base class. This informs the compiler of our «intention» to
+provide an implementation to an inherited method and allows
+it (the compiler) to emit a warning in case we accidentally
+«hide» the method instead, by mistyping the signature. The
+most common mistake is forgetting the trailing ‹const›.
+Please always specify ‹override› where it is applicable. 
+
+        double area() const override /* C */
+        {
+            return 4 * std::atan( 1 ) * std::pow( _radius, 2 );
+        }
+
+Now the other ‹virtual› method. 
+
+        bounding_box box() const override /* C */
+        {
+            auto [ x, y ] = _center;
+            double r = _radius;
+            return { { x - r, y - r }, { x + r, y + r } };
+        }
+    };
+
+And a second shape type, so we can actually make some use of
+polymorphism. Everything is the same as above. 
+
+    class rectangle : public shape /* C */
+    {
+        point _ll, _ur; /* lower left, upper right */
+    public:
+
+        rectangle( point ll, point ur ) : _ll( ll ), _ur( ur ) {} /* C */
+
+        double area() const override /* C */
+        {
+            auto [ left, bottom ] = _ll;
+            auto [ right, top ] = _ur;
+            return ( right - left ) * ( top - bottom );
+        }
+
+        bounding_box box() const override /* C */
+        {
+            return { _ll, _ur };
+        }
+    };
+
+    int main() /* demo */ /* C */
+    {
+We cannot directly construct a ‹shape›, since it is
+«abstract», i.e. it has unimplemented «pure virtual methods».
+However, both ‹circle› and ‹rectangle› provide
+implementations of those methods which we can use. 
+
+        rectangle square( { 0, 0 }, { 1, 1 } ); /* C */
+        assert( square.area() == 1 );
+        assert( square.box() == bounding_box( { 0, 0 }, { 1, 1 } ) );
+        assert( box_coverage( square ) == 1 );
+
+        circle circ( { 0, 0 }, 1 ); /* C */
+
+Check that the area of a unit circle is π, and the ratio of
+its area to its bounding box is π / 4. 
+
+        double pi = 4 * std::atan( 1 ); /* C */
+        assert( std::fabs( circ.area() - pi ) < 1e-10 );
+        assert( std::fabs( box_coverage( circ ) - pi / 4 ) < 1e-10 );
+
+The two shapes quite clearly collide, and if they collide,
+their bounding boxes must also collide. A shape should always
+collide with itself, and collisions are symmetric, so let's
+check that too. 
+
+        assert( box_collide( square, circ ) ); /* C */
+        assert( box_collide( circ, square ) );
+        assert( box_collide( square, square ) );
+        assert( box_collide( circ, circ ) );
+
+Let's make a shape a bit further out and check the collision
+detection with that. 
+
+        circle c1( { 2, 3 }, 1 ), c2( { -1, -1 }, 1 ); /* C */
+        assert( !box_collide( circ, c1 ) );
+        assert( !box_collide( c1, c2 ) );
+        assert( !box_collide( c1, square ) );
+        assert(  box_collide( c2, square ) );
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹expr›]
+
+To better understand polymorphism, we will need to set up some
+terminology, particularly:
+
+ • the notion of a «static type», which is, essentially, the type
+   written down in the source code, and of a
+ • «dynamic type» (also known as a «runtime type»), which is the
+   actual type of the value that is stored behind a given
+   reference (or pointer).
+
+The relationship between the «static» and «dynamic» type may be:
+
+ • the static and dynamic type are the same (this was always the
+   case until this week), or
+ • the dynamic type may be a «subtype» of the static type (we
+   will see that in a short while).
+
+Anything else is a bug. 
+
+We will use a very simple representation of arithmetic
+expressions as our example here. An expression is a «tree», where
+each «node» carries either a «value» or an «operation». We will
+want to explicitly track the type of each node, and for that, we
+will use an «enumerated type». Those work the same as in C, but
+if we declare them using ‹enum class›, the enumerated names will
+be «scoped»: we use them as ‹type::sum›, instead of just ‹sum› as
+would be the case in C. 
+
+    enum class type { sum, product, constant }; /* C */
+
+Now for the class hierarchy. The base class will be ‹node›. 
+
+    class node /* C */
+    {
+    public:
+
+The first thing we will implement is a ‹static_type› method,
+which tells us the static type of this class. The base class,
+however, does not have any sensible value to return here, so
+we will just throw an exception. 
+
+        type static_type() const /* C */
+        {
+            throw std::logic_error( "bad static_type() call" );
+        }
+
+The ‘real’ (dynamic) type must be a ‹virtual› method, since
+the actual implementation must be selected based on the
+«dynamic type»: this is exactly what late binding does. Since
+the method is ‹virtual›, we do not need to supply an
+implementation if we can't give a sensible one. 
+
+        virtual type dynamic_type() const = 0; /* C */
+
+The interesting thing that is associated with each node is
+its «value». For operation nodes, it can be computed, while
+for leaf nodes (type ‹constant›), it is simply stored in the
+node. 
+
+        virtual int value() const = 0; /* C */
+
+We also observe the «virtual destructor rule». 
+
+        virtual ~node() = default; /* C */
+    };
+
+We first define the (simpler) leaf nodes, i.e. constants. 
+
+    class constant : public node /* C */
+    {
+        int _value;
+    public:
+
+The leaf node constructor simply takes an integer value and
+stores it in an attribute. 
+
+        constant( int v ) : _value( v ) {} /* C */
+
+Now the interface common to all ‹node› instances: 
+
+        type static_type() const { return type::constant; } /* C */
+
+In methods of class ‹constant›, the «static type» of ‹this›
+is always¹ either ‹constant *› or ‹const constant *›. Hence
+we can simply call the ‹static_type› method, since it uses
+«static dispatch» (it was not declared ‹virtual› in the base
+class) and hence the call will always resolve to the method
+just above. 
+
+        type dynamic_type() const override { return static_type(); } /* C */
+
+Finally, the ‘business’ method: 
+
+        int value() const override { return _value; } /* C */
+    };
+
+¹ As long as we pretend that the ‹volatile› keyword does not
+  exist, which is an entirely reasonable thing to do. 
+
+The inner nodes of the tree are «operations». We will create an
+intermediate (but still abstract) class, to serve as a base for
+the two operation classes which we will define later. 
+
+    class operation : public node /* C */
+    {
+        const node &_left, &_right;
+
+    public: /* C */
+        operation( const node &l, const node &r )
+            : _left( l ), _right( r )
+        {}
+
+We will leave ‹static_type› untouched: the version from the
+base class works okay for us, since there is nothing better
+that we could do here. The ‹dynamic_type› and ‹value› stay
+unimplemented. 
+
+We are facing a dilemma here, though. We would like to add
+accessors for the children, but it is not clear whether to
+make them ‹virtual› or not. Considering that we keep the
+references in attributes of this class, it seems unlikely
+that the implementation of the accessors would change in a
+subclass and we can use cheaper «static dispatch». 
+
+        const node &left() const { return _left; } /* C */
+        const node &right() const { return _right; }
+    };
+
+Now for the two operation classes. 
+
+    class sum : public operation /* C */
+    {
+    public:
+
+The base class does not have a default constructor, which
+means we need to call the one that's available manually. 
+
+        sum( const node &l, const node &r ) /* C */
+            : operation( l, r )
+        {}
+
+We want to replace the ‹static_type› implementation that was
+inherited from ‹node› (through ‹operation›): 
+
+        type static_type() const { return type::sum; } /* C */
+
+And now the (dynamic-dispatch) interface mandated by the
+(indirect) base class ‹node›. We can use the same approach
+that we used in ‹constant› for ‹dynamic_type›: 
+
+        type dynamic_type() const override { return static_type(); } /* C */
+
+And finally the logic. The «static return type» of ‹left› and
+‹right› is ‹const node &›, but the method we call on each,
+‹value›, uses dynamic dispatch (it is marked ‹virtual› in
+class ‹node›). Therefore, the actual method which will be
+called depends on the «dynamic type» of the respective child
+node. 
+
+        int value() const override /* C */
+        {
+            return left().value() + right().value();
+        }
+    };
+
+Basically a re-run of ‹sum›. 
+
+    class product : public operation /* C */
+    {
+    public:
+
+We will use a trick which will allow us to not type out the
+(boring and redundant) constructor. If all we want to do is
+just forward arguments to the parent class, we can use the
+following syntax. You do not have to remember it, but it can
+save some typing if you do. 
+
+        using operation::operation; /* C */
+
+Now the interface methods. 
+
+        type static_type() const { return type::product; } /* C */
+        type dynamic_type() const override { return static_type(); }
+
+        int value() const override /* C */
+        {
+            return left().value() * right().value();
+        }
+    };
+
+    int main() /* demo */ /* C */
+    {
+Instances of class ‹constant› are quite straightforward.
+Let's declare some. 
+
+        constant const_1( 1 ), /* C */
+                 const_2( 2 ),
+                 const_m1( -1 ),
+                 const_10( 10 );
+
+The constructor of ‹sum› accepts two instances of ‹node›,
+passed by reference. Since ‹constant› is a subclass of
+‹node›, it is okay to use those, too. 
+
+        sum sum_0( const_1, const_m1 ), /* C */
+            sum_3( const_1, const_2 );
+
+The ‹product› constructor is the same. But now we will also
+try using instances of ‹sum›, since ‹sum› is also derived
+(even if indirectly) from ‹node› and therefore ‹sum› is a
+subtype of ‹node›, too. 
+
+        product prod_4( const_2, const_2 ), /* C */
+                prod_6( const_2, sum_3 ),
+                prod_40( prod_4, const_10 );
+
+Let's also make a ‹sum› instance which has children of
+different types. 
+
+        sum sum_9( sum_3, prod_6 ); /* C */
+
+For all variables which hold «values» (i.e. not references),
+«static type» = «dynamic type». To make the following code
+easier to follow, the static type of each of the above
+variables is explicitly mentioned in its name. 
+
+Clearly, we can call the ‹value› method on the variables
+directly and it will call the right method. 
+
+        assert( const_1.value() == 1 ); /* C */
+        assert( const_2.value() == 2 );
+        assert( sum_0.value() == 0 );
+        assert( sum_3.value() == 3 );
+        assert( prod_4.value() == 4 );
+        assert( prod_6.value() == 6 );
+        assert( prod_40.value() == 40 );
+        assert( sum_9.value() == 9 );
+
+However, the above results should already convince us that
+dynamic dispatch works as expected: the results depend on the
+ability of ‹sum::value› and ‹product::value› to call correct
+versions of the ‹value› method on their children, even though
+the «static types» of the references stored in ‹operation›
+are ‹const node›. We can however explore the behaviour in a
+bit more detail. 
+
+        const node &sum_0_ref = sum_0, &prod_6_ref = prod_6; /* C */
+
+Now the «static type» of ‹sum_0_ref› is ‹const node &›, but
+the «dynamic type» of the value to which it refers is ‹sum›,
+and for ‹prod_6_ref› the static type is ‹const node &› and
+dynamic is ‹product›. 
+
+        assert( sum_0_ref.value() == 0 ); /* C */
+        assert( prod_6_ref.value() == 6 );
+
+Let us also check the behaviour of ‹left› and ‹right›. 
+
+        assert( sum_0.left().value()  ==  1 ); /* C */
+        assert( sum_0.right().value() == -1 );
+
+The «static type» through which we call ‹left› and ‹right›
+does not matter, because neither ‹product› nor ‹sum› provide
+a different implementation of the method. 
+
+        const operation &op = sum_0; /* C */
+        assert( op.left().value() == 1 );
+        assert( op.right().value() == -1 );
+
+The final thing to check is the ‹static_type› and
+‹dynamic_type› methods. By now, we should have a decent
+understanding of what to expect. 
+
+Please note that ‹sum_0› and ‹sum_0_ref› refer to the «same
+instance» and hence they have the same «dynamic type», even
+though their «static types» differ. 
+
+        assert( sum_0.dynamic_type() == type::sum ); /* C */
+        assert( sum_0_ref.dynamic_type() == type::sum );
+
+        assert( sum_0.static_type() == type::sum ); /* C */
+
+        try { sum_0_ref.static_type(); assert( false ); } /* C */
+        catch ( const std::logic_error & ) {}
+
+And the same is true about ‹prod_6› and ‹prod_6_ref›. 
+
+        assert( prod_6.dynamic_type() == type::product ); /* C */
+        assert( prod_6_ref.dynamic_type() == type::product );
+        assert( prod_6.static_type() == type::product );
+
+        try { prod_6_ref.static_type(); assert( false ); } /* C */
+        catch ( const std::logic_error & ) {}
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹factory›]
+
+TODO: do not use strings here 
+
+As we have seen, subtype polymorphism allows us to define an
+«interface» in terms of ‹virtual› methods (that is, based on late
+dispatch) and then create various «implementations» of this
+interface.
+
+It is sometimes useful to create instances of multiple different
+derived classes based on runtime inputs, but once they are
+created, to treat them uniformly. The uniform treatment is made
+possible by subtype polymorphism: if the entire interaction with
+these objects is done through the shared interface, the instances
+are all, at the type level, interchangeable with each other. The
+behaviour of those instances will of course differ, depending on
+their «dynamic type». 
+
+When a system is designed this way, the entire program uses a
+single «static type» to work with all instances from the given
+inheritance hierarchy -- the type of the base class. Let's define
+such a base class. 
+
+    class part /* C */
+    {
+    public:
+        virtual std::string description() const = 0;
+        virtual ~part() = default;
+    };
+
+Let's add a simple function which operates on generic parts.
+Working with instances is easy, since they can be passed through
+a reference to the base type. For instance the following function
+which formats a single line for a bill of materials (bom). 
+
+    std::string bom_line( const part &p, int count ) /* C */
+    {
+        return std::to_string( count ) + "x " + p.description();
+    }
+
+However, «creation» of these instances poses a somewhat unique
+challenge in C++: memory management. In languages like Java or
+C#, we can create the instance and return a reference to the
+caller, and the garbage collector will ensure that the instance
+is correctly destroyed when it is no longer used. We do not have
+this luxury in C++.
+
+Of course, we could always do memory management by hand, like
+it's 1990. Fortunately, modern C++ provides «smart pointers» in
+the standard library, making memory management much easier and
+safer. Recall that a ‹unique_ptr› is an «owning» pointer: it
+holds onto an object instance while it is in scope and destroys
+it afterwards. Unlike objects stored in local variables, though,
+the ownership of the instance held in a ‹unique_ptr› can be
+transferred out of the function (i.e. an instance of ‹unique_ptr›
+can be legally returned, unlike a reference to a local variable).
+
+This will make it possible to define a «factory»: a function
+which constructs instances (parts) and returns them to the
+caller. Of course, to actually define the function, we will need
+to define the derived classes which it is supposed to create. 
+
+    using part_ptr = std::unique_ptr< part >; /* C */
+    part_ptr factory( std::string );
+
+In the program design outlined earlier, the derived classes
+change some of the behaviours, or perhaps add data members
+(attributes) to the base class, but apart from construction, they
+are entirely operated through the interface defined by the base
+class. 
+
+    class cog : public part /* C */
+    {
+        int teeth;
+    public:
+        cog( int teeth ) : teeth( teeth ) {}
+
+        std::string description() const override /* C */
+        {
+            return std::string( "cog with " ) +
+                   std::to_string( teeth ) + " teeth";
+        }
+    };
+
+    class axle : public part /* C */
+    {
+    public:
+        std::string description() const override
+        {
+            return "axle";
+        }
+    };
+
+    class screw : public part /* C */
+    {
+        int _thread, _length;
+    public:
+
+        screw( int t, int l ) : _thread( t ), _length( l ) {} /* C */
+
+        std::string description() const override /* C */
+        {
+            return std::to_string( _length ) + "mm M" +
+                   std::to_string( _thread ) + " screw";
+        }
+    };
+
+Now that we have defined the derived classes, we can finally
+define the factory function. 
+
+    part_ptr factory( std::string desc ) /* C */
+    {
+We will use ‹std::istringstream› (first described in
+‹06/streams.cpp›) to extract a description of the instance
+that we want to create from a string. The format will be
+simple: the type of the part, followed by its parameters
+separated by spaces. 
+
+        std::istringstream s( desc ); /* C */
+        std::string type;
+        s >> type; /* extract the first word */
+
+        if ( type == "cog" ) /* C */
+        {
+            int teeth;
+            s >> teeth;
+            return std::make_unique< cog >( teeth );
+        }
+
+        if ( type == "axle" ) /* C */
+            return std::make_unique< axle >();
+
+        if ( type == "screw" ) /* C */
+        {
+            int thread, length;
+            s >> thread >> length;
+            return std::make_unique< screw >( thread, length );
+        }
+
+        throw std::runtime_error( "unexpected part description" ); /* C */
+    }
+
+    int main() /* demo */ /* C */
+    {
+Let's first use the factory to make some instances. They will
+be held by ‹part_ptr› (i.e. ‹unique_ptr› with the static type
+‹part›. 
+
+        part_ptr ax = factory( "axle" ), /* C */
+                 m7 = factory( "screw 7 50" ),
+                 m3 = factory( "screw 3 10" ),
+                 c8 = factory( "cog 8" ),
+                 c9 = factory( "cog 9" );
+
+From the point of view of the static type system, all the
+parts created above are now the same. We can call the methods
+which were defined in the interface, or we can pass them into
+functions which work with parts. 
+
+        assert( ax->description() == "axle" ); /* C */
+        assert( m7->description() == "50mm M7 screw" );
+        assert( m3->description() == "10mm M3 screw" );
+        assert( c8->description() == "cog with 8 teeth" );
+        assert( c9->description() == "cog with 9 teeth" );
+
+Let's try using the ‹bom_line› function which we have defined
+earlier. 
+
+        assert( bom_line( *ax, 3 ) == "3x axle" ); /* C */
+        assert( bom_line( *m7, 20 ) == "20x 50mm M7 screw" );
+
+At the end of the scope, the objects are destroyed and all
+memory is automatically freed. 
+    } /* C */
+
+## e. Elementární příklady
+
+
+### 1. [‹resistance›]
+
+We are given a simple electrical circuit made of resistors and
+wires, and we want to compute the total resistance between two
+points. The circuit is simple in the sense that in any given
+section, all its immediate sub-sections are either connected in
+series or in parallel. Here is an example:
+
+                    ┌────┐
+             ┌─────╴│ R₂ │╶─────┐
+     ┌────┐  │      └────┘      │  ┌────┐
+  ●╶╴│ R₁ │╶╴●                  ●╶╴│ R₅ │╶╴●
+  A  └────┘  │  ┌────┐  ┌────┐  │  └────┘  B
+             └─╴│ R₃ │╶╴│ R₄ │╶─┘
+                └────┘  └────┘
+
+The resistance that we are interested in is between the points A
+and B. Given ⟦R₁⟧ and ⟦R₂⟧ connected in series, the total
+resistance is ⟦R = R₁ + R₂⟧. For the same resistors connected in
+parallel, the resistance is given by ⟦1/R = 1/R₁ + 1/R₂⟧. 
+
+You will implement 2 classes: ‹series› and ‹parallel›, each of
+which represents a single segment of the circuit. Both classes
+shall provide a method ‹add›, that will accept either a number
+(‹double›) which will add a single resistor to that segment, or a
+‹const› reference to the opposite class (i.e. an instance of
+‹series› should accept a reference to ‹parallel› and vice versa).
+
+
+    class series; /* C */
+    class parallel;
+
+Then add a top-level function ‹resistance›, which accepts either
+a ‹series› or a ‹parallel› instance and computes the total
+resistance of the circuit described by that instance. The exact
+prototype is up to you. 
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹perimeter›]
+
+Implement a simple inheritance hierarchy – the base class will be
+‹shape›, with a pure virtual method ‹perimeter›, the 2 derived
+classes will be ‹circle› and ‹rectangle›. The circle is
+constructed from a radius, while the rectangle from a width and
+height, all of them floating-point numbers. 
+
+    class shape; /* C */
+    class circle;
+    class rectangle;
+
+    bool check_shape( const shape &s, double p ) /* C */
+    {
+        return std::fabs( s.perimeter() - p ) < 1e-8;
+    }
+
+
+### 3. [‹fight›]
+
+There should be 4 classes: the base class ‹gesture› and 3
+derived: ‹rock›, ‹paper› and ‹scissors›. Class ‹gesture› has a
+(pure virtual) method ‹fight› which takes another gesture (via a
+const reference) and returns ‹true› if the current gesture wins.
+
+To do this, add another method, ‹visit›, which has 3 overloads,
+one each for ‹rock›, ‹paper› and ‹scissors›. Then override
+‹fight› in each derived class, to simply call ‹visit( *this )› on
+the opposing gesture. The ‹visit› method knows the type of both
+‹this› and the opponent (via the overload) – simply indicate the
+winner by returning an appropriate constant. 
+
+    class rock; /* C */
+    class paper;
+    class scissors;
+
+Keep the forward declarations, you will need them to define
+the overloads for ‹visit›. 
+
+    class gesture; /* C */
+
+Now define the 3 derived classes. 
+
+
+## p. Přípravy
+
+
+### 1. [‹prisoner›]
+
+Another exercise, another class hierarchy. The «abstract base
+class» will be called ‹prisoner›, and the implementations will be
+different strategies in the well-known game of (iterated)
+prisoner's dilemma. 
+
+The ‹prisoner› class should provide method ‹betray› which takes a
+boolean (the decision of the other player in the last round) and
+returns the decision of the player for this round. In general,
+the ‹betray› method should «not» be ‹const›, because strategies
+may want to remember past decisions (though we will not implement
+a strategy like that in this exercise). 
+
+    class prisoner; /* C */
+
+Implement an always-betray strategy in class ‹traitor›, the
+tit-for-tat strategy in ‹vengeful› and an always-cooperate in
+‹benign›. 
+
+    class traitor; /* C */
+    class vengeful;
+    class benign;
+
+Implement a simple strategy evaluator in function ‹play›. It
+takes two prisoners and the number of rounds and returns a
+negative number if the first one wins, 0 if the game is a tie and
+a positive number if the second wins (the absolute value of the
+return value is the difference in scores achieved). The scoring
+matrix:
+
+ • neither player betrays     2 / 2
+ • a betrays, b does not:     3 / 0
+ • a does not betray, b does: 0 / 3
+ • both betray                1 / 1 
+
+    int play( prisoner &a, prisoner &b, int rounds ); /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹bexpr›]
+
+Boolean expressions with variables, represented as binary trees.
+Internal nodes carry a logical operation on the values obtained
+from children while leaf nodes carry variable references. 
+
+To evaluate an expression, we will need to supply values for each
+of the variables that appears in the expression. We will identify
+variables using integers, and the assignment of values will be
+done through the type ‹input› defined below. It is undefined
+behaviour if a variable appears in an expression but is not
+present in the provided ‹input› value. 
+
+    using input = std::map< int, bool >; /* C */
+
+Like earlier in ‹expr.cpp›, the base class will be called ‹node›,
+but this time will only define a single method: ‹eval›, which
+accepts a single ‹input› argument (as a ‹const› reference). 
+
+    class node; /* ref: 6 lines */ /* C */
+
+Internal nodes are all of the same type, and their constructor
+takes an unsigned integer, ‹table›, and two ‹node› references.
+Assuming bit zero is the lowest-order bit, the node operates as
+follows:
+
+ • ‹false› ‹false› → bit 0 of ‹table›
+ • ‹false› ‹true›  → bit 1 of ‹table›
+ • ‹true›  ‹false› → bit 2 of ‹table›
+ • ‹true›  ‹true›  → bit 3 of ‹table› 
+
+    class operation; /* ref: 16 lines */ /* C */
+
+The leaf nodes carry a single integer (passed in through the
+constructor) -- the identifier of the variable they represent. 
+
+    class variable; /* ref: 7 lines */ /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹sexpr›]
+
+An s-expression is a tree in which each node has an arbitrary
+number of children. To make things a little more interesting, our
+s-expression nodes will own their children. 
+
+The base class will be called ‹node› (again) and it will have
+single (virtual) method: ‹value›, with no arguments and an ‹int›
+return value. 
+
+    class node; /* C */
+    using node_ptr = std::unique_ptr< node >;
+
+There will be two types of internal nodes: ‹sum› and ‹product›,
+and in this case, they will compute the sum or the product of all
+their children, regardless of their number. A sum with no
+children should evaluate to 0 and a product with no children
+should evaluate to 1.
+
+Both will have an additional method: ‹add_child›, which accepts
+(by value) a single ‹node_ptr› and both should have default
+constructors. It is okay to add an intermediate class to the
+hierarchy. 
+
+    class sum; /* C */
+    class product;
+
+Leaf nodes carry an integer constant, given to them via a
+constructor. 
+
+    class constant; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 4. [‹network›]
+
+V tomto cvičení budeme definovat síť počítadel, přičemž každý
+uzel má jedno počítadlo znaménkového typu, které je iniciálně
+nastavené na nulu, a události které počítadlo mění se šíří po
+síti podle pravidel uvedených níže. Každý uzel může mít libovolný
+počet příchozích i odchozích spojení. 
+
+Události jsou tří typů: ‹reset›, který nastaví počítadlo na 0,
+‹increment› ho zvýší o jedna a ‹decrement› ho o jedna sníží. 
+
+    using event = int; /* C */
+    const event event_reset = 0;
+    const event event_increment = 1;
+    const event event_decrement = 2;
+
+Abstraktní bázová třída ‹node› určí polymorfní rozhraní:
+
+ • ‹react› s jediným argumentem typu ‹event› (popisuje událost
+   podle konstant výše),
+ • ‹connect› která přijme odkaz (referenci) na jiný uzel (typ
+   ‹node›) a vytvoří spojení, které směruje od aktuálního uzlu
+   k tomu, který je zadaný v parametru,
+ • ‹read›, «konstantní» metoda, která vrátí aktuální hodnotu
+   počítadla.
+
+Dobře si rozmyslete, které metody muí být virtuální a které
+nioliv. 
+
+    class node; /* C */
+
+Následují již konkrétní typy uzlů. Každý uzel nejprve aplikuje
+příchozí událost na svoje vlastní počítadlo, poté ho přepošle
+všem svým sousedům. Implementujte tyto typy:
+
+ • ‹forward› přepošle stejnou událost, jakou obrdržel,
+ • ‹invert› pošle opačnou událost (reset je opačný sám sobě),
+ • ‹gate› přepošle stejnou událost, ale pouze je-li nová hodnota
+   počítadla kladná. 
+
+    class forward; /* C */
+    class invert;
+    class gate;
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹filter›]
+
+This exercise will be another take on a set of numbers. This
+time, we will add a capability to filter the numbers on output.
+It will be possible to change the filter applied to a given set
+at runtime. 
+
+The «base class» for representing filters will contain a single
+pure ‹virtual› method, ‹accept›. The method should be marked
+‹const›. 
+
+    class filter; /* C */
+
+The ‹set› (which we will implement below) will «own» the filter
+instance and hence will use a ‹unique_ptr› to hold it. 
+
+    using filter_ptr = std::unique_ptr< filter >; /* C */
+
+The ‹set› should have standard methods: ‹add› and ‹has›, the
+latter of which will respect the configured filter (i.e. items
+rejected by the filter will always test negative on ‹has›). The
+method ‹set_filter› should set the filter. If no filter is set,
+all numbers should be accepted. Calling ‹set_filter› with a
+‹nullptr› argument should clear the filter. 
+
+Additionally, ‹set› should have ‹begin› and ‹end› methods (both
+‹const›) which return very simple iterators that only provide
+«dereference» to an ‹int› (value), pre-increment and inequality.
+It is a good idea to keep «two» instances of
+‹std::set< int >::iterator› in attributes (in addition to a
+pointer to the output filter): you will need to know, in the
+pre-increment operator, that you ran out of items when skipping
+numbers which the filter rejected. 
+
+    class set_iterator; /* C */
+    class set;
+
+Finally, implement a filter that only accepts odd numbers. 
+
+    class odd; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 6. [‹geometry›]
+
+We will go back to a bit of geometry, this time with circles and
+lines: in this exercise, we will be interested in planar
+intersections. We will consider two objects to intersect when
+they have at least one common point. On the C++ side, we will use
+a bit of a trick with ‹virtual› method overloading (in a slightly
+more general setting, the trick is known as the «visitor
+pattern»). 
+
+First some definitions: the familiar ‹point›. 
+
+    using point = std::pair< double, double >; /* C */
+
+Check whether two floating-point numbers are ‘essentially the
+same’ (i.e. fuzzy equality). 
+
+    bool close( double a, double b ) /* C */
+    {
+        return std::fabs( a - b ) < 1e-10;
+    }
+
+We will need to use forward declarations in this exercise, since
+methods of the base class will refer to the derived types. 
+
+    struct circle; /* C */
+    struct line;
+
+These two helper functions are already defined in this file and
+may come in useful (like the ‹slope› class above). 
+
+    double dist( point, point ); /* C */
+    double dist( const line &, point );
+
+A helper class which is constructed from two points. Two
+instances of ‹slope› compare equal if the slopes of the two lines
+passing through the respective point pairs are the same. 
+
+    struct slope : std::pair< double, double > /* C */
+    {
+        slope( point p, point q )
+            : point( ( q.first  - p.first  ) / dist( p, q ),
+                     ( q.second - p.second ) / dist( p, q ) )
+        {}
+
+        bool operator==( const slope &o ) const /* C */
+        {
+            auto [ px, py ] = *this;
+            auto [ qx, qy ] = o;
+
+            return ( close( px, qx ) && close( py, qy ) ) || /* C */
+                   ( close( px, -qx ) && close( py, -qy ) );
+        }
+
+        bool operator!=( const slope &o ) const /* C */
+        {
+            return !( *this == o );
+        }
+    };
+
+Now we can define the class ‹object›, which will have a ‹virtual›
+method ‹intersects› with 3 overloads: one that accepts a
+‹const› reference to a ‹circle›, another that accepts a
+‹const› reference to a ‹line› and finally one that accepts any
+‹object›. 
+
+    class object; /* C */
+
+Put definitions of the classes ‹circle› and ‹line› here. A
+‹circle› is given by a ‹point› and a radius (‹double›), while a
+‹line› is given by two points. NB. Make the ‹line› attributes
+‹public› and name them ‹p› and ‹q› to make the ‹dist› helper
+function work. 
+
+    struct circle; /* ref: 18 lines */ /* C */
+    struct line;   /* ref: 18 lines */
+
+Definitions of the helper functions. 
+
+    double dist( point p, point q ) /* C */
+    {
+        auto [ px, py ] = p;
+        auto [ qx, qy ] = q;
+        return std::sqrt( std::pow( px - qx, 2 ) +
+                          std::pow( py - qy, 2 ) );
+    }
+
+    double dist( const line &l, point p ) /* C */
+    {
+        auto [ x2, y2 ] = l.q;
+        auto [ x1, y1 ] = l.p;
+        auto [ x0, y0 ] = p;
+
+        return std::fabs( ( y2 - y1 ) * x0 - ( x2 - x1 ) * y0 + /* C */
+                          x2 * y1 - y2 * x1 ) /
+               dist( l.p, l.q );
+    }
+
+
+## r. Řešené úlohy
+
+
+### 1. [‹bom›]
+
+TODO: do not use strings here 
+
+Let's revisit the idea of a bill of materials that made a brief
+appearance in ‹factory.cpp›, but in a slightly more useful
+incarnation. 
+
+Define the following class hierarchy: the base class, ‹part›,
+should have a (pure) virtual method ‹description› that returns an
+‹std::string›. It should also keep an attribute of type
+‹std::string› and provide a getter for this attribute called
+‹part_no()› (part number). Then add 2 derived classes:
+
+ • ‹resistor› which takes the part number and an integral
+   resistance as its constructor argument and provides a
+   description of the form ‹"resistor ?Ω"› where ‹?› is the
+   provided resistance,
+
+ • ‹capacitor› which also takes a part number and an integral
+   capacitance and provides a description of the form
+   ‹"capacitor ?μF"› where ‹?› is again the provided value. 
+
+    class part; /* C */
+    class resistor;
+    class capacitor;
+
+We will also use owning pointers, so let us define a convenient
+type alias for that: 
+
+    using part_ptr = std::unique_ptr< part >; /* C */
+
+That was the mechanical part. Now we will need to think a bit: we
+want a class ‹bom› which will remember a list of parts, along
+with their quantities and will «own» the ‹part› instances it
+holds. The interface:
+
+ • a method ‹add›, which accepts a ‹part_ptr› «by value» (it will
+   take ownership of the instance) and the quantity (integer)
+ • a method ‹find› which accepts an ‹std::string› and returns a
+   ‹const› reference to the part instance with the given part
+   number,
+ • a method ‹qty› which returns the associated quantity, given a
+   part number. 
+
+    class bom; /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹circuit›]
+
+V tomto cvičení se budeme zabývat voláním virtuálních metod
+zevnitř třídy samotné – přístup, který bychom mohli nazvat
+„obrácenou“ dědičností. Většina implementace bude totiž
+v rodičovské třídě, s použitím několika (resp. v tomto příkladu
+jedné) virtuální metody určené pro vnitřní potřebu. 
+
+Naprogramujte jednoduchou dědickou hierarchii tříd, která bude
+reprezentovat «logický obvod» – součástky spojené vodiči. Každá
+součástka bude mít nejvýše 2 vstupy a jediný výstup (a všechny
+budou nabývat jednu ze dvou hodnot – ‹true› nebo ‹false›).
+Ve třídě ‹component› implementujte tyto «nevirtuální» metody:
+
+ • ‹connect› přijme celé číslo (0 nebo 1 – index vstupu, který
+   hodláme připojovat) a referenci na další součástku, které
+   výstup připojí na vybraný vstup aktuální součástky,
+ • ‹read› (bez parametrů), která vrátí aktuální hodnotu výstupu
+   součástky (tento bude samozřejmě záviset na stavu vstupních
+   součástek).
+
+Implicitně jsou oba vstupy nepřipojené. Nepřipojené vstupy mají
+pevnou hodnotu ‹false›. Chování není určeno, je-li v obvodu
+cyklus. 
+
+    class component; /* C */
+
+Dále doplňte tyto odvozené třídy:
+
+ • ‹nand› reprezentuje součástku, které výstup je NAND vstupů,
+ • ‹source› která ignoruje oba vstupy a které výstup je ‹true›,
+ • ‹delay› která se chová následovně: při prvním volání ‹read›
+   vrátí vždy ‹false›; další volání ‹read› vrátí hodnotu, kterou
+   měl vstup 0 při předchozím volání ‹read›. 
+
+    class nand; /* C */
+    class source;
+    class delay;
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹loops›]
+
+Same basic idea as ‹circuit.cpp›: we model a circuit made of
+components. Things get a bit more complicated in this version:
+
+ • loops are allowed
+ • parts have 2 inputs and 2 outputs each 
+
+The base class, with the following interface:
+
+ • ‹read› takes an integer (decides which output) and returns a
+   boolean,
+ • ‹connect› takes two integers and a reference to a component
+   (the first integer defines the input of ‹this› and the second
+   integer defines the output of the third argument to connect).
+
+There is more than one way to resolve loops, some of which require ‹read› to
+be virtual (that's okay). Please note that each loop «must» have at least
+one ‹delay› in it (otherwise, behaviour is still undefined). NB. Each
+component should first read input 0 and then input 1: the ordering will
+affect the result.  
+
+    class component; /* ref: 30 lines */ /* C */
+
+A ‹delay› is a component that reads out, on both outputs, the
+value it has obtained on the corresponding input on the previous
+call to ‹read›. 
+
+    class delay; /* ref: 20 lines */ /* C */
+
+A ‹latch› remembers one bit of information (starting at ‹false›):
+
+ • if both inputs read ‹false›, the remembered bit remains unchanged,
+ • if input 0 is ‹false› while input 1 is ‹true› the remembered bit is
+   set to ‹true›,
+ • in all other cases, the remembered bit is set to ‹false›.
+
+The value on output 0 is the «new value» of the remembered bit:
+there is no delay. The value on output 1 is the negation of
+output 0. 
+
+    class latch; /* 15 lines */ /* C */
+
+Finally, the ‹cnot› gate, or a «controlled not» gate has the
+following behaviour:
+
+ • output 0 always matches input 0, while
+ • output 1 is set to:
+   ◦ input 1 if input 0 is ‹true›
+   ◦ negation of input 1 if input 0 is ‹false› 
+
+    class cnot; /* ref: 11 lines */ /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 6. [‹while›]
+
+Uvažme abstraktní syntaktický strom velmi jednoduchého
+imperativního programovacího jazyka se strukturovaným řízením
+toku. Nechť existují 3 typy příkazů:
+
+ 1. zvýšení proměnné o jedničku, ‹a++›,
+ 2. cyklus while tvaru ‹while (a != b) stmt›, a konečně
+ 3. blok, který je tvořen posloupností příkazů. 
+
+    class statement; /* C */
+    using stmt_ptr = std::unique_ptr< statement >;
+
+Proměnné budeme označovat písmeny. Rozsah každé proměnné je 0 až
+15 včetně; není-li explicitně inicializovaná, její startovní
+hodnota je 0. Je-li hodnota 15 zvýšena o jedna, výsledkem je opět
+0. Metoda ‹eval› dostane na vstupu jednak iniciální nastavení
+proměnných (hodnotu typu ‹state› definovaného níže), jednak
+limit ⟦n ≥ 1⟧ na délku výpočtu – tento limit udává kolik může
+program jako celek vykonat «srovnání». Po provedení ⟦n⟧ srovnání
+je celý výpočet okamžitě ukončen (tělo cyklu ani žádný jiný
+příkaz už se neprovede). 
+
+    using state = std::map< char, int >; /* C */
+
+Konstruktory nechť mají tyto parametry:
+
+ • ‹stmt_inc› přijme název proměnné, kterou má zvýšit,
+ • ‹stmt_while› dostane 2 názvy proměnných a tělo ve formě
+   ukazatele typu ‹stmt_ptr›,
+ • ‹stmt_block› je implicitně zkonstruovaný jako prázdný, ale
+   poskytuje metodu ‹append› která na konec bloku přidá příkaz
+   (opět formou ‹stmt_ptr›). 
+
+    class stmt_inc; /* C */
+    class stmt_while;
+    class stmt_block;
+

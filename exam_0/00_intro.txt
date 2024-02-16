@@ -1,0 +1,18 @@
+## Pravidla
+
+ • Řešení úkolů pište každý přímo do souboru s kostrou, který je součástí
+   zadání. Při odevzdávání se soubory musí jmenovat stejně a být uloženy na
+   stejném místě, kam se stáhly po kliknutí na Stažení zadání.
+
+ • Požadované funkce, třídy, metody se musí jmenovat jako v zadání.
+   Hlavičky funkcí a metod musí odpovídat zadaným (neměňte typy ani
+   počet parametrů, funkce u kterých to není uvedeno nepřetěžujte).
+   Je-li u připravené třídy uvedeno, že ji nemáte modifikovat, pak
+   to znamená, že její definice nesmíte nijak měnit, tedy ani
+   přidávat vlastní metody.
+
+ • Řešení musí projít kontrolou programem ‹valgrind›.
+
+ • Vzhledem k časovým omezením nebudou testy provádět kontrolu
+   programem ‹clang-tidy›.
+

@@ -1,0 +1,330 @@
+
+# S.2. Ukazatele, výjimky, OOP
+
+Druhá sada přináší příklady zaměřené na objektově-orientované
+programování, na práci s ukazately a výjimkami a v neposlední řadě
+na správu zdrojů.
+
+ 1. ‹a_natural› – rozšíření ‹s1/f_natural› o dělení,
+ 2. ‹b_treap›   – jednoduchý vyhledávací strom,
+ 3. ‹c_robots›  – programujeme roboty na mapě,
+ 4. ‹d_network› – simulátor počítačové sítě s přepínači,
+ 5. ‹e_tree›    – práce s heterogenním stromem,
+ 6. ‹f_scrap›   – hra o zdrojích a zajímání.
+
+Příklad ‹a› si vystačí se znalostmi z prvního bloku, příklad ‹b› lze
+vyřešit po nastudování 5. kapitoly, příklady ‹c› až ‹d› vyžadují
+znalost 6. kapitoly a konečně příklady ‹e›, ‹f› vyžadují znalost 7.
+kapitoly. Opět platí, že řešení nějakého příkladu z této sady může
+být potřebné pro vyřešení příkladu z poslední sady.
+
+
+## a. ‹natural›
+
+Tento úkol rozšiřuje ‹s1/f_natural› o tyto operace (hodnoty ‹m› a
+‹n› jsou typu ‹natural›):
+
+ • konstruktor, který přijme nezáporný parametr typu ‹double› a
+   vytvoří hodnotu typu ‹natural›, která reprezentuje dolní
+   celou část parametru,
+ • operátory ‹m / n› a ‹m % n› (dělení a zbytek po dělení;
+   chování pro ‹n = 0› není definované),
+ • metodu ‹m.digits( n )› která vytvoří ‹std::vector›, který bude
+   reprezentovat hodnotu ‹m› v soustavě o základu ‹n› (přitom
+   nejnižší index bude obsahovat nejvýznamnější číslici),
+ • metodu ‹m.to_double()› která vrátí hodnotu typu ‹double›,
+   která co nejlépe aproximuje hodnotu ‹m› (je-li ⟦l = log₂(m) -
+   52⟧ a ‹d = m.to_double()›, musí platit ‹m - 2ˡ ≤ natural( d )›
+   a zároveň ‹natural( d ) ≤ m + 2ˡ›; je-li ‹m› příliš velké, než
+   aby šlo typem ‹double› reprezentovat, chování je
+   nedefinované).
+
+Převody z/na typ ‹double› musí být lineární v počtu bitů
+operandu. Dělení může mít složitost nejvýše kvadratickou v počtu
+bitů levého operandu. Metoda ‹digits› smí vůči počtu bitů ‹m›,
+‹n› provést nejvýše lineární počet «aritmetických operací» (na
+hodnotách ‹m›, ‹n›). 
+
+    struct natural; /* C */
+
+
+## b. ‹treap›
+
+Datová struktura «treap» kombinuje binární vyhledávací strom a
+binární haldu – hodnotu, vůči které tvoří vyhledávací strom
+budeme nazývat «klíč» a hodnotu, vůči které tvoří haldu budeme
+nazývat «priorita». Platí pak:
+
+ • «klíč» v každém uzlu je větší než klíč v jeho levém potomkovi,
+   a zároveň je menší, než klíč v pravém potomkovi,
+ • «priorita» je v každém uzlu větší nebo stejná, jako priority
+   obou potomků.
+
+Smyslem haldové části struktury je udržet strom přibližně
+vyvážený. Algoritmus vložení prvku pracuje takto:
+
+ 1. na základě klíče vložíme uzel na vhodné místo tak, aby nebyla
+    porušena vlastnost vyhledávacího stromu,
+ 2. je-li porušena vlastnost haldy, budeme «rotacemi» přesouvat
+    nový uzel směrem ke kořenu, a to až do chvíle, než se tím
+    vlastnost haldy obnoví.
+
+Budou-li priority přiděleny náhodně, vložení uzlu do větší
+hloubky vede i k vyšší pravděpodobnosti, že tím bude vlastnost
+haldy porušena; navíc rotace, které obnovují vlastnost haldy,
+zároveň snižují maximální hloubku stromu. 
+
+Implementujte typ ‹treap›, který bude reprezentovat množinu
+pomocí datové struktury «treap» a poskytovat tyto operace (‹t› je
+hodnota typu ‹treap›, ‹k›, ‹p› jsou hodnoty typu ‹int›):
+
+ • implicitně sestrojená instance ‹treap› reprezentuje prázdnou
+   množinu,
+ • ‹t.insert( k, p )› vloží klíč ‹k› s prioritou ‹p› (není-li
+   uvedena, použije se náhodná); metoda vrací ‹true› pokud byl
+   prvek skutečně vložen (dosud nebyl přítomen),
+ • ‹t.erase( k )› odstraní klíč ‹k› a vrátí ‹true› byl-li
+   přítomen,
+ • ‹t.contains( k )› vrátí ‹true› je-li klíč ‹k› přítomen,
+ • ‹t.priority( k )› vrátí prioritu klíče ‹k› (není-li přítomen,
+   chování není definováno),
+ • ‹t.clear()› smaže všechny přítomné klíče,
+ • ‹t.size()› vrátí počet uložených klíčů,
+ • ‹t.copy( v )›, kde ‹v› je reference na ‹std::vector< int >›,
+   v lineárním čase vloží na konec ‹v› všechny klíče z ‹t› ve
+   vzestupném pořadí,
+ • metodu ‹t.root()›, které výsledkem je ukazatel ‹p›, pro který:
+   ◦ ‹p->left()› vrátí obdobný ukazatel na levý podstrom,
+   ◦ ‹p->right()› vrátí ukazatel na pravý podstrom,
+   ◦ ‹p->key()› vrátí klíč uložený v uzlu reprezentovaném ‹p›,
+   ◦ ‹p->priority()› vrátí prioritu uzlu ‹p›,
+   ◦ je-li příslušný strom (podstrom) prázdný, ‹p› je ‹nullptr›.
+ • konečně hodnoty typu ‹treap› nechť je možné přesouvat,
+   kopírovat a také přiřazovat (a to i přesunem).¹
+
+Metody ‹insert›, ‹erase› a ‹contains› musí mít složitost lineární
+k «výšce» stromu (při vhodné volbě priorit tedy očekávaně
+logaritmickou k počtu klíčů). Metoda ‹erase› nemusí nutně
+zachovat vazbu mezi klíči a prioritami (tzn. může přesunout klíč
+do jiného uzlu aniž by zároveň přesunula prioritu). 
+
+    struct treap; /* C */
+
+¹ Verze s přesunem můžete volitelně vynechat (v takovém případě
+  je označte jako smazané). Budou-li přítomny, budou testovány.
+  Implementace přesunu je podmínkou hodnocení kvality známkou A. 
+
+
+## c. ‹robots›
+
+V této úloze budete programovat jednoduchou hru, ve které se ve
+volném třírozměrném prostoru pohybují robotické entity tří barev:
+
+ 1. červený robot (třída ‹robot_red›):
+    
+    ◦ není-li uzamčený a na hrací ploše je alespoň jeden cizí
+      zelený robot, uzamkne se na ten nejbližší, jinak stojí na
+      místě,
+    ◦ je-li na nějaký robot uzamčený, přibližuje se přímo k němu
+      (tzn. směr pohybu je vždy v aktuálním směru tohoto robotu),
+    
+ 2. zelený robot (třída ‹robot_green›):
+    
+    ◦ je-li nějaký cizí modrý robot ve vzdálenosti do 10 metrů,
+      směruje přímo k tomu nejbližšímu,
+    ◦ je-li nejbližší takový robot dále než 10 metrů, zelený
+      robot se teleportuje do místa, které leží na jejich
+      spojnici, 8 metrů od cílového robotu na jeho «vzdálenější»
+      straně,
+    ◦ jinak stojí na místě.
+    
+ 3. modrý robot (třída ‹robot_blue›):
+    
+    ◦ směruje k nejbližšímu cizímu červenému robotu, existuje-li
+      nějaký,
+    ◦ jinak se «poloviční rychlostí» pohybuje po přímce ve směru,
+      který měl naposledy,
+    ◦ na začátku hry je otočen směrem k začátku souřadnicového
+      systému (je-li přímo v počátku, chování není určeno).
+
+Roboty se pohybují rychlostí 15 m/s. Dostanou-li se dva roboty
+různých barev a různých vlastníků do vzdálenosti 1 metr nebo
+menší, jeden z nich zanikne podle pravidla:
+
+ • červený vítězí nad zeleným,
+ • zelený vítězí nad modrým a konečně
+ • modrý vítězí nad červeným.
+
+Hra jako celek nechť je zapouzdřená ve třídě ‹game›. Bude mít
+tyto metody:
+
+ • metoda ‹tick› posune čas o 1/60 sekundy, a provede tyto akce:
+   
+   a. všechny roboty se posunou na své nové pozice «zároveň»,
+      tzn. dotáže-li se nějaký robot na aktuální pozici jiného
+      robotu, dostane souřadnice, které měl tento na konci
+      předchozího tiku,
+   b. vzájemné ničení robotů, které proběhne opět zároveň –
+      sejdou-li se v dostatečné blízkosti roboty všech tří barev,
+      zaniknou všechny.
+   
+ • metoda ‹run› simuluje hru až do jejího konce,
+   
+   ◦ tzn. do chvíle, kdy nemůže zaniknout žádný další robot a
+   ◦ vrátí dvojici (počet tiků, hráči),
+   ◦ kde „hráči“ je vektor identifikátorů hráčů, seřazený podle
+     počtu zbývajících robotů; je-li více hráčů se stejným počtem
+     robotů, první bude ten s větším počtem červených, dále
+     zelených a nakonec modrých robotů; je-li stále hráčů více,
+     budou uspořádáni podle svého identifikátoru,
+     
+ • metody ‹add_X› pro ‹X› = ‹red›, ‹green› nebo ‹blue›, které
+   přidají do hry robota odpovídající barvy, a které mají dva
+   parametry:
+   
+   ◦ počáteční pozici, jako trojici hodnot typu ‹double› (zadané
+     v metrech v kartézské soustavě),
+   ◦ nenulový celočíselný identifikátor hráče-vlastníka. 
+
+    struct robot_red; /* C */
+    struct robot_green;
+    struct robot_blue;
+
+    struct game; /* C */
+
+
+## d. ‹network›
+
+Vaším úkolem bude tentokrát naprogramovat simulátor počítačové
+sítě, s těmito třídami, které reprezentují propojitelné síťové
+uzly:
+
+ • ‹endpoint› – koncový uzel, má jedno připojení k libovolnému
+   jinému uzlu,
+ • ‹bridge› – propojuje 2 nebo více dalších uzlů,
+ • ‹router› – podobně jako bridge, ale každé připojení musí být
+   v jiném segmentu.
+
+Dále bude existovat třída ‹network›, která reprezentuje síťový
+segment jako celek. Každý uzel patří právě jednomu segmentu.
+Je-li segment zničen, musí být zničeny (a odpojeny) i všechny
+jeho uzly.
+
+Třída ‹network› bude mít tyto metody pro vytváření uzlů:
+
+ • ‹add_endpoint()› – vytvoří nový (zatím nepřipojený) koncový
+   uzel, převezme jeho vlastnictví a vrátí vhodný ukazatel na
+   něj,
+ • ‹add_bridge( p )› – podobně pro ‹p›-portový bridge,
+ • ‹add_router( i )› – podobně pro směrovač s ‹i› rozhraními.
+
+Jsou-li ‹m› a ‹n› libovolné typy uzlů, musí existovat vhodné
+metody:
+
+ • ‹m->connect( n )› – propojí 2 uzly. Metoda je symetrická v tom
+   smyslu, že ‹m->connect( n )› a ‹n->connect( m )› mají tentýž
+   efekt. Metoda vrátí ‹true› v případě, že se propojení podařilo
+   (zejména musí mít oba uzly volný port).
+ • ‹m->disconnect( n )› – podobně, ale uzly rozpojí (vrací ‹true›
+   v případě, že uzly byly skutečně propojené).
+ • ‹m->reachable( n )› – ověří, zda může uzel ‹m› komunikovat
+   s uzlem ‹n› (na libovolné vrstvě, tzn. včetně komunikace skrz
+   routery; jedná se opět o symetrickou vlastnost; vrací hodnotu
+   typu ‹bool›).
+
+Konečně třída ‹network› bude mít tyto metody pro kontrolu (a
+případnou opravu) své vnitřní struktury:
+
+ • ‹has_loops()› – vrátí ‹true› existuje-li v síti cyklus,
+ • ‹fix_loops()› – rozpojí uzly tak, aby byl výsledek acyklický,
+   ale pro libovolné uzly, mezi kterými byla před opravou cesta,
+   musí platit, že po opravě budou nadále vzájemně dosažitelné.
+
+Cykly, které prochází více sítěmi (a tedy prohází alespoň dvěma
+směrovači), neuvažujeme. 
+
+    class endpoint; /* C */
+    class bridge;
+    class router;
+    class network;
+
+
+## e. ‹tree›
+
+Uvažujme stromovou strukturu, která má 4 typy uzlů, a která
+představuje zjednodušený JSON:
+
+ • ‹node_bool› – listy typu ‹bool›,
+ • ‹node_int› – listy typu ‹int›,
+ • ‹node_array› – indexované celými čísly souvisle od nuly,
+ • ‹node_object› – klíčované libovolnými celými čísly.
+
+Typ ‹tree› pak reprezentuje libovolný takový strom (včetně
+prázdného a jednoprvkového). Pro hodnoty ‹t› typu ‹tree›, ‹n›
+libovolného výše uvedeného typu ‹node_X› a ‹idx› typu ‹int›, jsou
+všechny níže uvedené výrazy dobře utvořené.
+
+Práce s hodnotami typu ‹tree›:
+
+ • ‹t.is_null()› – vrátí ‹true› reprezentuje-li tato hodnota
+   «prázdný strom»,
+ • ‹*t› – platí-li ‹!t.is_null()›, jsou ‹(*t)› a ‹n› záměnné,
+   jinak není definováno,
+ • implicitně sestrojená hodnota reprezentuje prázdný strom,
+ • hodnoty typu ‹tree› lze také vytvořit volnými funkcemi
+   ‹make_X›, kde výsledkem je vždy strom s jediným uzlem typu
+   ‹node_X› (v případě ‹make_bool› resp. ‹make_int› s hodnotou
+   ‹false› resp. ‹0›, není-li v parametru uvedeno jinak).
+
+Hodnoty typu ‹node_X› lze sestrojit implicitně, a reprezentují
+‹false›, ‹0› nebo prázdné pole (objekt).
+
+Skalární operace (výsledkem je zabudovaný skalární typ):
+
+ • ‹n.is_X()› – vrátí ‹true›, je-li typ daného uzlu ‹node_X›
+   (např. ‹is_bool()› určí, je-li uzel typu ‹node_bool›),
+ • ‹n.size()› vrátí počet potomků daného uzlu (pro listy 0),
+ • ‹n.as_bool()› vrátí ‹true› je-li ‹n› uzel typu ‹node_bool› a
+   má hodnotu ‹true›, nebo je to uzel typu ‹node_int› a má
+   nenulovou hodnotu, nebo je to neprázdný uzel typu ‹node_array›
+   nebo ‹node_object›,
+ • ‹n.as_int()› vrátí 1 nebo 0 pro uzel typu ‹node_bool›, hodnotu
+   uloženou n uzlu ‹node_int›, nebo skončí výjimkou
+   ‹std::domain_error›.
+
+Operace přístupu k potomkům:
+
+ • ‹n.get( idx )› vrátí odkaz (referenci) na potomka:
+   ◦ s indexem (klíčem) ‹idx› vhodného typu tak, aby
+     s ní bylo možné pracovat jako s libovolnou hodnotou typu
+     ‹node_X›, nebo
+   ◦ skončí výjimkou ‹std::out_of_range› když takový potomek
+     neexistuje,
+ • ‹n.copy( idx )› vrátí potomka na indexu (s klíčem) ‹idx› jako
+   «hodnotu» typu ‹tree›, nebo skončí výjimkou
+   ‹std::out_of_range› neexistuje-li takový.
+
+Operace, které upravují existující strom:
+
+ • ‹n.set( idx, t )› nastaví potomka na indexu nebo u klíče ‹i› na
+   hodnotu ‹t›, přitom samotné ‹t› není nijak dotčeno, přitom:
+   ◦ je-li ‹n› typu ‹node_array›, je rozšířeno dle potřeby tak,
+     aby byl ‹idx› platný index, přitom takto vytvořené indexy
+     jsou «prázdné»),
+   ◦ je-li ‹n› typu ‹node_bool› nebo ‹node_int›, skončí
+     s výjimkou ‹std::domain_error›,
+ • ‹n.take( idx, t )› totéž jako ‹set›, ale podstrom je z ‹t›
+   přesunut, tzn. metoda ‹take› nebude žádné uzly kopírovat a po
+   jejím skončení bude platit ‹t.is_null()›.
+
+Všechny metody a návratové hodnoty referenčních typů musí správně
+pracovat s kvalifikací ‹const›. Vytvoříme-li kopii hodnoty typu
+‹tree›, tato bude obsahovat kopii celého stromu. Je-li umožněno
+kopírování jednotlivých uzlů, nemá určeno konkrétní chování. 
+
+    class node_bool; /* C */
+    class node_int;
+    class node_array;
+    class node_object;
+    class tree;
+

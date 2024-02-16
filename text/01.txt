@@ -1,0 +1,1170 @@
+
+# Hodnoty a funkce
+
+Vítejte v PB161. Než budete pokračovat, přečtěte si prosím
+kapitolu A (složku ‹00› ve zdrojovém balíku). Podrobnější informace
+jak se soubory v této složce pracovat naleznete v souboru
+‹00/t3_sources.txt›, resp. v sekci T.3.
+
+Cvičení bude tematicky sledovat přednášku z předchozího týdne: první
+kapitola tak odpovídá první přednášce. Tématy pro tento týden jsou
+funkce, řízení toku, skalární hodnoty a reference. Tyto koncepty
+jsou krom přednášky demonstrovány v příkladech typu ‹d› (ukázkách;
+naleznete je také v souborech ‹d?_*.cpp›, např. ‹d1_fibonacci.cpp›).
+
+ 1. ‹fibonacci› – iterativní výpočet Fibonacciho čísel,
+ 2. ‹comb›      – výpočet kombinačního čísla,
+ 3. ‹hamming›   – hammingova vzdálenost dvojkového zápisu,
+ 4. ‹root› †    – výpočet ⟦n⟧-té celočíselné odmocniny.
+
+Ve druhé části každé kapitoly pak naleznete tzv. elementární
+cvičení, která byste měli být schopni relativně rychle vyřešit a
+ověřit si tak, že jste porozuměli konceptům z přednášky a ukázek.
+Tyto příklady naleznete v souborech pojmenovaných ‹e?_*.cpp›. Řešení
+můžete vepsat přímo do nachystaného souboru se zadáním. Základní
+testy jsou součástí zadání.
+
+Vzorová řešení těchto příkladů naleznete v kapitole K (klíč) na
+konci sbírky, resp. ve složce ‹sol› zdrojového balíku. Mějte na
+paměti, že přiložená vzorová řešení nemusí být vždy nejjednodušší
+možná. Také není nutné, aby Vaše řešení přesně odpovídalo tomu
+vzorovému, nebo bylo založeno na stejném principu. Důležité je, aby
+pracovalo správně a dodržovalo požadovanou (resp. adekvátní)
+složitost.
+
+Elementární příklady první kapitoly jsou:
+
+ 1. ‹factorial› – spočtěte faktoriál zadaného čísla,
+ 2. ‹concat›    – zřetězení binárního zápisu dvou čísel,
+ 3. ‹zeros›     – počet nul v zápisu čísla.
+
+V další části naleznete o něco složitější příklady, tzv. «přípravy».
+Jejich hlavním účelem je «samostatně» procvičit látku dané kapitoly,
+a to ještě předtím, než se o ní budeme bavit ve cvičení.
+Doporučujeme každý týden vyřešit alespoň 3 přípravy. Abyste byli
+motivovaní je řešit, odevzdaná řešení jsou bodována (detaily
+bodování a termíny odevzdání naleznete v kapitole A). Ve zdrojovém
+balíku se jedná o soubory s názvem ‹p?_*.cpp›.
+
+«Pozor:» Diskutovat a sdílet řešení příprav je «přísně zakázáno».
+Řešení musíte vypracovat «zcela samostatně» (bližší informace
+naleznete opět v kapitole A).
+
+Přípravy:
+
+ 1. ‹nhamming›  – Hammingova vzdálenost s libovolným základem,
+ 2. ‹digitsum›  – opakovaný ciferný součet,
+ 3. ‹parity›    – počet jedniček v binárním zápisu,
+ 4. ‹periodic›  – hledání nejkratšího periodického vzoru,
+ 5. ‹balanced›  – ciferné součty ve vyvážených soustavách,
+ 6. ‹subsetsum› – známý příklad na backtracking.
+
+Další část je tvořena «rozšířenými» úlohami, které jsou typicky
+o něco málo složitější, než přípravy. Na těchto úlohách budeme
+probranou látku dále procvičovat ve cvičení. Tyto úlohy můžete také
+řešit společně, diskutovat jejich řešení se spolužáky, atp. Svá
+řešení můžete také srovnat s těmi vzorovými, která jsou k nalezení
+opět v kapitole K. Tento typ úloh naleznete v souborech
+pojmenovaných ‹r?_*.cpp›.
+
+ 1. ‹bitwise›   – ternární bitové operátory,
+ 2. ‹euler›     – Eulerova funkce (počet nesoudělných čísel),
+ 3. ‹hamcode›   – kód pro detekci chyb Hamming(8,4),
+ 4. ‹cbc›       – cipher block chaining,
+ 5. ‹cellular›  – celulární automat nad celým číslem,
+ 6. ‹flood›     – vyplňování „ploch“ v celém čísle.
+
+Poslední část jsou tzv. «volitelné» úkoly, které se podobají těm
+rozšířeným, se dvěma důležitými rozdíly: volitelné úlohy jsou určeny
+k samostatné přípravě (nebudeme je tedy používat ve cvičení) a
+nejsou k nim dostupná vzorová řešení. Je totiž důležité, abyste si
+dokázali sami zdůvodnit a otestovat správnost řešení, aniž byste jej
+srovnávali s řešením někoho jiného (a přiložený vzor k tomu jistě
+svádí). Je nicméně povoleno tyto příklady (a jejich řešení, jak
+abstraktně, tak konkrétně) diskutovat se spolužáky. Přesto velmi
+důrazně doporučujeme, abyste si řešení zkusili prvně vypracovat
+sami.
+
+ 1. ‹xxx› – …
+ 2. ‹xxx› – …
+ 3. ‹xxx› – …
+
+### Hlavičkové soubory
+
+Samotný jazyk, který ve svých řešeních používáte, omezujeme jen
+minimálně (varování překladače a kontrola nástrojem ‹clang-tidy›
+ovšem některé obzvláště problémové konstrukce zamítnou). Trochu
+významnější omezení klademe na používání standardní knihovny: do
+svých odevzdaných programů prosím vkládejte pouze ty standardní
+hlavičky, kterých použití jsme již v předmětu zavedli. Přehled bude
+vždy uveden v úvodu příslušné kapitoly. Pro tu první jsou to tyto
+tři:
+
+ • ‹cassert› – umožňuje použití tvrzení ‹assert›,
+ • ‹algorithm› – nabízí funkce ‹std::min›, ‹std::max›,
+ • ‹cstdint› – celočíselné typy ‹std::intNN_t› a ‹std::uintNN_t›.
+
+Omezeno je pouze vkládání hlavičkových souborů: je-li povolena
+hlavička ‹algorithm›, můžete v principu používat i jiné algoritmy,
+které poskytuje. Přesto spíše doporučujeme držet se toho, co jsme
+Vám zatím ukázali.
+
+Na nic jiného, než vkládání standardních hlaviček, v tomto předmětu
+preprocesor potřebovat nebudete. Jiné direktivy než ‹#include› tedy
+prosím vůbec nepoužívejte.
+
+
+## d. Demonstrace (ukázky)
+
+
+### 1. [‹fibonacci›]
+
+V této ukázce naprogramujeme klasický ukázkový algoritmus, totiž
+výpočet ⟦n⟧-tého Fibonacciho čísla (a použijeme k tomu iterativní
+algoritmus). Algoritmus bude implementovat «podprogram» (funkce)
+‹fibonacci›. Definice podprogramu se v jazyce C++ začíná tzv.
+«signaturou» neboli «hlavičkou funkce», která:
+
+ 1. popisuje návratovou hodnotu (zejména její typ),
+ 2. udává název podprogramu a
+ 3. jeho «formální parametry», opět zejména jejich typy, ale
+    obvykle i názvy.
+
+Signatura může popisovat i další vlastnosti, se kterými se
+setkáme později.
+
+V tomto případě bude návratovou hodnotou «celé číslo»
+(znaménkového typu ‹int›), podprogram ponese název ‹fibonacci› a
+má jeden parametr, opět celočíselného typu ‹int›. 
+
+    int fibonacci( int n ) /* C */
+
+Po signatuře následuje tzv. «tělo», které je syntakticky
+shodné se «složeným příkazem», a je tedy tvořeno libovolným
+počtem (včetně nuly) příkazů uzavřených do složených závorek.
+V těle funkce jsou formální parametry (v tomto případě ‹n›)
+ekvivalentní «lokálním proměnným» pomyslně inicializovaným
+hodnotou skutečného parametru. 
+    { /* C */
+Tělo je tvořeno posloupností příkazů (typický příkaz je
+ukončen středníkem, ale toto neplatí např. pro složené
+příkazy, které jsou ukončeny složenou závorkou).
+
+Prvním příkazem podprogramu ‹fibonacci› je deklarace
+lokálních proměnných ‹a›, ‹b›, opět celočíselného typu ‹int›.
+Deklarace se skládá z:
+
+ 1. typu, případně klíčového slova ‹auto›,
+ 2. neprázdného seznamu deklarovaných jmen (oddělených
+    čárkou), které mohou být doplněny tzv. deklarátory
+    (označují např. reference: uvidíme je v pozdější ukázce),
+ 3. volitelného inicializátoru, který popisuje počáteční
+    hodnotu proměnné. 
+
+        int a = 1, b = 1, c; /* C */
+
+Samotný výpočet zapíšeme pomocí tzv. třídílného ‹for› cyklu
+(jinou variantu cyklu ‹for› si ukážeme v další kapitole),
+který má následující strukturu:
+
+  1. klíčové slovo ‹for›,
+  2. hlavička cyklu, uzavřená v kulatých závorkách,
+     a. inicializační příkaz (výraz, deklarace proměnné, nebo
+        prázdný příkaz) je vždy ukončen středníkem a provede
+        se jednou před začátkem cyklu; deklaruje-li proměnné,
+        tyto jsou platné právě po dobu vykonávání cyklu,
+     b. podmínka cyklu («výraz» nebo prázdný příkaz) je opět
+        vždy ukončena středníkem a určuje, zda se má provést
+        další iterace cyklu (vyhodnotí-li se na ‹true›),
+     c. «výraz» iterace (výraz, který «není» ukončen
+        středníkem), který je vyhodnocen «vždy» na konci těla
+        (před dalším vyhodnocením podmínky cyklu),
+  3. tělo cyklu (libovolný příkaz, často složený). 
+
+        for ( int i = 2; i < n; ++i ) /* C */
+        {
+V jazyce C++ je přiřazení «výraz», kterého vyhodnocení má
+«vedlejší efekt», a to konkrétně změnu proměnné, která je
+odkazována levou stranou operátoru ‹=› (jedná se
+o «výraz», který se musí vyhodnotit na tzv. «l-hodnotu»¹ –
+«l» od «left», protože stojí na levé straně přiřazení).
+Na pravé straně pak stojí libovolný «výraz». 
+
+            c = a + b; /* C */
+            a = b;
+            b = c;
+        }
+
+Příkaz návratu z podprogramu ‹return› má dvojí význam
+(podobně jako ve většině imperativních jazyků):
+
+ 1. určí návratovou hodnotu podprogramu (tato se získá
+    vyhodnocením «výrazu» uvedeného po klíčovém slově
+    ‹return›),
+ 2. ukončí vykonávání podprogramu a předá řízení volajícímu.
+
+
+        return b; /* C */
+    }
+
+Všechny ukázky v této sbírce obsahují několik jednoduchých
+testovacích případů, kterých účelem je jednak předvést, jak lze
+implementovanou funkcionalitu použít, jednak ověřit, že fungování
+programu odpovídá naší představě. Zkuste si přiložené testy různě
+upravovat, abyste si ověřili, že dobře rozumíte tomu, jak ukázka
+funguje. 
+
+    int main() /* demo */ /* C */
+    {
+Použití (volání) podprogramu je «výraz» a jeho vyhodnocení
+odpovídá naší intuitivní představě: skutečné parametry
+(uvedené v kulatých závorkách za jménem) se použijí jako
+pomyslné inicializátory formálních parametrů a s takto
+inicializovanými parametry se vykoná tělo podprogramu. Po
+jeho ukončení se výraz volání podprogramu vyhodnotí na
+návratovou hodnotu. 
+
+        assert( fibonacci( 1 ) == 1 ); /* C */
+        assert( fibonacci( 2 ) == 1 );
+        assert( fibonacci( 7 ) == 13 );
+        assert( fibonacci( 20 ) == 6765 );
+    }
+
+¹ Zjednodušeně, «l-hodnota» je takový výraz, který popisuje
+  «identitu» resp. «lokaci» – typicky proměnnou, která je uložena
+  v paměti. L-hodnoty rozlišujeme proto, že smyslem přiřazení je
+  «uložit» (zapsat) výsledek své pravé strany, a na levé straně
+  tedy musí stát objekt, do kterého lze tuto pravou stranu
+  skutečně zapsat. Nejjednodušší l-hodnotou je «název proměnné».
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹comb›]
+
+V této ukázce se zaměříme na vlastnosti celočíselných typů.
+Podíváme se přitom na «kombinační čísla», definovaná jako:
+
+ ⟦ (n¦k) = n! / (k! ⋅ (n - k)!) ⟧
+
+kde ⟦k ≤ n⟧. Samozřejmě, mohli bychom počítat kombinační čísla
+přímo z definice, má to ale jeden důležitý problém: celočíselné
+proměnné mají v C++ pevný rozsah. Výpočet mezivýsledku ⟦n!⟧ tak
+může velmi lehce překročit horní hranici použitého typu, a to i
+v případech, kdy celkový výsledek není problém reprezentovat.
+
+Proto je důležité najít formu výpočtu, která nebude vytvářet
+zbytečně velké mezivýsledky. Výpočet kombinačního čísla lze navíc
+provádět na libovolném celočíselném typu (včetně těch
+bezznaménkových), proto čistou funkci ‹comb› definujeme tak, aby
+fungovala pro všechny takové typy.
+
+Parametr uvedený klíčovým slovem ‹auto› může být libovolného typu
+(použití funkce s takovým typem parametru, pro který «tělo»
+funkce není typově správné, překladač zamítne). Něco jiného
+znamená «návratová hodnota» deklarovaná jako ‹auto›: tento typ se
+odvodí z příkazů ‹return› v těle funkce. Chceme-li toto tzv.
+«odvození návratového typu» využít, musí mít výraz u všech
+příkazů ‹return› v těle stejný typ. 
+
+    auto comb( auto n, auto k ) /* C */
+    {
+Kombinační čísla jsou definovaná pouze pro ⟦n ≥ k⟧ a tuto
+vstupní podmínku si můžeme lehce ověřit «tvrzením»: 
+
+        assert( n >= k ); /* C */
+
+Výpočet budeme provádět na stejném typu, jaký má vstupní ‹n›.
+Protože tento typ neznáme, musíme si pomoct konstrukcí
+‹decltype›, která nám umožní vytvořit proměnnou stejného
+typu, jako nějaká existující.
+
+«Pozor!» Je-li původní proměnná referencí, bude i nová
+proměnná referencí.
+«Pozor!» Nemůžeme zde použít ‹auto result = 1›. Proč? 
+
+        decltype( n ) result = 1; /* C */
+
+Jak jistě víte, faktoriál je definován takto:
+
+ ⟦ n! = ∏ᵢ₌₁ⁿi ⟧
+
+A tedy:
+
+ ⟦ n! / k! = ∏ᵢ₌₁ⁿ i / ∏ᵢ₌₁ᵏ i = ∏ᵢ₌ₖ₊₁ⁿ i ⟧
+
+Tento výpočet bychom jednoduše zapsali do ‹for› cyklu
+v příslušných mezích. Ve skutečnosti ale můžeme výpočet ještě
+znatelně zlepšit.
+
+Klíčové pozorování je, že ani zbývající ⟦(n - k)!⟧ není
+potřeba vyčíslovat. Víme jistě, že výsledek bude celé číslo,
+tzn. všechny faktory ⟦(n - k)!⟧ se musí pokrátit s nějakými
+faktory ⟦n!/k!⟧. Jedna možnost je seřadit faktory čitatele
+sestupně a faktory jmenovatele vzestupně a mezivýsledek
+střídavě násobit a dělit příslušným faktorem (celočíselnost
+mezivýsledků je zde zaručena tím, že jsou to opět kombinační
+čísla, jak lze nahlédnout např. rozšířením příslušných zlomků
+vhodným faktoriálem).
+
+Toto řešení je optimální v počtu aritmetických operací, není
+ale optimální ve velikosti mezivýsledku. Přesněji, je-li
+⟦(n¦h)⟧ největší kombinační číslo s daným ⟦n⟧, největší
+mezivýsledek při výpočtu ⟦(n¦k)⟧ bude ⟦h⋅(n¦h)⟧. Využijeme-li
+navíc symetrie ⟦(n¦k) = (n¦n - k)⟧, můžeme tuto mez zlepšit na
+⟦k⋅(n¦k)⟧ a zároveň zabezpečit, že ⟦k ≤ h⟧. Je nicméně
+zřejmé, že výpočet nám může přetéct i v případě, kdy celkový
+výsledek reprezentovat lze. 
+
+Proměnné ‹nom_f› a ‹denom_f› budou reprezentovat aktuální
+faktory v čitateli a jmenovateli. Opět budou stejného typu
+jako vstupní ‹n›. 
+
+        decltype( n ) nom_f = n, denom_f = 1; /* C */
+
+Cyklus provedeme pro ‹nom_f› v klesajícím rozsahu ⟦⟨n, k)⟧
+resp. ⟦⟨n, n - k)⟧, podle toho která spodní mez je větší.
+Protože jednotlivé mezihodnoty na spodní hranici iterace
+nezávisí, je jistě výhodnější provést méně iterací. 
+
+        while ( nom_f > std::max( k, n - k ) ) /* C */
+        {
+Máme-li cyklus zapsaný správně, faktor jmenovatele nemůže
+překročit «menší» z hodnot ⟦k⟧ nebo ⟦n - k⟧. O tomto se
+opět ujistíme tvrzením. 
+
+            assert( denom_f <= std::min( k, n - k ) ); /* C */
+
+Dále provedeme samotný krok výpočtu. Tvrzením se
+ujistíme, že provádíme skutečně pouze celočíselná dělení
+beze zbytku (kdyby tomu tak nebylo, výpočet by byl
+nesprávný!). 
+
+            result *= nom_f; /* C */
+            assert( result % denom_f == 0 );
+            result /= denom_f;
+
+Nakonec upravíme iterační proměnné a pokračujeme další
+iterací. 
+
+            --nom_f; /* C */
+            ++denom_f;
+        }
+
+        return result; /* C */
+    }
+
+    int main() /* demo */ /* C */
+    {
+        assert( comb( 1, 1 ) == 1 );
+        assert( comb( 2, 1 ) == 2 );
+        assert( comb( 5, 2 ) == 10 );
+
+Postup implementovaný podprogramem ‹comb› nám umožňuje
+spočítat, za pomoci 64-bitových proměnných, všechna
+kombinační čísla pro ⟦n ≤ 60⟧, a to i přesto, že nejen ⟦60! ≈
+1,1⋅2²⁷²⟧, ale ⟦60!/30! ≈ 1,34⋅2¹⁶⁴⟧ a tedy ani toto mnohem
+menší číslo se do 64-bitové proměnné v žádném případě
+nevejde.
+
+Poznámka: typ ‹std::int64_t› je právě 64-bitový celočíselný
+typ se znaménkem. Abychom ho zde mohli použít, museli jsme
+výše vložit hlavičku ‹cstdint›. 
+
+        for ( std::int64_t i = 1; i < 60; ++i ) /* C */
+            for ( std::int64_t k = 1; k < i; ++k )
+                assert( comb( i + 1, k + 1 ) ==
+                        comb( i, k ) + comb( i, k + 1 ) );
+
+        return 0; /* C */
+    }
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹hamming›]
+
+Tato ukázka přináší «výstupní parametry» a s nimi «reference».
+Naším úkolem bude naprogramovat podprogram ‹hamming›, který
+spočítá tzv. Hammingovu vzdálenost dvou nezáporných čísel ‹a›,
+‹b›.  Hammingova vzdálenost se tradičně definuje jako počet
+znaků, ve kterých se vstupní hodnoty liší.
+
+Abychom tedy mohli mluvit o vzdálenosti čísel, musíme je nějak
+zapsat – v této ukázce k tomu zvolíme dvojkovou soustavu. Protože
+Hammingova vzdálenost je navíc definovaná pouze pro stejně dlouhá
+slova, je-li některý dvojkový zápis kratší, doplníme ho pro účely
+výpočtu levostrannými nulami.
+
+Krom samotné vzdálenosti nás bude zajímat také řád nejvyšší
+číslice, ve které se vstupní čísla liší (rozmyslete si, že taková
+existuje právě tehdy, je-li výsledná vzdálenost nenulová). Pro
+tento dodatečný výsledek (který navíc nemusí být vždy definovaný)
+použijeme již zmiňovaný «výstupní parametr». V případech, kdy
+definovaný není, nebudeme hodnotu výstupního parametru měnit.
+
+Výstupní parametr realizujeme «referencí», kterou zapíšeme za
+pomoci «deklarátoru» ‹&› – reference na celočíselnou hodnotu typu
+‹int› bude tedy ‹int &›.¹ Takto deklarovaná reference zavádí
+«nové jméno» pro «již existující» objekt. Objeví-li se tedy
+reference ve «formálním parametru», takto zavedené «jméno» se
+přímo váže «k hodnotě skutečného parametru».
+
+Pro tento skutečný parametr platí stejná omezení, jako pro levou
+stranu přiřazení (musí tedy být l-hodnotou). Je to proto, že
+takto zavedený parametr je pouze «novým jménem» pro skutečný
+parametr. Zejména tedy platí, že kdykoliv se «formální» parametr
+objeví na «levé straně» přiřazení, toto přiřazení má efekt na
+«skutečný» parametr. Díky tomu můžeme uvnitř těla změnit hodnotu
+skutečného parametru. Je-li tedy skutečný parametr např. jméno
+lokální proměnné ve «volající» funkci, hodnota této proměnné se
+může provedením «volané» funkce změnit. Rozmyslete si, že
+u běžných parametrů (které nejsou referencemi) tomu tak není. 
+
+    int hamming( auto a, auto b, int &order ) /* C */
+    {
+Jako obvykle nejprve ověříme vstupní podmínku. 
+
+        assert( a >= 0 && b >= 0 ); /* C */
+
+Protože pracujeme s dvojkovou reprezentací, můžeme si výpočet
+zjednodušit použitím vhodných bitových operací. Operátor ‹^›
+(xor, exclusive or) nastaví na jedničku právě ty bity
+výsledku, ve kterých se jeho operandy liší. Hledaná
+Hammingova vzdálenost je tedy právě počet jedniček v binární
+reprezentaci čísla ‹x›.
+
+Všimněte si, že pro lokální proměnnou ‹x› neuvádíme typ –
+podobně jako v deklaraci parametrů ‹a›, ‹b› jsme zde použili
+zástupné slovo ‹auto›. Typ takto deklarované proměnné se
+«odvodí» z jejího inicializátoru (v tomto případě ‹a ^ b›).
+Na rozdíl od konstrukce ‹decltype› je takto deklarovaná
+proměnná «vždy hodnotou», i v případě, že pravá strana je
+referenčního typu.² 
+
+        auto x = a ^ b; /* C */
+
+Pro výsledek si zavedeme pomocnou proměnnou ‹result›, do
+které sečteme počet nenulových bitů. «Pozor!» proměnné
+jednoduchých typů je nutné inicializovat i v případě, že má
+být jejich počáteční hodnota nulová. Bez inicializátoru
+vznikne «neinicializovaná proměnná» kterou je «zakázáno číst»
+(níže použitý operátor ‹++› „zvětši hodnotu o jedna“
+samozřejmě svůj operand přečíst musí). 
+
+        int result = 0; /* C */
+
+Číslo, které obsahuje alespoň jeden nenulový bit je jistě
+nenulové – cyklus se tedy bude provádět tak dlouho, dokud
+jsou v čísle ‹x› nenulové bity. 
+
+        for ( int i = 0; x != 0; ++i, x >>= 1 ) /* C */
+
+V těle cyklu budeme zkoumat nejnižší bit hodnoty ‹x›, přitom
+proměnná ‹i› obsahuje jeho «původní» řád. Všimněte si, že
+‹for› cyklus je poměrně flexibilní, a že je důležité si jeho
+hlavičku dobře přečíst: v tomto případě se např. proměnná ‹i›
+vůbec neobjevuje v podmínce.
+
+Naopak výraz iterace má dvě části (oddělené operátorem čárka,
+který vyhodnotí svůj první operand pouze pro jeho vedlejší
+efekt – jeho hodnotu zapomene). Efekt na ‹i› je celkem
+zřejmý, zajímavější je efekt na ‹x›: výraz ‹x >>= 1› provede
+«bitový posun» proměnné ‹x› o jeden bit doprava. Původní druhý
+nejnižší bit se tak stane nejnižším, atd., až nejvyšší bit se
+doplní nulou. Příklad: posunem osmibitové hodnoty ‹10011001›
+o jednu pozici doprava vznikne hodnota ‹01001100›.
+
+Celý cyklus bychom samozřejmě mohli zapsat jako ‹while›
+cyklus a vyhnuli bychom se tím relativně komplikované
+hlavičce. Výhodou cyklu ‹for› v tomto případě ale je, že
+veškeré informace o změnách iteračních proměnných jsou
+uvedeny na jeho začátku. Čtenář tak už od začátku ví, jaký
+mají tyto proměnné význam (‹i› se každou iterací zvýší
+o jedna, ‹x› se bitově posune o jednu pozici doprava) a
+nemusí tuto informaci zdlouhavě hledat v těle. 
+
+        { /* C */
+V každé iteraci tak budeme zkoumat «nejnižší bit» hodnoty
+‹x› (který odpovídá ‹i›-tému bitu vstupních parametrů
+‹a›, ‹b›). S výhodou k tomu použijeme operaci bitové
+konjunkce (and; na jedničku jsou nastaveny právě ty bity
+výsledku, které mají hodnotu 1 v obou operandech). Tento
+operátor zapisujeme znakem ‹&› (pozor, nezaměňujte
+s deklarátorem reference!). 
+
+            if ( x & 1 ) /* C */
+            {
+Je-li nejnižší bit nastavený, zvýšíme hodnotu proměnné
+‹result› a do výstupního parametru ‹order› zapíšeme jeho
+původní řád (který si udržujeme v proměnné ‹i›).
+
+Protože bity procházíme v pořadí od nejnižšího
+k nejvyššímu, poslední zápis do parametru ‹order› přesně
+odpovídá nejvyššímu rozdílnému bitu. Podmínka cyklu nám
+navíc zaručuje, že do proměnné ‹order› zapíšeme pouze
+v případě, že takový bit existuje. 
+
+                ++result; /* C */
+                order = i;
+            }
+        }
+
+Po ukončení cyklu platí, že jsme zpracovali všechny nenulové
+bity ‹x›, a tedy všechny bity, ve kterých se hodnoty ‹a›, ‹b›
+lišily. Nezbývá, než nastavit návratovou hodnotu a podprogram
+ukončit. 
+
+        return result; /* C */
+
+Všimneme si ještě, že hodnotu parametru ‹order› jsme
+«nečetli». «Definující» vlastností výstupních parametrů je,
+že chování podprogramu «nezávisí» na jejich počáteční
+hodnotě. V případě, že jediná operace, kterou s výstupním
+parametrem provedeme, je přiřazení do něj, je tento požadavek
+triviálně splněn. 
+    } /* C */
+
+    int main() /* demo */ /* C */
+    {
+        int order = 3;
+
+Protože skutečný parametr ‹order› předáváme referencí
+(odpovídající formální parametr je referenčního typu), změny,
+které v něm podprogram ‹hamming› provede, jsou viditelné i
+navenek. Nejprve ovšem ověříme, že při nulové vzdálenosti se
+hodnota ‹order› nemění. 
+
+        assert( hamming( 0, 0, order ) == 0 && order == 3 ); /* C */
+        assert( hamming( 1, 1, order ) == 0 && order == 3 );
+
+Hodnoty v dalším příkladě se liší ve dvou bitech (osmém a
+devátém) a proto očekáváme, že po provedení funkce ‹hamming›
+bude mít proměnné ‹order› hodnotu 9. 
+
+        assert( hamming( 512, 256, order ) == 2 && order == 9 ); /* C */
+        assert( hamming( 0, 1, order ) == 1 && order == 0 );
+
+        assert( hamming( 0xffffff, 0, order ) == 24 ); /* C */
+        assert( hamming( 0xffffffffff, 0, order ) == 40 );
+        assert( hamming( 0xf000000000, 0xf, order ) == 8 );
+        assert( hamming( 0xf000000000, 0xe000000000, order ) == 1 );
+
+        return 0; /* C */
+    }
+
+¹ To, že se jedná o referenci, je součástí typu takto zavedené
+  proměnné (resp. parametru) – projeví se to např. při použití
+  konstrukce ‹decltype›. Zároveň ale platí, že ve většině případů
+  jsou reference a hodnoty záměnné: je to mimo jiné proto, že na
+  výsledek «libovolného výrazu» lze nahlížet jako na určitý druh
+  reference. Blíže se budeme referencemi zabývat ve čtvrté
+  kapitole.
+² To opět souvisí s tím, že každý výraz lze interpretovat jako
+  referenci. Chování tohoto typu deklarace je uzpůsobeno tomu, že
+  obvykle chceme deklarovat lokální proměnné – lokální reference
+  jsou mnohem vzácnější. 
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 4. [‹root›]
+
+† V této poslední ukázce bude naším cílem spočítat celočíselnou
+⟦n⟧-tou odmocninu zadaného nezáporného čísla ⟦k⟧. Nejprve ale
+budeme potřebovat dvě pomocné funkce: celočíselný dvojkový
+logaritmus a ⟦n⟧-tou mocninu. Vyzbrojeni těmito funkcemi pak
+budeme schopni odmocninu vypočítat tzv. Newtonovou-Raphsonovou
+metodou. 
+
+Celočíselný dvojkový logaritmus čísla ⟦n⟧ definujeme jako
+největší celé číslo ⟦k⟧ takové, že ⟦2ᵏ ≤ n⟧. Za povšimnutí stojí,
+že pro ⟦n < 1⟧ takové ⟦k⟧ neexistuje – proto tuto funkci
+definujeme pouze pro kladná ⟦n⟧. 
+
+    auto int_log2( auto n ) /* C */
+    {
+Jako obvykle nejprve ověříme vstupní podmínku. 
+        assert( n > 0 ); /* C */
+
+Výpočet budeme provádět v pomocné proměnné, která bude
+stejného typu jako ‹n›. 
+
+        decltype( n ) result = 0; /* C */
+
+Princip výpočtu je jednoduchý, uvážíme-li dvojkový rozvoj
+čísla ⟦n = ∑aᵢ2ⁱ⟧, který obsahuje člen ⟦2ⁱ⟧ pro každý
+nenulový bit ⟦aᵢ⟧. Dvojkovým logaritmem bude právě nejvyšší
+mocnina dvojky, která se v tomto rozvoji objeví: jistě pak
+platí, že ⟦2ᵏ ≤ n⟧, stačí se ujistit, že takto získané ⟦k⟧ je
+největší možné. Uvažme tedy, že existuje nějaké ⟦l > k⟧ a
+zároveň ⟦2ˡ ≤ n⟧. Pak se ale musí ⟦2ˡ⟧ nutně objevit ve
+dvojkovém rozvoji čísla ⟦n⟧, což je spor s tím, že ⟦k⟧ byla
+nejvyšší mocnina v témže rozvoji.
+
+Stačí nám tedy nalézt řád nejvyššího jedničkového bitu. To
+provedeme tak, že budeme provádět bitové posuny doprava tak
+dlouho, až ‹n› vynulujeme. Počet takto provedených posunů je
+pak hledaný řád. 
+
+        while ( n > 1 ) /* C */
+        {
+            ++result;
+            n >>= 1;
+        }
+
+        return result; /* C */
+    }
+
+Jazyk C++ na rozdíl od některých jiných neposkytuje zabudovanou
+operaci mocnění pro celočíselné typy. Výpočet provedeme známým
+algoritmem binárního umocňování (anglicky známého popisněji jako
+„exponentiation by squaring“).¹ Klíčovou vlastností tohoto
+algoritmu je, že jeho složitost je lineární k «počtu bitů
+exponentu» – naivní algoritmus opakovaným násobením má naproti
+tomu složitost «exponenciální» (složitost je v tomto případě
+přímo úměrná «hodnotě» exponentu, nikoliv délce jeho zápisu). 
+
+    auto int_pow( auto n, auto exp ) /* C */
+    {
+Operaci budeme definovat pouze pro kladné exponenty. Vyhneme
+se tak mimo jiné nutnosti definovat hodnotu pro ⟦0⁰⟧. 
+
+        assert( exp >= 1 ); /* C */
+
+Pomocná proměnná, která bude udržovat „liché“ mocniny. Její
+význam je přesněji vysvětlen níže. 
+
+        decltype( n ) odd = 1; /* C */
+
+Výpočet je založený na pozorování, že pro sudý exponent ⟦k⟧
+platí ⟦nᵏ = n²ˡ = (n²)ˡ⟧ kde ⟦l = k/2⟧. Za cenu výpočtu
+jedné druhé mocniny – ⟦n²⟧ – tak můžeme exponent snížit na
+polovinu (cyklus se provede právě tolikrát, kolik bitů je v
+zápisu hodnoty ‹exp›). 
+
+        while ( exp > 1 ) /* C */
+        {
+Musíme ovšem ještě vyřešit situaci, kdy je exponent
+lichý. Zde je potřebný vztah trochu složitější: ⟦nᵏ =
+n⋅(n²ˡ)⟧ pro ⟦l = ⌊k/2⌋⟧. V rekurzivním zápisu bychom
+mohli tento vztah přímo použít, v tom iterativním ale
+nastane drobný problém: faktor ⟦n⟧ před závorkou
+«nevstupuje» do výpočtu druhé mocniny v další iteraci.
+Asi nejjednodušším řešením je použití pomocného střadače,
+který bude udržovat tyto „přebývající“ faktory. Je-li
+‹exp› liché, přinásobíme tedy faktor ‹n› do proměnné
+‹odd›. Na konci ovšem nesmíme zapomenout, že ve výsledném
+‹n› tyto faktory chybí. 
+
+            if ( exp % 2 == 1 ) /* C */
+                odd *= n;
+
+Dále je výpočet pro sudé i liché exponenty stejný:
+hodnotu proměnné ‹n› umocníme na druhou a exponent
+vydělíme dvěma. 
+
+            n *= n; /* C */
+            exp /= 2;
+        }
+
+Na závěr si vzpomeneme, že některé faktory celkového výsledku
+jsme si „odložili“ do proměnné ‹odd›. 
+
+        return n * odd; /* C */
+
+Pro ilustraci uvažme výpočet ⟦3¹⁰⟧:
+
+ │ iterace │                     ‹n› │ ‹exp› │ ‹odd› │
+ ├─────────│─────────────────────────│───────│───────┤
+ │      0. │                       3 │    10 │     1 │
+ │      1. │                     3⋅3 │     5 │     1 │
+ │      2. │             (3⋅3)⋅(3⋅3) │     2 │   3⋅3 │
+ │      3. │ (3⋅3)⋅(3⋅3)⋅(3⋅3)⋅(3⋅3) │     1 │   3⋅3 │
+
+V proměnné ‹n› jsme sesbírali 8 faktorů, zatímco proměnná
+‹odd› získala 2, celkem jich je tedy potřebných 10.
+Rekurzivní výpočet by naproti tomu dopadl takto:
+
+   ⟦ (3⋅(3⋅3)⋅(3⋅3)) ⋅ (3⋅(3⋅3)⋅(3⋅3)) ⟧
+
+Uvažme ještě výpočet ⟦3¹¹⟧. Je zejména důležité si uvědomit,
+že faktor, který na daném řádku přidáváme do ‹odd› (je-li
+‹exp› na předchozím řádku liché) je právě hodnota ‹n›
+z tohoto předchozího řádku.
+
+ │ iterace │                     ‹n› │ ‹exp› │   ‹odd› │
+ ├─────────│─────────────────────────│───────│─────────┤
+ │      0. │                       3 │    11 │       1 │
+ │      1. │                     3⋅3 │     5 │       3 │
+ │      2. │             (3⋅3)⋅(3⋅3) │     2 │ 3⋅(3⋅3) │
+ │      3. │ (3⋅3)⋅(3⋅3)⋅(3⋅3)⋅(3⋅3) │     1 │ 3⋅(3⋅3) │
+
+Stejný výpočet rekurzivně:
+
+   ⟦ 3 ⋅ (3⋅(3⋅3)⋅(3⋅3)) ⋅ (3⋅(3⋅3)⋅(3⋅3)) ⟧
+
+    } /* C */
+
+Tím se dostáváme k poslední části: samotnému výpočtu celočíselné
+odmocniny. Budeme ji opět definovat jako největší ⟦s⟧ takové, že
+⟦sⁿ ≤ k⟧. 
+
+    auto int_nth_root( auto n, auto k ) /* C */
+    {
+Pro jednoduchost budeme uvažovat pouze odmocniny nezáporných
+čísel. 
+
+        assert( k >= 0 ); /* C */
+        assert( n >= 1 );
+
+Jednoduché případy vyřešíme zvlášť, protože by nám v obecném
+výpočtu níže působily určité potíže. 
+
+        if ( n == 1 || k == 0 ) /* C */
+            return k;
+
+Na podrobný popis Newtonovy-Raphsonovy metody (známé též jako
+metoda tečen) zde nemáme prostor: možná ji znáte z kurzu
+matematické analýzy, případně si ji můžete vyhledat např. na
+wikipedii. Pro nás jsou klíčové její základní vlastnosti:
+
+ 1. metoda nám umožní «rychle» nalézt ⟦x⟧ takové, že pro
+    zadané ⟦f⟧ platí ⟦f(x) = 0⟧,
+ 2. potřebujeme k tomu samozřejmě definici ⟦f⟧,
+ 3. dále její první derivaci ⟦f'⟧
+ 4. a počáteční odhad hledané hodnoty ⟦x₀⟧.
+
+Výpočet opakovaně zlepšuje aktuální odhad ⟦x⟧, a to pomocí
+vzorce:
+
+  ⟦ xᵢ₊₁ = xᵢ - f(xᵢ)/f'(xᵢ) ⟧
+
+Vyvstává otázka, jak nám hledání nuly pomůže ve výpočtu
+odmocniny. K tomu musíme problém přeformulovat. Uvažme
+
+  ⟦ f(s) = sⁿ - k ⟧
+
+Je-li ⟦f(s) = 0⟧, pak jistě ⟦sⁿ = k⟧, což je ale přesně
+definice ⟦n⟧-té odmocniny (prozatím té reálné). Potřebujeme
+ještě derivaci, která je naštěstí velmi jednoduchá:
+
+  ⟦ f'(s) = n⋅sⁿ⁻¹ ⟧
+
+protože ⟦n⟧ je celočíselná konstanta (pro ⟦n = 1⟧ bychom
+ovšem narazili na problém). Celkem tedy:
+
+  ⟦ sᵢ₊₁ = sᵢ - (sᵢⁿ - k) / (n⋅sᵢⁿ⁻¹) ⟧
+
+Nebo výhodněji (přechodem na společný jmenovatel a krácením
+mocnin ⟦sᵢ⟧):
+
+  ⟦ sᵢ₊₁ = tᵢ / n
+    tᵢ   = (n - 1)⋅sᵢ + k/sⁿ⁻¹ ⟧
+
+Zbývá počáteční odhad, který potřebujeme spočítat rychle (a
+samozřejmě potřebujeme, aby byl co nejblíže výsledné hodnotě
+⟦s⟧). Využijeme k tomu dříve definovaný dvojkový logaritmus.
+Protože ⟦\log(aᵇ) = b⋅\log(a)⟧, můžeme hledanou odmocninu
+odhadnout jako ⟦2ˡ⁺¹⟧ pro ⟦l = ⌊\log₂(k) / n⌋⟧. Také si
+všimneme, že tento odhad leží na stejné straně jediného
+stacionárního bodu funkce ⟦f⟧ (totiž ⟦s = 0⟧) jako skutečné
+řešení. Nemůže se nám tedy stát, že by výpočet divergoval. 
+
+        decltype( k ) base = 2; /* C */
+        auto s = base << ( int_log2( k ) / n );
+
+Samotná iterace je po zdlouhavé přípravě už velmi jednoduchá.
+Zbývají nám k vyřešení dva (související) problémy: kdy
+iteraci ukončit a jak výpočet provést nad celými čísly.
+Protože ⟦k > 0⟧, je funkce ⟦f⟧ v kritické oblasti «konvexní»
+(tečny leží pod grafem). Po první iteraci bude náš odhad tedy
+celkem jistě příliš velký – průsečík tečny s osou ⟦x⟧ najdeme
+vpravo od skutečné nuly – a tato situace se už nezmění.
+
+V tuto chvíli ale do hry vstupuje skutečnost, že pracujeme
+s celými a nikoliv reálnými čísly. Výpočet jsme uspořádali
+tak, aby byl výpočet průsečíku přesný – konkrétně je
+výsledkem výpočtu dolní celá část jeho reálné hodnoty. Tato
+dolní celá část sice může být menší, než skutečná hodnota
+reálné odmocniny, nemůže ale být menší než námi definovaná
+«celočíselná» odmocnina.
+
+Tato pozorování nám konečně umožní formulovat podmínku
+ukončení: najdeme-li skutečnou celočíselnou odmocninu, další
+odhad může být buď «stejný nebo větší» než ten předchozí.
+Tato situace zároveň «nemůže» nastat dříve:
+
+ 1. z konvexnosti plyne, že odhad, který je příliš velký, se
+    musí ke skutečnému výsledku provedením iterace přiblížit,
+ 2. protože předchozí vypočtený odhad je vždy celé číslo, musí
+    sebemenší posun na reálné ose směrem doleva vést ke snížení
+    jeho «dolní celé části» alespoň o jedničku.
+
+Celkově tedy cyklus skončí přesně ve chvíli, kdy začne platit
+⟦sⁿ ≤ k⟧. 
+
+        while ( true ) /* C */
+        {
+            const auto t = ( n - 1 ) * s + k / int_pow( s, n - 1 );
+            const auto s_next = t / n;
+
+            if ( s_next >= s ) /* C */
+                return s;
+            else
+                s = s_next;
+        }
+    }
+
+    int main() /* demo */ /* C */
+    {
+        assert( int_log2( 1 ) == 0 );
+        assert( int_log2( 2 ) == 1 );
+
+        assert( int_pow( 2, 2 ) == 4 ); /* C */
+
+        assert( int_nth_root( 1, 2 ) == 2 ); /* C */
+        assert( int_nth_root( 2, 4 ) == 2 );
+        assert( int_nth_root( 3, 8 ) == 2 );
+
+        for ( int k = 0; k < 1000; ++k ) /* C */
+            for ( int n = 1; n < 20; ++n )
+            {
+                auto root = int_nth_root( n, k );
+                assert( int_pow( root, n ) <= k );
+                assert( int_pow( root + 1, n ) > k );
+            }
+
+        return 0; /* C */
+    }
+
+¹ Popis algoritmu na české wikipedii je v době psaní tohoto textu
+  zcela nepoužitelný. Podívejte se raději do té anglické. 
+
+## e. Elementární příklady
+
+
+### 1. [‹factorial›]
+
+Vypočtěte faktoriál zadaného nezáporného čísla. 
+
+    int factorial( int n ); /* C */
+
+
+### 2. [‹concat›]
+
+Najděte a vraťte číslo, které vznikne zapsáním (nezáporných)
+celých čísel ‹a›, ‹b› v binárním zápisu za sebe (zápis čísla ‹a›
+bude vlevo, zápis čísla ‹b› vpravo a bude doplněn levostrannými
+nulami na délku ‹b_bits› bitů). Je-li zápis čísla ‹b› delší než
+‹b_bits›, výsledek není definován.
+
+Příklad: ‹concat( 1, 1, 2 )› vrátí hodnotu ‹0b101 = 5›. 
+
+    std::uint64_t concat( std::uint64_t a, /* C */
+                          std::uint64_t b, int b_bits );
+
+
+### 3. [‹zeros›]
+
+Zapišme nezáporné číslo ‹n› v soustavě o základu ‹base›. Určete
+kolik (nelevostranných) nul se v tomto zápisu objeví. Do
+výstupního parametru ‹order› uložte řád nejvyšší z nich. Není-li
+v zápisu nula žádná, hodnotu ‹order› nijak neměňte. 
+
+    int zeros( int n, int base, int &order ); /* C */
+
+
+### 4. [‹normalize›]
+
+Write a function to normalize a fraction, that is, find the
+greatest common divisor of the numerator and denominator and
+divide it out. Both numbers are given as in/out parameters. 
+
+    // void normalize( … ) /* C */
+
+
+## p. Přípravy
+
+
+### 1. [‹nhamming›]
+
+Nezáporná čísla ‹a›, ‹b› zapíšeme v poziční soustavě o základu
+‹base›. Spočtěte hammingovu vzdálenost těchto dvou zápisů (přitom
+zápis kratšího čísla podle potřeby doplníme levostrannými
+nulami). 
+
+    int hamming( int a, int b, int base ); /* C */
+
+
+### 2. [‹digitsum›]
+
+Funkce ‹digit_sum› sečte cifry nezáporného čísla ‹num› v zápisu
+o základu ‹base›. Je-li výsledek ve stejném zápisu víceciferný,
+sečte cifry tohoto výsledku, atd., až je výsledkem jediná cifra,
+kterou vrátí jako svůj výsledek. 
+
+    int digit_sum( int num, int base ); /* C */
+
+
+### 3. [‹parity›]
+
+Funkce ‹parity› zjistí, je-li počet jedniček na vstupu sudý
+(výsledkem je ‹false›) nebo lichý (výsledkem je ‹true›).
+
+Jedničky počítáme v binárním zápisu vstupního bezznaménkového
+čísla ‹word›. Je-li navíc ‹chksum› na začátku ‹true›, počítá se
+jako další jednička.  Celkový výsledek jednak uložte do parametru
+‹chksum›, jednak ho vraťte jako návratovou hodnotu. 
+
+    bool parity( auto word, bool &chksum ); /* C */
+
+
+### 4. [‹periodic›]
+
+Najděte nejmenší nezáporné číslo ⟦n⟧ takové, že 64-bitový zápis
+čísla ‹word› lze získat zřetězením nějakého počtu binárně
+zapsaných kopií ⟦n⟧. Protože potřebný zápis ⟦n⟧ může obsahovat
+levostranné nuly, do výstupního parametru ‹length› uložte jeho
+délku v bitech. Je-li možné ‹word› sestavit z různě dlouhých
+zápisů nějakého ⟦n⟧, vyberte ten nejkratší možný.
+
+Příklad: pro ‹word = 0x100000001› bude hledané ⟦n = 1⟧, protože
+‹word› lze zapsat jako dvě kopie čísla 1 zapsaného do 32 bitů. 
+
+    std::uint64_t periodic( std::uint64_t word, int &length ); /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹balanced›]
+
+V této úloze budeme opět počítat ciferný součet, ale v takzvaných
+vyvážených ciferných soustavách, které mají jak záporné tak
+kladné číslice. Budeme uvažovat pouze liché základy symetricky
+rozložené kolem nuly (tzn. trojkovou s číslicemi ⟦-1, 0, 1⟧,
+pětkovou ⟦-2, -1, 0, 1, 2⟧, atd.). Vaším úkolem je napsat
+predikát ‹is_balanced›, který rozhodne, má-li zadané číslo ‹n› ve
+vyvážené soustavě zadané svým základem ‹base› nulový ciferný
+součet.
+
+Výpočet cifer čísla ⟦n⟧ ve vyvážené soustavě o základu ⟦b⟧
+probíhá podobně, jako v té klasické se stejným základem. Nejprve
+si připomeneme klasický algoritmus. Nastavíme ⟦n₀ = n⟧ a
+opakujeme:
+
+ 1. cifru ⟦cᵢ⟧ získáme jako zbytek po dělení ⟦nᵢ⟧ základem ⟦b⟧,
+ 2. spočítáme ⟦nᵢ₊₁⟧ tak, že vydělíme ⟦nᵢ⟧ základem ⟦b⟧,
+ 3. je-li výsledek nenulový, pokračujeme bodem 1, jinak skončíme.
+
+Abychom získali vyvážený zápis místo toho klasického, musíme
+vyřešit situaci, kdy ⟦cᵢ⟧ není povolenou číslicí. Všimneme si, že
+musí po každém kroku platit (přímo z definice použitých operací):
+
+ ⟦ nᵢ = cᵢ + bnᵢ₊₁ ⟧
+
+Tuto rovnost musíme zachovat, ale zároveň potřebujeme, aby ⟦cᵢ⟧
+bylo platnou číslicí. To zajistíme jednoduše tak, že od ⟦cᵢ⟧
+odečteme ⟦b⟧ a přičteme místo toho jedničku k ⟦nᵢ₊₁⟧ (tím se
+součet jistě nezmění, protože jsme jedno ⟦b⟧ ubrali a jedno
+přidali). 
+
+    bool is_balanced( int n, int base ); /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 6. [‹subsetsum›]
+
+Vstupem pro problém «subset sum» je množina povolených čísel ⟦A⟧
+a hledaný součet ⟦n⟧. Řešením je pak podmnožina ⟦B ⊆ A⟧ taková,
+že součet jejích prvků je právě ⟦n⟧.
+
+V tomto příkladu budeme pracovat pouze s množinami ⟦A⟧, které
+obsahují kladná čísla menší nebo rovna 64, a které lze tedy
+reprezentovat jediným bezznaménkovým číslem z rozsahu ⟦0⟧
+(prázdná množina) až ⟦2⁶⁴ - 1⟧ (obsahuje všechna čísla ⟦1, 2, …,
+64⟧). Číslo ⟦1⟧ pak reprezentuje množinu ⟦{1}⟧, číslo ⟦2⟧ množinu
+⟦{2}⟧, číslo ⟦3⟧ množinu ⟦{1, 2}⟧ atd.
+
+Vašim úkolem je napsat funkci ‹subset_sum›, které výsledkem bude
+‹true›, má-li zadaná instance řešení. Toto řešení zároveň zapíše
+do výstupního parametru. V případě, že řešení neexistuje, hodnotu
+‹solution› nijak neměňte. 
+
+    bool subset_sum( int n, std::uint64_t allowed, /* C */
+                     std::uint64_t &solution );
+
+
+## r. Řešené úlohy
+
+
+### 1. [‹bitwise›]
+
+Předmětem této úlohy jsou «ternární» bitové operace: vstupem jsou
+3 čísla a kód operace. Každý bit výsledku je určen příslušnými
+3 bity operandů. Tyto 3 vstupní bity lze chápat jako pravdivostní
+hodnoty – potom je celkem jasné, že operaci můžeme zadat
+klasickou pravdivostní tabulkou, která pro každou kombinaci
+3 bitů určí výsledek. Mohla by vypadat např. takto:
+
+ │ a │ b │ c │ výsledek │
+ ├───┼───┼───│──────────┤
+ │ 0 │ 0 │ 0 │   ⟦r₀⟧   │
+ │ 0 │ 0 │ 1 │   ⟦r₁⟧   │
+ │ 0 │ 1 │ 0 │   ⟦r₂⟧   │
+ │ 0 │ 1 │ 1 │   ⟦r₃⟧   │
+ │ 1 │ 0 │ 0 │   ⟦r₄⟧   │
+ │ 1 │ 0 │ 1 │   ⟦r₅⟧   │
+ │ 1 │ 1 │ 0 │   ⟦r₆⟧   │
+ │ 1 │ 1 │ 1 │   ⟦r₇⟧   │
+
+Snadno se nahlédne, že zafixujeme-li tuto tabulku a zadáme
+hodnoty ⟦r₀⟧ až ⟦r₇⟧, kýžená operace bude jednoznačně určena.
+Protože potřebujeme 8 pravdivostních hodnot, můžeme je například
+předat jako jednobajtovou hodnotu typu ‹std::uint8_t›. Hodnotu
+⟦r₀⟧ předáme v nejnižším a ⟦r₇⟧ v nejvyšším bitu.
+
+Operace musí fungovat pro libovolný bezznaménkový celočíselný
+typ. Můžete předpokládat, že hodnoty ‹a›, ‹b›, ‹c› jsou stejných
+typů (ale také se můžete zamyslet, jak řešit situaci, kdy stejné
+nejsou). 
+
+    auto bitwise( std::uint8_t opcode, auto a, auto b, auto c ); /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 2. [‹euler›]
+
+This is a straightforward math exercise. Implement Euler's [φ],
+for instance using the product formula ⟦φ(n) = nΠ(1 - 1/p)⟧ where
+the product is over all distinct prime divisors of n. You may
+need to take care to compute the result exactly. 
+
+    long phi( long n ); /* ref: 21 lines */ /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 3. [‹hamcode›]
+
+V této úloze budeme programovat dekodér pro kód Hamming(8, 4) –
+jedná se o variaci běžnějšího Hamming(7, 4) s dodatečným paritním
+bitem.
+
+Vstupní blok je zadán osmibitovým číslem bez znaménka:
+
+  ┌────┬────┬────┬────┬────┬────┬────┬────┐
+  │ p₀ │ p₁ │ p₂ │ d₁ │ p₃ │ d₂ │ d₃ │ d₄ │
+  └────┴────┴────┴────┴────┴────┴────┴────┘
+    7    6    5    4    3    2    1    0
+
+Blok je správně utvořený, platí-li tyto vztahy:
+
+  ⟦ p₁ = P(d₁, d₂, d₄)
+    p₂ = P(d₁, d₃, d₄)
+    p₃ = P(d₂, d₃, d₄)
+    p₀ = P(p₁, p₂, p₃, d₁, d₂, d₃, d₄) ⟧
+
+kde ⟦P⟧ značí «paritu». Graficky (zvýrazněný bit je paritním pro
+vyznačené bity):
+
+  ┌───┬───┬───┬───┬───┬───┬───┬───┐
+  │▒▒▒│░░░│░░░│░░░│░░░│░░░│░░░│░░░│
+  └───┴───┴───┴───┴───┴───┴───┴───┘
+  ┌───┬───┬───┬───┬───┬───┬───┬───┐
+  │   │▒▒▒│   │░░░│   │░░░│   │░░░│
+  └───┴───┴───┴───┴───┴───┴───┴───┘
+  ┌───┬───┬───┬───┬───┬───┬───┬───┐
+  │   │   │▒▒▒│░░░│   │   │░░░│░░░│
+  └───┴───┴───┴───┴───┴───┴───┴───┘
+  ┌───┬───┬───┬───┬───┬───┬───┬───┐
+  │   │   │   │   │▒▒▒│░░░│░░░│░░░│
+  └───┴───┴───┴───┴───┴───┴───┴───┘
+
+Rozmyslete si, jaký mají uvedené vztahy dopad na paritu «celých»
+označených oblastí. Poté napište funkci ‹h84_decode›, která na
+vstupu dostane jeden blok, ověří správnost paritních bitů, a
+je-li vše v pořádku, vrátí ‹true› a do výstupního parametru ‹out›
+zapíše dekódovanou půlslabiku (d₄ v nejnižším bitu). Jinak vrátí
+‹false› a hodnotu ‹out› nemění. 
+
+    bool h84_decode( std::uint8_t data, std::uint8_t &out ); /* C */
+
+
+┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+
+
+### 5. [‹cellular›]
+
+Napište čistou funkci, která simuluje jeden krok výpočtu
+jednorozměrného buněčného automatu (cellular automaton). Stav
+budeme reprezentovat celým číslem bez znaménka – jednotlivé buňky
+budou bity tohoto čísla. Stav osmibitového automatu by mohl
+vypadat například takto:
+
+  ┌───┬───┬───┬───┬───┬───┬───┬───┐
+  │ 0 │ 1 │ 1 │ 0 │ 1 │ 0 │ 0 │ 1 │
+  └───┴───┴───┴───┴───┴───┴───┴───┘
+    7   6   5   4   3   2   1   0
+
+Pro zjednodušení použijeme pevnou sadu pravidel (+1, 0, -1 jsou
+relativní pozice bitů vůči tomu, který právě počítáme):
+
+ │ +1 │  0 │ -1 │ nová │
+ ├────┼────┼────│──────┤
+ │  0 │  0 │  0 │    1 │
+ │  0 │  0 │  1 │    0 │
+ │  0 │  1 │  0 │    0 │
+ │  0 │  1 │  1 │    0 │
+ │  1 │  0 │  0 │    1 │
+ │  1 │  0 │  1 │    0 │
+ │  1 │  1 │  0 │    1 │
+ │  1 │  1 │  1 │    0 │
+
+Pravidla určují, jakou hodnotu bude mít buňka v následujícím
+stavu, v závislosti na okolních buňkách stavu nynějšího. Na
+krajích stavu interpretujeme chybějící políčko jako nulu.
+
+Výpočet s touto sadou pravidel tedy funguje takto:
+
+    ┌───┬───┬───┬───┬───┬───┬───┬───┐
+    │░0░│░1░│ 1 │ 0 │ 0 │ 0 │ 1 │ 0 │
+ 1  ├───┼───┼───┼───┼───┼───┼───┼───┤  001 → 0
+    │░0░│   │   │   │   │   │   │   │
+    └───┴───┴───┴───┴───┴───┴───┴───┘
+    ┌───┬───┬───┬───┬───┬───┬───┬───┐
+    │░0░│░1░│░1░│ 0 │ 0 │ 0 │ 1 │ 0 │
+ 2  ├───┼───┼───┼───┼───┼───┼───┼───┤  011 → 0
+    │ 0 │░0░│   │   │   │   │   │   │
+    └───┴───┴───┴───┴───┴───┴───┴───┘
+    ┌───┬───┬───┬───┬───┬───┬───┬───┐
+    │ 0 │░1░│░1░│░0░│ 0 │ 0 │ 1 │ 0 │
+ 3  ├───┼───┼───┼───┼───┼───┼───┼───┤  110 → 1
+    │ 0 │ 0 │░1░│   │   │   │   │   │
+    └───┴───┴───┴───┴───┴───┴───┴───┘
+
+atd.
+
+    ┌───┬───┬───┬───┬───┬───┬───┬───┐
+    │ 0 │ 1 │ 1 │ 0 │ 0 │░0░│░1░│░0░│
+ 7  ├───┼───┼───┼───┼───┼───┼───┼───┤  010 → 0
+    │ 0 │ 0 │ 1 │ 1 │ 1 │ 0 │░0░│   │
+    └───┴───┴───┴───┴───┴───┴───┴───┘
+    ┌───┬───┬───┬───┬───┬───┬───┬───┐
+    │ 0 │ 1 │ 1 │ 0 │ 0 │ 0 │░1░│░0░│
+ 8  ├───┼───┼───┼───┼───┼───┼───┼───┤  100 → 1
+    │ 0 │ 0 │ 1 │ 1 │ 1 │ 0 │ 0 │░1░│
+    └───┴───┴───┴───┴───┴───┴───┴───┘
+
+Výpočet kroku by mělo být možné provést na libovolně širokém
+celočíselném typu. 
+
+    auto cellular_step( auto w ); /* C */
+

@@ -1,0 +1,15 @@
+# Součtové typy
+
+Přípravy:¹
+
+ 1. ‹bounds›  – intervaly platných hodnot,
+ 2. ‹arary›   – dvourozměrné pole se speciálními řádky,
+ 3. ‹intmap›  – složené zobrazení celočíselných polí,
+ 4. ‹program› – reprezentace jednoduchého programu,
+ 5. ‹eval›    – vyhodnocení výrazu zadaného stromem,
+ 6. ‹anyarr›  – dynamické pole hodnot libovolného typu.
+
+Rozšířené úlohy: TBD
+
+¹ Tato kapitola neobsahuje ukázky ani elementární příklady –
+  potřebné informace naleznete v přednášce.

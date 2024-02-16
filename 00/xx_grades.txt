@@ -1,0 +1,20 @@
+Výsledná známka závisí na celkovém součtu bodů (splníte-li
+potřebných 4×60 bodů, automaticky získáte známku alespoň E). Hodnota
+ve sloupci „předběžné minimum“ danou známku zaručuje – na konci
+semestru se hranice ještě mohou posunout směrem dolů tak, aby
+výsledná stupnice přibližně odpovídala očekávané distribuci dle
+ECTS.²
+
+│ známka  │ předběžné minimum │ po vyhodnocení semestru │
+├─────────│───────────────────│─────────────────────────┤
+│    A    │               420 │      90. percentil + 75 │
+│    B    │               360 │      65. percentil + 75 │
+│    C    │               310 │      35. percentil + 75 │
+│    D    │               270 │      10. percentil + 75 │
+│    E    │               240 │                     240 │
+
+² Percentil budeme počítat z bodů v semestru (první tři bloky)
+  a bude brát do úvahy všechny studenty, bez ohledu na ukončení,
+  kteří splnili tyto tři bloky (tzn. mají potřebné minimum 3×60
+  bodů).
+

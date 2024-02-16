@@ -1,0 +1,9 @@
+#define foo
+#include "zz.include.txt"
+#ifdef foo
+foo
+#endif
+#undef foo
+#ifdef foo
+bar
+#endif

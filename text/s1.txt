@@ -1,0 +1,365 @@
+
+# S.1. Funkce a hodnoty
+
+Tato sada obsahuje příklady zaměřené na zápis jednoduchých
+podprogramů (zejména čistých funkcí) a na práci s hodnotami (jak
+skalárními, tak složenými).
+
+ 1. ‹a_queens›   – problém osmi dam,
+ 2. ‹b_city›     – panorama města,
+ 3. ‹c_magic›    – doplnění magického čtverce,
+ 4. ‹d_reversi›  – třírozměrná verze hry Reversi,
+ 5. ‹e_cellular› – celulární automat na kružnici,
+ 6. ‹f_natural›  – přirozená čísla se sčítáním a násobením.
+
+Úlohu ‹a› byste měli zvládnout vyřešit hned po první přednášce.
+Příklady ‹b›, ‹c› vyžadují znalosti nejvýše z druhé přednášky,
+příklad ‹d› si vystačí s třetí přednáškou a konečně při řešení
+příkladů ‹e›, ‹f› můžete potřebovat i základní znalosti z přednášky
+čtvrté.
+
+«Pozor!» Řešení některých příkladů z této sady může být potřebné pro
+vyřešení příkladů v sadách pozdějších. Doporučujeme prolistovat si i
+zadání pozdějších sad.
+
+
+## a. ‹queens›
+
+V této úloze budete programovat řešení tzv. problému osmi
+královen (osmi dam). Vaše řešení bude predikát, kterého vstupem
+bude jediné 64-bitové bezznaménkové číslo (použijeme typ
+‹uint64_t›), které popisuje vstupní stav šachovnice: šachovnice
+8×8 má právě 64 polí, a pro reprezentaci každého pole nám stačí
+jediný bit, který určí, je-li na tomto políčku umístěna královna.
+
+Políčka šachovnice jsou uspořádána počínaje levým horním rohem
+(nejvyšší, tedy 64. bit) a postupují zleva doprava (druhé pole
+prvního řádku je uloženo v 63. bitu, tj. druhém nejvyšším) po
+řádcích zleva doprava (první pole druhého řádku je 56. bit),
+atd., až po nejnižší (první) bit, který reprezentuje pravý dolní
+roh.
+
+Predikát nechť je pravdivý právě tehdy, není-li žádná královna na
+šachovnici ohrožena jinou. Program musí pracovat správně i pro
+případy, kdy je na šachovnici jiný počet královen než 8.
+Očekávaná složitost je v řádu 64² operací – totiž O(n²) kde ⟦n⟧
+představuje počet políček.
+
+Poznámka: preferované řešení používá pro manipulaci se šachovnicí
+pouze bitové operace a zejména nepoužívá standardní kontejnery.
+Řešení, které bude nevhodně používat kontejnery (spadá sem např.
+jakékoliv použití ‹std::vector›) nemůže získat známku A. 
+
+    bool queens( std::uint64_t board ); /* C */
+
+
+## b. ‹city›
+
+V tomto úkolu budeme pracovat s dvourozměrnou „mapou města“,
+kterou reprezentujeme jako čtvercovou síť. Na každém políčku
+může stát budova (tvaru kvádru), která má barvu a celočíselnou
+výšku (budova výšky 1 má tvar krychle). Pro práci s mapou si
+zavedeme:
+
+ • typ ‹building›, který reprezentuje budovu,
+ • typ ‹coordinates›, který určuje pozici budovy a nakonec
+ • typ ‹city›, který reprezentuje mapu jako celek.
+
+Jihozápadní (levý dolní) roh mapy má souřadnice ⟦(0, 0)⟧, ⟦x⟧-ová
+souřadnice roste směrem na východ, ⟦y⟧-ová směrem na sever. 
+
+    struct building /* C */
+    {
+        int height;
+        int colour;
+    };
+
+    using coordinates = std::tuple< int, int >; /* C */
+    using city = std::map< coordinates, building >;
+
+Nejsou-li nějaké souřadnice v mapě přítomny, znamená to, že na
+tomto místě žádná budova nestojí.
+
+Vaším úkolem je podle zadané mapy spočítat pravoúhlý boční pohled
+na město (panorama), které vznikne při pohledu z jihu, a které
+bude popsáno typy:
+
+ • ‹column›, který reprezentuje jeden sloupec a pro každou
+   viditelnou jednotkovou krychli obsahuje jedno číslo, které
+   odpovídá barvě této krychle,
+ • ‹skyline›, které obsahuje pro každou ‹x›-ovou souřadnici mapy
+   jednu hodnotu typu ‹column›, kde index příslušného sloupce
+   odpovídá jeho ‹x›-ové souřadnici. 
+
+    using column = std::vector< int >; /* C */
+    using skyline = std::vector< column >;
+
+Vstup a odpovídající výstup si můžete představit např. takto:
+
+                                  ┌───┐
+                                  │░░░│ 4
+                                  ├───┤
+                                  │░░░│ 3
+  ┌───┬───┬───┬───┐   ┌───┬───┐   ├───┤
+  │░1░│░3░│   │░5░│   │▒▒▒│░░░│   │░░░│ 2
+  ├───┼───┼───┼───┤   ├───┼───┤   ├───┤
+  │   │ 2 │   │   │   │▒▒▒│   │   │░░░│ 1
+  ├───┼───┼───┼───┤   ├───┼───┤   ├───┤
+  │▒3▒│▒1▒│   │   │   │▒▒▒│▒▒▒│   │░░░│ 0
+  └───┴───┴───┴───┘   └───┴───┴───┴───┘
+                        0   1   2   3
+
+Napište čistou funkci ‹compute_skyline› která výpočet provede.
+Počet prvků každého sloupce musí být právě výška nejvyšší budovy
+s danou ⟦x⟧-ovou souřadnicí. 
+
+    skyline compute_skyline( const city & ); /* C */
+
+
+## c. ‹magic›
+
+Magický čtverec je čtvercová síť o rozměru ⟦n × n⟧, kde
+
+ 1. každé políčko obsahuje jedno z čísel ⟦1⟧ až ⟦n²⟧ (a to tak,
+    že se žádné z nich neopakuje), a
+ 2. má tzv. «magickou vlastnost»: součet každého sloupce, řádku a
+    obou diagonál je stejný. Tomuto součtu říkáme „magická
+    konstanta“.
+
+Částečný čtverec je takový, ve kterém mohou (ale nemusí) být
+některá pole prázdná. Vyřešením částečného čtverce pak myslíme
+doplnění případných prázdných míst ve čtvercové síti tak, aby měl
+výsledný čtverec obě výše uvedené vlastnosti. Může se samozřejmě
+stát, že síť takto doplnit nelze. 
+
+    using magic = std::vector< std::int16_t >; /* C */
+
+Vaším úkolem je naprogramovat backtrackující solver, který
+čtverec doplní (je-li to možné), nebo rozhodne, že takové
+doplnění možné není.
+
+Napište podprogram ‹magic_solve›, o kterém platí:
+
+ • návratová hodnota (typu ‹bool›) indikuje, bylo-li možné
+   vstupní čtverec doplnit,
+ • parametr ‹in› specifikuje částečný čtverec, ve kterém jsou
+   prázdná pole reprezentována hodnotou 0, a který je
+   uspořádaný po řádcích a na indexu 0 je levý horní roh,
+ • je-li výsledkem hodnota ‹true›, zapíše zároveň doplněný
+   čtverec do výstupního parametru ‹out› (v opačném případě
+   parametr ‹out› nezmění),
+ • vstupní podmínkou je, že velikost vektoru ‹in› je druhou
+   mocninou, ale o stavu předaného vektoru ‹out› nic předpokládat
+   nesmíte.
+
+Složitost výpočtu může být až exponenciální vůči počtu prázdných
+polí, ale solver nesmí prohledávat stavy, o kterých lze v čase
+⟦O(n²)⟧ rozhodnout, že je doplnit nelze. Prázdná pole vyplňujte
+počínaje levým horním rohem po řádcích (alternativou je zajistit,
+že výpočet v jiném pořadí nebude výrazně pomalejší). 
+
+    bool magic_solve( const magic &in, magic &out ); /* C */
+
+
+## d. ‹reversi›
+
+Předmětem tohoto úkolu je hra Reversi (známá také jako Othello),
+avšak ve třírozměrné verzi. Hra se tedy odehrává v kvádru, který
+se skládá ze sudého počtu polí (krychlí) v každém ze tří
+základních směrů (podle os ⟦x⟧, ⟦y⟧ a ⟦z⟧). Dvě taková pole můžou
+sousedit stěnou (6 směrů), hranou (12 směrů) nebo jediným
+vrcholem (8 směrů). Pole může být prázdné, nebo může obsahovat
+černý nebo bílý hrací kámen.
+
+Hru hrají dva hráči (černý a bílý, podle barvy kamenů, které jim
+patří) a pravidla hry jsou přímočarým rozšířením těch klasických
+dvourozměrných:
+
+ • každý hráč má na začátku 4 kameny, rozmístěné kolem
+   prostředního bodu kvádru (jedná se tedy o 8 polí, které
+   tento bod sdílí), a to tak, že žádná dvě obsazená pole
+   stejné barvy nesdílí stěnu, přičemž pole s nejmenšími
+   souřadnicemi ve všech směrech obsahuje bílý kámen,
+ • hráči střídavě pokládají nový kámen do volného pole; je-li na
+   tahu bílý hráč, pokládá bílý kámen do pole, které musí být
+   nepřerušeně spojeno¹ černými kameny s alespoň jedním
+   stávajícím bílým kamenem (černý hráč hraje analogicky),
+ • po položení nového kamene se barva všech kamenů, které leží
+   na libovolné takové spojnici, změní na opačnou (tzn. přebarví
+   se na barvu právě položeného kamene).
+
+Začíná bílý hráč. Hra končí, není-li možné položit nový kámen
+(ani jedné barvy). Vyhrává hráč s více kameny na ploše. 
+
+    struct reversi /* C */
+    {
+Metoda ‹start› začne novou hru na ploše zadané velikosti.
+Případná rozehraná partie je tímto voláním zapomenuta. Po
+volání ‹start› je na tahu bílý hráč. 
+
+        void start( int x_size, int y_size, int z_size ); /* C */
+
+Metoda ‹size› vrátí aktuální velikost hrací plochy. 
+
+        std::tuple< int, int, int > size() const; /* C */
+
+Metoda ‹play› položí kámen na souřadnice zadané parametrem.
+Barva kamene je určena tím, který hráč je právě na tahu.
+Byl-li tah přípustný, metoda vrátí ‹true› a další volání
+položí kámen opačné barvy. V opačném případě se hrací plocha
+nezmění a stávající hráč musí provést jiný tah. 
+
+Není určeno, co se má stát v případě, že hra ještě nezačala,
+nebo již skončila (tzn. nebyla zavolána metoda ‹start›, nebo
+by metoda ‹finished› vrátila ‹true›). 
+
+        bool play( int x, int y, int z ); /* C */
+
+Nemůže-li aktivní hráč provést platný tah, zavolá metodu
+‹pass›. Tato vrátí ‹true›, jedná-li se o korektní přeskočení
+tahu (má-li hráč k dispozici jakýkoliv jiný platný tah,
+«musí» nějaký provést – volání ‹pass› v takovém případě vrátí
+‹false› a aktivní hráč se nemění).
+
+Platí stejná omezení na stav hry jako u metody ‹play›. 
+
+        bool pass(); /* C */
+
+Metoda-predikát ‹finished› vrací ‹true› právě tehdy,
+nemůže-li ani jeden z hráčů provést platný tah a hra tedy
+skončila. Výsledek volání není určen pro hru, která dosud
+nezačala (nedošlo k volání metody ‹start›). 
+
+        bool finished() const; /* C */
+
+Metodu ‹result› je povoleno zavolat pouze v případě, že hra
+skončila (tzn. volání ‹finished› by vrátilo ‹true›). Její
+návratovou hodnotou je rozdíl v počtu kamenů mezi bílým a
+černým hráčem – kladné číslo značí výhru bílého hráče,
+záporné výhru černého hráče a nula značí remízu. 
+
+        int result() const; /* C */
+    };
+
+¹ Uvažujme dvojicí polí (krychlí) ⟦A⟧, ⟦B⟧ a úsečku ⟦u⟧, která
+  spojuje jejich středy, a která prochází středem stěny, hrany
+  nebo vrcholem pole ⟦A⟧. Nepřerušeným spojením myslíme všechna
+  pole, které úsečka ⟦u⟧ protíná, vyjma ⟦A⟧ a ⟦B⟧ samotných.
+  Dvojici polí, pro které potřebná úsečka ⟦u⟧ neexistuje, nelze
+  nepřerušeně spojit. 
+
+
+## e. ‹cellular›
+
+Vaším úkolem bude naprogramovat jednoduchý simulátor
+jednorozměrného celulárního automatu. Implementace bude sestávat
+ze dvou struktur, ‹automaton_state› a ‹automaton›, které jsou
+popsané níže. Zadané rozhraní je nutné dodržet. 
+
+Definujte strukturu, ‹automaton_state›, která reprezentuje stav
+automatu definovaného na «kružnici», s buňkami číslovanými po
+směru hodinových ručiček od indexu 0. Stav si můžete představit
+takto:
+
+            ┌───┐
+        ┌───┤ 1 ├───┐
+        │ 1 ├───┤ 0 │
+      ┌─┴─┬─┘ ▲ └─┬─┴─┐
+      │ 0 │   ●   │ 0 │
+      └─┬─┴─┐   ┌─┴─┬─┘
+        │ 1 ├───┤ 1 │
+        └───┤ 1 ├───┘
+            └───┘
+
+Platným indexem je «libovolné celé číslo» – určuje o kolik
+políček od indexu 0 se posuneme (kladná čísla po směru, záporná
+proti směru hodinových ručiček).
+
+Jsou-li ‹s›, ‹t› hodnoty typu ‹automaton_state›, dále ‹i›, ‹n›
+jsou hodnoty typu ‹int› a ‹v› je hodnota typu ‹bool›, tyto
+výrazy musí být dobře utvořené:
+
+ • ‹automaton_state( s )› vytvoří nový stav, který je stejný jako
+   stav ‹s›,
+ • ‹automaton_state( n )› vytvoří nový stav o ‹n› buňkách, které
+   jsou všechny nastaveny na ‹false› (pro ‹n ≤ 0› není
+   definováno),
+ • ‹s.size()› vrátí aktuální počet buněk stavu ‹s›,
+ • ‹s.get( i )› vrátí hodnotu buňky na indexu ‹i›,
+ • ‹s.set( i, v )› nastaví buňku na indexu ‹i› na hodnotu ‹v›,
+ • ‹s.extend( n )› vloží ‹n› nových buněk nastavených na hodnotu
+   ‹false›, a to tak, že nové buňky budou na indexech ⟦-1⟧ až
+   ⟦-n⟧ (je-li ‹n› záporné, chování není definováno),
+ • ‹s.reduce( n )› odstraní ‹n› buněk proti směru hodinových
+   ručiček, počínaje indexem -1 (je-li ‹n ≥ s.size()› nebo je ‹n›
+   záporné, chování není definováno),
+ • ‹t = s› upraví stav ‹t› tak, aby byl stejný jako ‹s›,
+ • ‹t == s› je ‹true› právě když jsou stavy ‹s› a ‹t› stejné,
+ • ‹t != s› je ‹true› právě když se stavy ‹s› a ‹t› liší,
+ • ‹t <= s› se vyhodnotí na ‹true› právě když pro všechny indexy
+   ‹i› platí ‹s.get( i ) || !t.get( i )›,
+ • ‹t < s› se vyhodnotí na ‹true› právě když ‹t <= s && t != s›.
+
+Je-li to možné, výrazy musí pracovat správně i v případech, kdy
+jsou ‹s› a/nebo ‹t› konstantní. Metody ‹size›, ‹get› a ‹set› musí
+pracovat v konstantním čase, vše ostatní v čase nejvýše
+lineárním. 
+
+    struct automaton_state; /* C */
+
+Struktura ‹automaton› reprezentuje samotný automat. Třída si
+udržuje interní stav, na kterém provádí výpočty (tzn. například
+volání metody ‹step()› změní tento interní stav).
+
+Následovné výrazy musí být dobře utvořené (kde ‹a›, ‹b› jsou
+hodnoty typu ‹automaton›, ‹s› je hodnota typu ‹automaton_state›,
+a konečně ‹n› a ‹rule› jsou hodnoty typu ‹int›):
+
+ • ‹automaton( rule, n )› sestrojí automat s ‹n› buňkami
+   nastavenými na ‹false› (chování pro ‹n ≤ 0› není definováno),
+   a s pravidlem ‹rule› zadaným tzv. Wolframovým kódem (chování
+   je definováno pouze pro ‹rule› v rozsahu 0 až 255 včetně),
+ • ‹automaton( rule, s )› sestrojí nový automat a nastaví jeho
+   vnitřní stav tak, aby byl stejný jako ‹s› (význam parametru
+   ‹rule› je stejný jako výše),
+ • ‹a.state()› umožní přístup k internímu stavu, a to tak, že je
+   možné jej měnit, není-li samotné ‹a› konstantní (např.
+   ‹a.state().set( 3, true )› nastaví buňku interního stavu
+   s indexem 3 na hodnotu ‹true›),
+ • ‹a = b› nastaví automat ‹a› tak, aby byl stejný jako automat
+   ‹b› (zejména tedy upraví nastavené pravidlo a vnitřní stav),
+ • ‹a.step()› provede jeden krok výpočtu na vnitřním stavu (jeden
+   krok nastaví všechny buňky vnitřního stavu na další generaci),
+ • ‹a.reset( s )› přepíše vnitřní stav kopií stavu ‹s›.
+
+Hodnoty, které vstupují do výpočtu nové generace buňky podle
+zadaného Wolframova kódu, čteme po směru hodinových ručiček (tzn.
+ve směru rostoucích indexů).
+
+Krok výpočtu musí mít nejvýše lineární (časovou i paměťovou)
+složitost. 
+
+    struct automaton; /* C */
+
+
+## f. ‹natural›
+
+Vaším úkolem je tentokrát naprogramovat strukturu, která bude
+reprezentovat libovolně velké přirozené číslo (včetně nuly). Tyto
+hodnoty musí být možné:
+
+ • sčítat (operátorem ‹+›),
+ • odečítat (‹x - y› je ovšem definováno pouze za předpokladu ‹x ≥ y›),
+ • násobit (operátorem ‹*›),
+ • libovolně srovnávat (operátory ‹==›, ‹!=›, ‹<›, atd.),
+ • mocnit na kladný exponent typu ‹int› metodou ‹power›,
+ • sestrojit z libovolné nezáporné hodnoty typu ‹int›.
+
+Implicitně sestrojená hodnota typu ‹natural› reprezentuje nulu.
+Všechny operace krom násobení musí být nejvýše lineární vůči
+«počtu dvojkových cifer» většího z reprezentovaných čísel.
+Násobení může mít v nejhorším případě složitost přímo úměrnou
+součinu ⟦m⋅n⟧ (kde ⟦m⟧ a ⟦n⟧ jsou počty cifer operandů). 
+
+    struct natural; /* C */
+

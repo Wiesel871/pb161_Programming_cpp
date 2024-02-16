@@ -1,0 +1,10 @@
+#ifdef foo
+included foo
+#endif
+included bar
+#ifdef foo
+xoo
+#ifdef baz
+included baz
+#endif
+#endif

@@ -1,0 +1,113 @@
+# Hodnoty a funkce
+
+Vítejte v PB161. Než budete pokračovat, přečtěte si prosím
+kapitolu A (složku ‹00› ve zdrojovém balíku). Podrobnější informace
+jak se soubory v této složce pracovat naleznete v souboru
+‹00/t3_sources.txt›, resp. v sekci T.3.
+
+Cvičení bude tematicky sledovat přednášku z předchozího týdne: první
+kapitola tak odpovídá první přednášce. Tématy pro tento týden jsou
+funkce, řízení toku, skalární hodnoty a reference. Tyto koncepty
+jsou krom přednášky demonstrovány v příkladech typu ‹d› (ukázkách;
+naleznete je také v souborech ‹d?_*.cpp›, např. ‹d1_fibonacci.cpp›).
+
+ 1. ‹fibonacci› – iterativní výpočet Fibonacciho čísel,
+ 2. ‹comb›      – výpočet kombinačního čísla,
+ 3. ‹hamming›   – hammingova vzdálenost dvojkového zápisu,
+ 4. ‹root› †    – výpočet ⟦n⟧-té celočíselné odmocniny.
+
+Ve druhé části každé kapitoly pak naleznete tzv. elementární
+cvičení, která byste měli být schopni relativně rychle vyřešit a
+ověřit si tak, že jste porozuměli konceptům z přednášky a ukázek.
+Tyto příklady naleznete v souborech pojmenovaných ‹e?_*.cpp›. Řešení
+můžete vepsat přímo do nachystaného souboru se zadáním. Základní
+testy jsou součástí zadání.
+
+Vzorová řešení těchto příkladů naleznete v kapitole K (klíč) na
+konci sbírky, resp. ve složce ‹sol› zdrojového balíku. Mějte na
+paměti, že přiložená vzorová řešení nemusí být vždy nejjednodušší
+možná. Také není nutné, aby Vaše řešení přesně odpovídalo tomu
+vzorovému, nebo bylo založeno na stejném principu. Důležité je, aby
+pracovalo správně a dodržovalo požadovanou (resp. adekvátní)
+složitost.
+
+Elementární příklady první kapitoly jsou:
+
+ 1. ‹factorial› – spočtěte faktoriál zadaného čísla,
+ 2. ‹concat›    – zřetězení binárního zápisu dvou čísel,
+ 3. ‹zeros›     – počet nul v zápisu čísla.
+
+V další části naleznete o něco složitější příklady, tzv. «přípravy».
+Jejich hlavním účelem je «samostatně» procvičit látku dané kapitoly,
+a to ještě předtím, než se o ní budeme bavit ve cvičení.
+Doporučujeme každý týden vyřešit alespoň 3 přípravy. Abyste byli
+motivovaní je řešit, odevzdaná řešení jsou bodována (detaily
+bodování a termíny odevzdání naleznete v kapitole A). Ve zdrojovém
+balíku se jedná o soubory s názvem ‹p?_*.cpp›.
+
+«Pozor:» Diskutovat a sdílet řešení příprav je «přísně zakázáno».
+Řešení musíte vypracovat «zcela samostatně» (bližší informace
+naleznete opět v kapitole A).
+
+Přípravy:
+
+ 1. ‹nhamming›  – Hammingova vzdálenost s libovolným základem,
+ 2. ‹digitsum›  – opakovaný ciferný součet,
+ 3. ‹parity›    – počet jedniček v binárním zápisu,
+ 4. ‹periodic›  – hledání nejkratšího periodického vzoru,
+ 5. ‹balanced›  – ciferné součty ve vyvážených soustavách,
+ 6. ‹subsetsum› – známý příklad na backtracking.
+
+Další část je tvořena «rozšířenými» úlohami, které jsou typicky
+o něco málo složitější, než přípravy. Na těchto úlohách budeme
+probranou látku dále procvičovat ve cvičení. Tyto úlohy můžete také
+řešit společně, diskutovat jejich řešení se spolužáky, atp. Svá
+řešení můžete také srovnat s těmi vzorovými, která jsou k nalezení
+opět v kapitole K. Tento typ úloh naleznete v souborech
+pojmenovaných ‹r?_*.cpp›.
+
+ 1. ‹bitwise›   – ternární bitové operátory,
+ 2. ‹euler›     – Eulerova funkce (počet nesoudělných čísel),
+ 3. ‹hamcode›   – kód pro detekci chyb Hamming(8,4),
+ 4. ‹cbc›       – cipher block chaining,
+ 5. ‹cellular›  – celulární automat nad celým číslem,
+ 6. ‹flood›     – vyplňování „ploch“ v celém čísle.
+
+Poslední část jsou tzv. «volitelné» úkoly, které se podobají těm
+rozšířeným, se dvěma důležitými rozdíly: volitelné úlohy jsou určeny
+k samostatné přípravě (nebudeme je tedy používat ve cvičení) a
+nejsou k nim dostupná vzorová řešení. Je totiž důležité, abyste si
+dokázali sami zdůvodnit a otestovat správnost řešení, aniž byste jej
+srovnávali s řešením někoho jiného (a přiložený vzor k tomu jistě
+svádí). Je nicméně povoleno tyto příklady (a jejich řešení, jak
+abstraktně, tak konkrétně) diskutovat se spolužáky. Přesto velmi
+důrazně doporučujeme, abyste si řešení zkusili prvně vypracovat
+sami.
+
+ 1. ‹xxx› – …
+ 2. ‹xxx› – …
+ 3. ‹xxx› – …
+
+### Hlavičkové soubory
+
+Samotný jazyk, který ve svých řešeních používáte, omezujeme jen
+minimálně (varování překladače a kontrola nástrojem ‹clang-tidy›
+ovšem některé obzvláště problémové konstrukce zamítnou). Trochu
+významnější omezení klademe na používání standardní knihovny: do
+svých odevzdaných programů prosím vkládejte pouze ty standardní
+hlavičky, kterých použití jsme již v předmětu zavedli. Přehled bude
+vždy uveden v úvodu příslušné kapitoly. Pro tu první jsou to tyto
+tři:
+
+ • ‹cassert› – umožňuje použití tvrzení ‹assert›,
+ • ‹algorithm› – nabízí funkce ‹std::min›, ‹std::max›,
+ • ‹cstdint› – celočíselné typy ‹std::intNN_t› a ‹std::uintNN_t›.
+
+Omezeno je pouze vkládání hlavičkových souborů: je-li povolena
+hlavička ‹algorithm›, můžete v principu používat i jiné algoritmy,
+které poskytuje. Přesto spíše doporučujeme držet se toho, co jsme
+Vám zatím ukázali.
+
+Na nic jiného, než vkládání standardních hlaviček, v tomto předmětu
+preprocesor potřebovat nebudete. Jiné direktivy než ‹#include› tedy
+prosím vůbec nepoužívejte.

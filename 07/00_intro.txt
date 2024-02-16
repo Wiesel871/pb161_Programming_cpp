@@ -1,0 +1,31 @@
+# Výjimky a princip RAII
+
+Demonstrace:
+
+ 1. ‹exceptions› – vyhazování a chytání výjimek
+ 2. ‹stdexcept›  – typy výjimek ve standardní knihovně
+ 3. ‹semaphore›  – automatická správa zdrojů
+
+Elementární příklady:
+
+ 1. ‹xxx›
+ 2. ‹counter›    – jednoduché počítadlo instancí
+ 3. ‹coffee›     – model automatu na kávu
+
+Preparatory exercises:
+
+ 1. ‹fd›         – POSIX file descriptors
+ 2. ‹loan›       – database-style transactions with resources
+ 3. ‹library›    – borrowing books
+ 4. ‹parse›      – a simple parser which throws exceptions
+ 5. ‹invest›     – we further stretch the banking story
+ 6. ‹linear›     – linear equations, with some exceptions
+
+Regular exercises:
+
+ 1. ‹printing›   – printing with a monthly budget
+ 2. ‹bsearch›    – a key-value vector which throws on failure
+ 3. ‹enzyme›     – cellular chemistry with RAII
+ 4. ‹tinyvec› †  – a vector in a fixed memory buffer
+ 5. ‹lock›       – a movable mutual exclusion token
+ 6. ‹bounded›    – a bounded queue that throws when full

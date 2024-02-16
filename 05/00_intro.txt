@@ -1,0 +1,86 @@
+# Ukazatele
+
+Before you dig into the demonstrations and exercises, do not forget
+to read the extended introduction below. That said, the units for
+this week are, starting with demonstrations:
+
+ 1. ‹queue›    – a queue with stable references
+ 2. ‹finexp›   – like regexps but finite
+ 3. ‹expr›     – expressions with operators and shared pointers
+ 4. ‹family›   – genealogy with weak pointers
+
+Elementary exercises:
+
+ 1. ‹dynarray› – a simple array with a dynamic size
+ 2. ‹list›     – a simple linked list with minimal interface
+ 3. ‹iota›     – an iterable integer range
+
+Preparatory exercises:
+
+ 1. ‹unrolled› – a linked list of arrays
+ 2. ‹bittrie›  – bitwise tries (radix trees)
+ 3. ‹solid›    – efficient storage of optional data
+ 4. ‹chartrie› – binary tree for holding string keys
+ 5. ‹bdd›      – binary decision diagrams
+ 6. ‹rope›     – a string-like structure with cheap concatenation
+
+Regular exercises:
+
+ 1. ‹circular› – a singly-linked circular list
+ 2. ‹zipper›   – implementing zipper as a linked list
+ 3. ‹segment›  – a binary tree of disjoint intervals
+ 4. ‹diff›     – automatic differentiation
+ 5. ‹critbit›  – more efficient version of binary tries
+ 6. ‹refcnt› † – implement a simple reference-counted heap
+
+## A. Exclusive Ownership
+
+So far, we have managed to almost entirely avoid thinking about
+memory management: standard containers manage memory behind the
+scenes. We sometimes had to think about «copies» (or rather avoiding
+them), because containers could carry a lot of memory around and
+copying all that memory without a good reason is rather wasteful
+(this is why we often pass arguments as ‹const› references and not
+as values).
+
+This week, we will look more closely at how memory management works
+and what we can do when standard containers are inadequate to deal
+with a given problem. In particular, we will look at building our
+own pointer-based data structures and how we can retain automatic
+memory management in those cases using ‹std::unique_ptr›.
+
+XXX
+
+## B. Shared Ownership
+
+While ‹unique_ptr› is very useful and efficient, it only works in
+cases where the ownership structure is clear, and a given object has
+a single owner. When ownership of a single object is shared by
+multiple entities (objects, running functions or otherwise), we
+cannot use ‹unique_ptr›.
+
+To be slightly more explicit: shared ownership only arises when the
+lifetime of the objects sharing ownership is «not» tied to each
+other. If A owns B and A and B both need references to C, we can
+assign the ownership of C to object A: since it also owns B, it must
+live at least as long as B and hence there ownership is not actually
+shared.
+
+However, if A needs to be able to transfer ownership of B to some
+other, unrelated object while still retaining a reference to C, then
+C will indeed be in shared ownership: either A or B may expire
+first, and hence neither can safely destroy the shared instance of C
+to which they both keep references. In many modern languages, this
+problem is solved by a «garbage collector», but alas, C++ does not
+have one.
+
+Of course, it is usually better to design data structures in a way
+that allows for clear, 1:1 ownership structure. Unfortunately, this
+is not always easy, and sometimes it is not the most efficient
+solution either. Specifically, when dealing with large immutable (or
+persistent, in the functional programming sense) data structures,
+shared ownership can save considerable amount of memory, without
+introducing any ill side-effects, by only storing common
+sub-structures once, instead of cloning them. Of course, there are
+also cases where «shared mutable state» is the most efficient
+solution to a problem.

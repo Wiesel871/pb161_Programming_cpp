@@ -1,0 +1,54 @@
+# Složené hodnoty
+
+V této kapitole samozřejmě pokračujeme s použitím funkcí, skalárů a
+referencí, a přidáváme složené hodnoty: standardní «kontejnery»
+(‹std::vector›, ‹std::set›, ‹std::map›, ‹std::array›) a součinové
+(produktové) typy ‹struct› a ‹std::tuple›.
+
+Ukázky:
+
+ 1. ‹stats›      – záznamové typy, zjednodušený ‹for› cyklus
+ 2. ‹primes›     – vkládání prvků do hodnoty typu ‹std::vector›
+ 3. ‹iterate›    – vytvoření posloupnosti iterací funkce
+ 4. ‹dfs›        – dosažitelnost vrcholu v grafu
+ 5. ‹bfs› †      – nejkratší vzdálenost v neohodnoceném grafu
+
+Elementary exercises:
+
+ 1. ‹fibonacci›  – stará posloupnost, nová signatura
+ 2. ‹reflexive›  – reflexivní uzávěr zadané relace
+ 3. ‹unique›     – odstraněni duplicit ve vektoru
+
+Preparatory exercises:
+
+ 1. ‹minsum›    – dělení posloupnosti čísel podle součtu
+ 2. ‹connected› – rozklad grafu na komponenty souvislosti
+ 3. ‹divisors›  – kontejner jako vstupně-výstupní parametr
+ 4. ‹midpoint›  – kontejner s prvky složeného typu
+ 5. ‹dag› †     – hledání cyklu v orientovaném grafu
+ 6. ‹bipartite› – rozhodování o bipartitnosti grafu
+
+Regular exercises:
+
+ 1. ‹mode›      – nalezněte mód číselné posloupnosti
+ 2. ‹sssp›      – nejkratší cesty z pevně zvoleného vrcholu
+ 3. ‹solve›     – solver pro velmi jednoduchou hru
+ 4. ‹buckets›   – řazení kamenů do kyblíčků podle váhy
+ 5. ‹permute›   – permutace číslic
+ 6. ‹flood›     – semínkové vyplňování s vektorem
+
+### Hlavičkové soubory
+
+Tato kapitola přidává řadu nových povolených hlavičkových souborů:
+
+ • ‹tuple› – definice N-tic ‹std::tuple› a pomocných funkcí,
+ • ‹vector› – definice dynamického pole ‹std::vector›,
+ • ‹set› – podobně, ale pro ‹std::set› a ‹std::multiset›,
+ • ‹map› – umožňuje použití kontejnerů ‹std::map›, ‹std::multimap›,
+ • ‹deque› – definuje oboustrannou frontu ‹std::deque›,
+ • ‹queue› – definuje klasickou frontu ‹std::queue›,
+ • ‹stack› – podobně ale zásobník ‹std::stack›,
+ • ‹utility› – různé pomocné funkce, ‹std::pair›,
+ • ‹ranges› – prozatím zejména ‹std::ranges::subrange›,
+ • ‹numeric› – funkce pro práci (zejména) s číselnými sekvencemi,
+ • ‹cmath› – funkce pro práci s čísly s plovoucí desetinnou čárkou.
