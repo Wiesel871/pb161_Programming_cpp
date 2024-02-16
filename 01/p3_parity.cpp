@@ -8,7 +8,13 @@
  * jako další jednička.  Celkový výsledek jednak uložte do parametru
  * ‹chksum›, jednak ho vraťte jako návratovou hodnotu. */
 
-bool parity( auto word, bool &chksum );
+bool parity(auto word, bool &chksum ) {
+    int res = chksum;
+    for (; word; word >>= 1)
+        res += word & 1;
+    chksum = res % 2;
+    return res % 2;
+}
 
 int main()
 {

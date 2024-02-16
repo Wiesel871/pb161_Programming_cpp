@@ -10,11 +10,22 @@
  *
  * Příklad: pro ‹word = 0x100000001› bude hledané ⟦n = 1⟧, protože
  * ‹word› lze zapsat jako dvě kopie čísla 1 zapsaného do 32 bitů. */
+std::uint64_t periodic( std::uint64_t word, int &length ) {
+    length = 1;
+    if (word == 0) {
+        return 0;
+    }
+    for (std::uint64_t i = 1; i < 0xffffffffffff; i++) {
+        for (int j = 64; j > 0; j >>= 1) {
+            for (int k = 0; k < 64 / j; k++) {
+            }
+        }
+    }
 
-std::uint64_t periodic( std::uint64_t word, int &length );
+    return 0;
+}
 
-int main()
-{
+int main() {
     int length;
 
     assert( periodic( 0x100000001u, length ) == 1 );

@@ -5,7 +5,16 @@
  * sečte cifry tohoto výsledku, atd., až je výsledkem jediná cifra,
  * kterou vrátí jako svůj výsledek. */
 
-int digit_sum( int num, int base );
+int digit_sum( int num, int base ) {
+    int res = 0;
+    do {
+        res = 0;
+        for (; num > 0; num /= base)
+            res += num % base;
+        num = res;
+    } while (res >= base);
+    return res;
+}
 
 int main()
 {
