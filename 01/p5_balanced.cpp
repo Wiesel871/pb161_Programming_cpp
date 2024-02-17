@@ -30,7 +30,20 @@
  * součet jistě nezmění, protože jsme jedno ⟦b⟧ ubrali a jedno
  * přidali). */
 
-bool is_balanced( int n, int base );
+bool is_balanced( int n, int base ) {
+    int res = 0;
+    int rem = 0;
+    while (n != 0) {
+        rem = n % base;
+        n /= base;
+        if (rem > base / 2) {
+            rem -= base;
+            n += 1;
+        }
+        res += rem;
+    }
+    return res == 0;
+}
 
 int main()
 {

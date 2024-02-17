@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cassert>
+#include <cstdio>
 
 /* Vstupem pro problém «subset sum» je množina povolených čísel ⟦A⟧
  * a hledaný součet ⟦n⟧. Řešením je pak podmnožina ⟦B ⊆ A⟧ taková,
@@ -16,9 +17,31 @@
  * ‹true›, má-li zadaná instance řešení. Toto řešení zároveň zapíše
  * do výstupního parametru. V případě, že řešení neexistuje, hodnotu
  * ‹solution› nijak neměňte. */
+bool subset_sum_rec(int n, std::uint64_t allowed, std::uint64_t &solution,
+                    std::uint8_t start) {
+    if (n == 0)
+        return true;
+    std::uint64_t mask = static_cast<std::uint64_t>(1) << (start - 1);
+    for (int i = start; i > 0; i--, allowed -= mask, mask >>= 1) {
+        if (i > n)
+            continue;
+        if (allowed & mask && subset_sum_rec(n - i, allowed - mask, solution, i - 1)) {
+            solution += mask;
+            return true;
+        }
+    }
+    return false;
+}
 
 bool subset_sum( int n, std::uint64_t allowed,
-                 std::uint64_t &solution );
+                 std::uint64_t &solution ) {
+    std::uint64_t sol = 0;
+    if (subset_sum_rec(n, allowed, sol, 64)) {
+        solution = sol;
+        return true;
+    }
+    return false;
+}
 
 int main()
 {
