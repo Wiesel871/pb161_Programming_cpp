@@ -1,5 +1,7 @@
 #include <cstdint>
 #include <cassert>
+#include <cstdio>
+#include <iostream>
 
 /* Najděte nejmenší nezáporné číslo ⟦n⟧ takové, že 64-bitový zápis
  * čísla ‹word› lze získat zřetězením nějakého počtu binárně
@@ -10,18 +12,35 @@
  *
  * Příklad: pro ‹word = 0x100000001› bude hledané ⟦n = 1⟧, protože
  * ‹word› lze zapsat jako dvě kopie čísla 1 zapsaného do 32 bitů. */
+std::uint64_t check_num(std::uint64_t word, int &length, std::uint64_t n) {
+    std::uint64_t mask = UINT64_MAX;
+    for (int i = 64; i > 0 && mask >= n; i >>= 1, mask <<= i) {
+        int iters = 64 / i;
+        bool fits = true;
+        for (int j = 0; j < iters && fits; j++) {
+            if (((mask >> (j * i)) & word) >> ((iters - j - 1) * i) != n) {
+                fits = false;
+
+            }
+        }
+        if (fits) {
+            length = i;
+            return n;
+        }
+    }
+    return 0;
+}
+
 std::uint64_t periodic( std::uint64_t word, int &length ) {
     length = 1;
     if (word == 0) {
         return 0;
     }
-    for (std::uint64_t i = 1; i < 0xffffffffffff; i++) {
-        for (int j = 64; j > 0; j >>= 1) {
-            for (int k = 0; k < 64 / j; k++) {
-            }
-        }
+    for (std::uint64_t n = 1; n <= word; n++) {
+        uint64_t aux = check_num(word, length, n);
+        if (aux == n)
+            return n;
     }
-
     return 0;
 }
 
