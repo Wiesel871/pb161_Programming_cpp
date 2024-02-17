@@ -4,8 +4,11 @@ SRC_P = p1_nhamming.cpp p2_digitsum.cpp p3_parity.cpp p4_periodic.cpp p5_balance
 SRC_R = r1_bitwise.cpp r2_euler.cpp r3_hamcode.cpp r5_cellular.cpp
 SRC_T =
 
-CXX      = /packages/run.64/gcc-12.2/bin/c++
-TIDY     = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+CXX      = g++
+TIDY     = clang-tidy.exe
+ifdef ON_AISA
+	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+endif
 VALGRIND = valgrind
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
 TDYFLAGS = -std=c++20

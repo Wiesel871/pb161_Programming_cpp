@@ -6,6 +6,9 @@ SRC_T = a_machine.cpp b_chess.cpp c_real.cpp d_json.cpp e_robots.cpp f_network.c
 
 CXX      = g++
 TIDY     = clang-tidy.exe
+ifdef ON_AISA
+	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+endif
 VALGRIND = valgrind
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
 TDYFLAGS = -std=c++20
