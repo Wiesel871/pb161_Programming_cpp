@@ -4,8 +4,11 @@ SRC_P = p1_unrolled.cpp p2_bittrie.cpp p3_solid.cpp p4_inttrie.cpp p5_bdd.cpp p6
 SRC_R = r1_circular.cpp r2_zipper.cpp r3_segment.cpp r4_diff.cpp
 SRC_T =
 
-CXX      = /packages/run.64/gcc-12.2/bin/c++
-TIDY     = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+CXX      = g++
+TIDY     = clang-tidy.exe
+ifdef ON_AISA
+	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+endif
 VALGRIND = valgrind
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
 TDYFLAGS = -std=c++20

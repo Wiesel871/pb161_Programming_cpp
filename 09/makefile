@@ -4,8 +4,11 @@ SRC_P = p1_bounds.cpp p2_array.cpp p3_intmap.cpp p4_program.cpp p5_eval.cpp p6_a
 SRC_R = r1_null.cpp r2_rel.cpp r3_robot.cpp r4_sumseq.cpp
 SRC_T =
 
-CXX      = /packages/run.64/gcc-12.2/bin/c++
-TIDY     = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+CXX      = g++
+TIDY     = clang-tidy.exe
+ifdef ON_AISA
+	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+endif
 VALGRIND = valgrind
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
 TDYFLAGS = -std=c++20

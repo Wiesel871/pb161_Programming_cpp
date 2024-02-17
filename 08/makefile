@@ -4,8 +4,11 @@ SRC_P = p1_kernel.cpp p2_bitref.cpp p3_combine.cpp p4_nibble.cpp p5_higher.cpp p
 SRC_R = r2_approx.cpp r4_sort.cpp r6_bsearch.cpp
 SRC_T =
 
-CXX      = /packages/run.64/gcc-12.2/bin/c++
-TIDY     = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+CXX      = g++
+TIDY     = clang-tidy.exe
+ifdef ON_AISA
+	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
+endif
 VALGRIND = valgrind
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
 TDYFLAGS = -std=c++20
