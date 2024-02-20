@@ -16,7 +16,11 @@ using graph = std::vector< std::vector< bool > >;
 using component = std::set< int >;
 using components = std::set< component >;
 
-components decompose( const graph &g );
+components decompose( const graph &g ) {
+    components res = components {{}};
+    std::queue
+
+}
 
 int main()
 {
