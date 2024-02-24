@@ -11,7 +11,7 @@ ifdef ON_AISA
 endif
 VALGRIND = valgrind
 CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
-TDYFLAGS = -std=c++20
+TDYFLAGS = -std=c++20 
 
 -include ../local.mk
 

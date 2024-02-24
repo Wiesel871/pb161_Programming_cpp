@@ -1,3 +1,6 @@
+#include <cmath>
+#include <cstddef>
+#include <iostream>
 #include <vector>
 #include <algorithm>
 #include <cassert>
@@ -18,7 +21,24 @@
  * Funkce musí pracovat «efektivně». Určit vhodnou časovou složitost
  * je v této úloze součástí zadání. */
 
-void add_divisors( int num, std::vector< int > &divs );
+void add_divisors( int num, std::vector< int > &divs ) {
+    auto res = std::vector<int>{};
+    std::size_t i = 0;
+    for (int j = 2; j <= num; j += 1 + (j > 2)) {
+        if ((i < divs.size() && j == divs[i])) {
+            res.push_back(j);
+            i++;
+        } else if (num % j == 0) {
+            res.push_back(j);
+        }
+        while (num % j == 0)
+            num /= j;
+    }
+    while (i < divs.size()) {
+        res.push_back(divs[i++]);
+    }
+    divs = res;
+}
 
 int main()
 {
