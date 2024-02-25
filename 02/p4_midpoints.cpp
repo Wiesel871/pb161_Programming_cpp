@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <vector>
 #include <cmath>
 #include <cassert>
@@ -6,7 +7,10 @@
  * obojí jsou čísla s plovoucí desetinnou čárkou, a to tak, že
  * deklarace ‹point p;› vytvoří bod se souřadnicemi ⟦0, 0⟧. */
 
-struct point;
+struct point {
+    float x = 0.0f;
+    float y = 0.0f;
+};
 
 /* Nyní uvažme uzavřenou lomenou čáru. Nahraďte každou úsečku A
  * takovou, která začíná prostředním bodem úsečky A a končí
@@ -15,7 +19,19 @@ struct point;
  * bod náleží dvěma úsečkám). Poslední úsečka jde z posledního bodu
  * do prvního, čím se obrazec uzavře. */
 
-void midpoints( std::vector< point > &pts );
+void midpoints( std::vector< point > &pts ) {
+    if (pts.size() <= 1)
+        return;
+    auto res = std::vector<point>{};
+    for (std::size_t i = 0; i < pts.size(); i++) {
+        res.push_back(
+            (point) {
+                .x = (pts[i].x + pts[(i + 1) % pts.size()].x) / 2,
+                .y = (pts[i].y + pts[(i + 1) % pts.size()].y) / 2,
+        });
+    }
+    pts = res;
+}
 
 int main()
 {

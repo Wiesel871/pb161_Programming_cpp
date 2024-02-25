@@ -44,13 +44,10 @@ void dfs(const graph &g, components &res, std::vector<bool> &v, std::size_t star
 
 components decompose( const graph &g ) {
     auto res = components();
-    auto visited = std::vector<bool>{};
-    for (std::size_t i = 0; i < g.size(); i++) {
-        visited.push_back(false);
-    }
+    auto visited = std::set<int>{};
     assert(visited.size() == g.size());
     for (std::size_t i = 0; i < g.size(); i++) {
-        if (visited[i])
+        if (visited.contains(i))
             continue;
         visited[i] = true;
         dfs(g, res, visited, i);
