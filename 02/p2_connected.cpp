@@ -1,6 +1,4 @@
 #include <cstddef>
-#include <iostream>
-#include <iterator>
 #include <set>
 #include <vector>
 #include <cassert>
@@ -20,24 +18,23 @@ using graph = std::vector< std::vector< bool > >;
 using component = std::set< int >;
 using components = std::set< component >;
 
-void dfs(const graph &g, components &res, std::vector<bool> &v, std::size_t start) {
+void dfs(const graph &g, components &res, std::set<int> &v, std::size_t start) {
     std::vector<int> stack = std::vector<int>{static_cast<int>(start)};
     int cur = 0;
-    v[start] = true;
     auto comp = component{static_cast<int>(start + 1)};
     while (!(stack.empty())) {
         cur = stack.back();
-        assert(v[cur]);
+        assert(v.contains(cur));
         stack.pop_back();
         std::size_t i = 0;
-        while (((!g[cur][i]) || (v[i])) && i < g.size()) 
+        while (((!g[cur][i]) || (v.contains(i))) && i < g.size()) 
             i++;
         if (i == g.size())
             continue;
         stack.push_back(cur);
         stack.push_back(i);
         comp.insert(i + 1);
-        v[i] = true;
+        v.insert(i);
     }
     res.insert(comp);
 }
@@ -45,11 +42,10 @@ void dfs(const graph &g, components &res, std::vector<bool> &v, std::size_t star
 components decompose( const graph &g ) {
     auto res = components();
     auto visited = std::set<int>{};
-    assert(visited.size() == g.size());
     for (std::size_t i = 0; i < g.size(); i++) {
         if (visited.contains(i))
             continue;
-        visited[i] = true;
+        visited.insert(i);
         dfs(g, res, visited, i);
     }
     return res;
