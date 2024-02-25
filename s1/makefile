@@ -5,7 +5,7 @@ SRC_R =
 SRC_T = a_queens.cpp b_city.cpp c_magic.cpp d_reversi.cpp e_cellular.cpp f_natural.cpp
 
 CXX      = g++
-TIDY     = clang-tidy.exe
+TIDY     = clang-tidy
 ifdef ON_AISA
 	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
 endif

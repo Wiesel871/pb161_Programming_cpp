@@ -5,7 +5,7 @@ SRC_R = r1_mode.cpp r2_sssp.cpp r3_solve.cpp r4_buckets.cpp r5_colour.cpp r6_flo
 SRC_T =
 
 CXX      = g++
-TIDY     = clang-tidy.exe
+TIDY     = clang-tidy
 ifdef ON_AISA
 	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
 endif

@@ -5,7 +5,7 @@ SRC_R = r1_poly.cpp r2_qsort.cpp r3_ttt.cpp r4_flight.cpp r5_qfield.cpp r6_life.
 SRC_T =
 
 CXX      = g++
-TIDY     = clang-tidy.exe
+TIDY     = clang-tidy
 ifdef ON_AISA
 	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
 endif

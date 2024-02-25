@@ -5,7 +5,7 @@ SRC_R = r1_complex.cpp r2_account.cpp r3_search.cpp r4_bitptr.cpp r6_sort.cpp
 SRC_T =
 
 CXX      = g++
-TIDY     = clang-tidy.exe
+TIDY     = clang-tidy
 ifdef ON_AISA
 	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
 endif
