@@ -20,11 +20,12 @@ enum color {
 };
 
 bool is_dag( const graph &g ) {
-    if 
-    auto colors = std::vector<color>{};
-    auto stack = 
-    for (const auto &_ : g) {
-        colors.push_back(white);
+    if (g.empty())
+        return true;
+    auto colors = std::map<int, color>{};
+    auto stack = std::vector<std::pair<int, int>>{};
+    while (!stack.empty()) {
+
     }
 
     return true;
