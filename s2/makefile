@@ -5,7 +5,7 @@ SRC_R =
 SRC_T = a_natural.cpp b_treap.cpp c_robots.cpp d_network.cpp e_tree.cpp
 
 CXX      = g++
-TIDY     = clang-tidy.exe
+TIDY     = clang-tidy
 ifdef ON_AISA
 	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
 endif

@@ -5,7 +5,7 @@ SRC_R = r1_bitwise.cpp r2_euler.cpp r3_hamcode.cpp r5_cellular.cpp
 SRC_T =
 
 CXX      = g++
-TIDY     = clang-tidy.exe
+TIDY     = clang-tidy
 ifdef ON_AISA
 	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
 endif

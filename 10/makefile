@@ -5,7 +5,7 @@ SRC_R = r1_priority.cpp r2_join.cpp r3_sorted.cpp r4_rotsort.cpp r5_permute.cpp
 SRC_T =
 
 CXX      = g++
-TIDY     = clang-tidy.exe
+TIDY     = clang-tidy
 ifdef ON_AISA
 	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
 endif

@@ -5,7 +5,7 @@ SRC_R = r1_bom.cpp r2_circuit.cpp r3_loops.cpp r6_while.cpp
 SRC_T =
 
 CXX      = g++
-TIDY     = clang-tidy.exe
+TIDY     = clang-tidy
 ifdef ON_AISA
 	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
 endif

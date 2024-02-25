@@ -5,7 +5,7 @@ SRC_R = r5_json.cpp r6_cpp.cpp
 SRC_T =
 
 CXX      = g++
-TIDY     = clang-tidy.exe
+TIDY     = clang-tidy
 ifdef ON_AISA
 	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
 endif
