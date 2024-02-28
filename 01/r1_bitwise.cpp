@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <climits>
 #include <cassert>
+#include <iostream>
 
 /* Předmětem této úlohy jsou «ternární» bitové operace: vstupem jsou
  * 3 čísla a kód operace. Každý bit výsledku je určen příslušnými
@@ -31,7 +32,17 @@
  * typů (ale také se můžete zamyslet, jak řešit situaci, kdy stejné
  * nejsou). */
 
-auto bitwise( std::uint8_t opcode, auto a, auto b, auto c );
+auto bitwise( std::uint8_t opcode, auto a, auto b, auto c ) {
+    decltype(a) res = 0;
+    for (std::size_t i = 0; i < sizeof(a) * 8; i++) {
+        res |= (((opcode >> (((a & 1) << 2) + ((b & 1) << 1) + (c & 1))) & 1ul) << i);
+        a >>= 1;
+        b >>= 1;
+        c >>= 1;
+    }
+    std::cout << res;
+    return res;
+}
 
 int main()
 {

@@ -64,7 +64,17 @@
  * Výpočet kroku by mělo být možné provést na libovolně širokém
  * celočíselném typu. */
 
-auto cellular_step( auto w );
+auto cellular_step( auto w ) {
+    decltype(w) res = 0;
+    for (std::size_t i = 0; i < sizeof(w) * 8; i++) {
+        unsigned r = i > 0 ? (w >> (i - 1)) & 1 : 0;
+        unsigned c = (w >> i) & 1;
+        unsigned l = i < sizeof(w) * 8 - 1 ? (w >> (i + 1)) & 1 : 0;
+        unsigned key = (l << 2) | (c << 1) | r;
+        
+    }
+    return res;
+}
 
 int main()
 {

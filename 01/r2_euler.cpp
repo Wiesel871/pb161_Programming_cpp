@@ -1,11 +1,27 @@
 #include <cassert>
+#include <cmath>
 
 /* This is a straightforward math exercise. Implement Euler's [φ],
  * for instance using the product formula ⟦φ(n) = nΠ(1 - 1/p)⟧ where
  * the product is over all distinct prime divisors of n. You may
  * need to take care to compute the result exactly. */
 
-long phi( long n ); /* ref: 21 lines */
+long phi( long n ) /* ref: 21 lines */ {
+    int res = 1;
+    int divisor = 2;
+    while (n != 1) {
+        if (n % divisor == 0) {
+            int power = 0;
+            while (n % divisor == 0) {
+                power++;
+                n /= divisor;
+            }
+            res *= std::pow(divisor, power) - std::pow(divisor, power - 1);
+        }
+        divisor++;
+    }
+    return res;
+}
 
 int main()
 {
