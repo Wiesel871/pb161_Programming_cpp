@@ -27,7 +27,7 @@ void dfs(const graph &g, components &res, std::set<int> &v, std::size_t start) {
         assert(v.contains(cur));
         stack.pop_back();
         std::size_t i = 0;
-        while (((!g[cur][i]) || (v.contains(i))) && i < g.size()) 
+        while (i < g.size() && ((!g[cur][i]) || (v.contains(i)))) 
             i++;
         if (i == g.size())
             continue;
@@ -40,8 +40,8 @@ void dfs(const graph &g, components &res, std::set<int> &v, std::size_t start) {
 }
 
 components decompose( const graph &g ) {
-    auto res = components();
-    auto visited = std::set<int>{};
+    components res = {};
+    std::set<int> visited = {};
     for (std::size_t i = 0; i < g.size(); i++) {
         if (visited.contains(i))
             continue;

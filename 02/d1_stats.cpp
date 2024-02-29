@@ -55,7 +55,6 @@ stats compute_stats( const std::vector< double > &data )
          * (která může být referencí – v takovém případě tato
          * reference odkazuje přímo na prvek, v opačném případě se
          * jedná o kopii). */
-
         sum += x_i;
 
     /* K položkám hodnoty záznamového typu přistupujeme «výrazem»
