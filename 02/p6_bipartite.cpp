@@ -1,3 +1,4 @@
+#include <iostream>
 #include <map>
 #include <queue>
 #include <vector>
@@ -24,26 +25,31 @@ bool is_bipartite( const graph &g ) {
     if (g.empty())
         return true;
     std::queue<int> q;
-    std::map<int, color> c;
-    color cur = white;
+    colors c = {{g.begin()->first, white}};
     q.emplace(g.begin()->first);
     while (!q.empty()) {
         int v = q.front();
         q.pop();
-        if (c.contains(v))
+        // no idea why but "c.contains" doesnt work on set int int even tho it 
+        // worked in p5 *
+        if (c.count(v) != 0)
             continue;
-        c[v] = cur;
-        for (const auto &n: g[v]) {
-            if (!c.contains(n)) {
-                q.emplace(n);
+        color next = c[v] == black ? white : black;
+        const auto &e = g.at(v);
+        for (const auto &n: e) {
+            // * here too
+            if (c.count(n) == 0) {
+                c[n] = next;
+                q.push(n);
                 continue;
             }
-            if (c[n] == cur)
+            if (c[n] == c[v]) {
+                std::cout << n << std::endl;
                 return false;
+            }
         }
-        cur = static_cast<color>((cur + 1) % 2);
     }
-    return false;
+    return true;
 }
 
 int main()
