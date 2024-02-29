@@ -1,6 +1,7 @@
 #include <map>
 #include <cassert>
 #include <vector>
+#include <stack>
 
 /* † Budeme opět pracovat s orientovaným grafem – tentokrát budeme
  * hledat cykly. Existuje na výběr několik algoritmů, ty založené na
@@ -14,21 +15,33 @@
 using graph = std::multimap< int, int >;
 
 enum color {
-    white,
     grey,
     black,
 };
 
+using colors = std::map<int, color>;
+
+bool is_dag_rec(const graph &g, colors &c, int p) {
+    c[p] = grey;
+    auto [begin, end] = g.equal_range(p);
+    for (; begin != end; begin++) {
+        auto [_, next] = *begin;
+        if (c.contains(next) && c[next] == grey)
+            return false;
+        if (!c.contains(next)) {
+            if (!is_dag_rec(g, c, next))
+                return false;
+        }
+    }
+    c[p] = black;
+    return true;
+}
+
 bool is_dag( const graph &g ) {
     if (g.empty())
         return true;
-    auto colors = std::map<int, color>{};
-    auto stack = std::vector<std::pair<int, int>>{};
-    while (!stack.empty()) {
-
-    }
-
-    return true;
+    colors c = {};
+    return is_dag_rec(g, c, g.begin()->first);
 }
 
 int main()

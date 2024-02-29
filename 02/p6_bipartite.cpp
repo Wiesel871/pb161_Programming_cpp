@@ -1,6 +1,9 @@
 #include <map>
+#include <queue>
 #include <vector>
 #include <cassert>
+#include <queue>
+
 
 /* Rozhodněte, zda je zadaný neorientovaný graf bipartitní (tzn.
  * jeho vrcholy lze rozdělit do dvou množin ⟦A, B⟧ tak, že každá
@@ -10,7 +13,38 @@
 using edges = std::vector< int >;
 using graph = std::map< int, edges >;
 
-bool is_bipartite( const graph &g );
+enum color {
+    white = 0,
+    black = 1,
+};
+
+using colors = std::map<int, color>;
+
+bool is_bipartite( const graph &g ) {
+    if (g.empty())
+        return true;
+    std::queue<int> q;
+    std::map<int, color> c;
+    color cur = white;
+    q.emplace(g.begin()->first);
+    while (!q.empty()) {
+        int v = q.front();
+        q.pop();
+        if (c.contains(v))
+            continue;
+        c[v] = cur;
+        for (const auto &n: g[v]) {
+            if (!c.contains(n)) {
+                q.emplace(n);
+                continue;
+            }
+            if (c[n] == cur)
+                return false;
+        }
+        cur = static_cast<color>((cur + 1) % 2);
+    }
+    return false;
+}
 
 int main()
 {
