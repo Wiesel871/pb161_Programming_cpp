@@ -1,4 +1,3 @@
-#include <iostream>
 #include <map>
 #include <queue>
 #include <vector>
@@ -27,27 +26,28 @@ bool is_bipartite( const graph &g ) {
     std::queue<int> q;
     colors c = {{g.begin()->first, white}};
     q.emplace(g.begin()->first);
-    while (!q.empty()) {
-        int v = q.front();
-        q.pop();
-        // no idea why but "c.contains" doesnt work on set int int even tho it 
-        // worked in p5 *
-        if (c.count(v) != 0)
-            continue;
-        color next = c[v] == black ? white : black;
-        const auto &e = g.at(v);
-        for (const auto &n: e) {
-            // * here too
-            if (c.count(n) == 0) {
-                c[n] = next;
-                q.push(n);
-                continue;
-            }
-            if (c[n] == c[v]) {
-                std::cout << n << std::endl;
-                return false;
+    for (const auto &x: g) {
+        if (c.count(x.first) == 0)
+            q.emplace(x.first);
+        while (!q.empty()) {
+            int v = q.front();
+            q.pop();
+            // no idea why but "c.contains" doesnt work on set int int even tho it 
+            // worked in p5 *
+            color next = c[v] == black ? white : black;
+            const auto &e = g.at(v);
+            for (const auto &n: e) {
+                // * here too
+                if (c.count(n) == 0) {
+                    c[n] = next;
+                    q.push(n);
+                    continue;
+                }
+                if (c[n] == c[v])
+                    return false;
             }
         }
+
     }
     return true;
 }
