@@ -2,8 +2,8 @@
 #include <set>
 #include <vector>
 #include <cassert>
-// clang-tidy: -modernize-use-bool-literals
 
+// clang-tidy: -modernize-use-bool-literals
 /* Rozložte zadaný neorientovaný graf na souvislé komponenty
  * (výsledné komponenty budou reprezentované množinou svých
  * vrcholů). Graf je zadaný jako symetrická matice sousednosti.
