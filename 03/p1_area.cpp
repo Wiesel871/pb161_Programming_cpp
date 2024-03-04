@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
 /* Doplňte definice typů ‹point›, ‹polygon› a ‹circle› tak, abyste
  * pak mohli s jejich pomocí možné implementovat tyto čisté funkce:
@@ -16,9 +17,45 @@
  *
  * Typ ‹point› nechť má složky ‹x› a ‹y› (reálná čísla). */
 
-struct point;
-struct polygon;
-struct circle;
+struct point {
+    double x = 0.0, y = 0.0;
+};
+
+struct polygon {
+    point c;
+    double r;
+    int n;
+};
+struct circle {
+    point c;
+    double r;
+};
+
+polygon make_polygon(int n, point p, double r) {
+    return {p, r, n};
+}
+
+polygon make_polygon(int n, point p, point &e) {
+    double x = std::pow(p.x - e.x, 2), y = std::pow(p.y - e.y, 2);
+    return {p, std::sqrt(x + y), n};
+}
+
+circle make_circle(point p, double r) {
+    return {p, r};
+}
+
+circle make_circle(point p, point e) {
+    double x = std::pow(p.x - e.x, 2), y = std::pow(p.y - e.y, 2);
+    return {p, std::sqrt(x + y)};
+}
+
+double area(const polygon &p) {
+    return (p.n * p.r * p.r * std::sin(6.283 / p.n)) / 2;
+}
+
+double area(const circle &c) {
+    return 3.1415 * c.r * c.r;
+}
 
 int main()
 {

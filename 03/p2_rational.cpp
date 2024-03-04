@@ -1,4 +1,8 @@
 #include <cassert>
+#include <cmath>
+#include <compare>
+#include <new>
+#include <iostream>
 
 /* V tomto příkladu budeme programovat jednoduchá racionální čísla
  * (taková, že je lze reprezentovat dvojicí celých čísel typu
@@ -20,6 +24,70 @@
  * rozsah ‹int›-u. */
 
 struct rat;
+
+rat make_rat(int, int);
+rat base_form(const rat &);
+
+struct rat {
+    int p, q;
+
+    friend rat operator+(rat l, const rat &r) {
+        return make_rat(l.p * r.q + r.p * l.q, l.q * r.q);
+    }
+
+    friend rat operator-(rat l, const rat &r) {
+        return make_rat(l.p * r.q - r.p * l.q, l.q * r.q);
+    }
+
+    friend rat operator*(rat l, const rat &r) {
+        return make_rat(l.p * r.p, l.q * r.q);
+    }
+
+    friend rat operator/(rat l, const rat &r) {
+        return make_rat(l.p * r.q, l.q * r.p);
+    }
+
+    friend bool operator==(const rat &l, const rat &r) {
+        const rat lb = base_form(l);
+        const rat rb = base_form(r);
+        return lb.p == rb.p && lb.q == rb.q;
+    }
+
+    friend auto operator<=>(const rat &l, const rat &r) {
+        const rat lb = make_rat(l.p, l.q);
+        const rat rb = make_rat(r.p, r.q);
+        return (lb.p * rb.q) <=> (rb.p * lb.q);
+    }
+};
+
+rat base_form(const rat &r) {
+    if (r.q == 1)
+        return r;
+    if (r.p % r.q == 0)
+        return {r.p / r.q, 1};
+    if (r.q % r.p == 0) {
+        if (r.p < 0)
+            return {-1, std::abs(r.q / r.p)};
+        return {1, r.q / r.p};
+    }
+    rat res = r;
+    for (int i = 2; i < std::sqrt(std::min(res.q, res.p)); i += 1 + (i != 2)) {
+        while (res.p % i == 0 && res.q % i == 0) {
+            res.p /= i;
+            res.q /= i;
+        }
+    }
+    return res;
+}
+
+rat make_rat(int p, int q) {
+    assert(q != 0);
+    if (q < 0)
+        return base_form({-p, -q});
+    return base_form({p, q});
+}
+
+
 
 rat make_rat( int, int );
 
