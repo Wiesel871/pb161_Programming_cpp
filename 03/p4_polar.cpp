@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cassert>
+#include <iostream>
 
 /* Vaším úkolem je implementovat typ ‹polar›, který realizuje
  * polární reprezentaci komplexního čísla. Protože tato podoba
@@ -15,10 +16,33 @@
  * Pozor! Argument komplexního čísla je «periodický»: buďto jej
  * normalizujte tak, aby ležel v intervalu ⟦[0, 2π)⟧, nebo
  * zajistěte, aby platilo ‹polar( 1, x ) == polar( 1, x + 2π )›. */
-
 struct polar;
 
-polar make_polar( double, double );
+polar make_polar(double, double);
+
+
+struct polar {
+    double r, d;
+
+    polar operator*(const polar &r) {
+        return make_polar(this->r * r.r, this->d + r.d);
+    }
+
+    polar operator/(const polar &r) {
+        return make_polar(this->r / r.r, this->d - r.d);
+    }
+
+    friend bool operator==(const polar &l, const polar &r) {
+        return
+            (l.r == 0.0 && r.r == 0.0) ||
+                (std::fabs(l.r - r.r) < 0.001 &&
+                std::fabs(l.d - r.d) < 0.001);
+    }
+};
+
+polar make_polar( double r, double d) {
+    return {r, d - (std::floor(d / 6.283) * 6.283)};
+}
 
 int main()
 {

@@ -44,7 +44,10 @@
  * Nově vytvořená hodnota typu ‹mountain_range› reprezentuje prázdné
  * pohoří (prázdný svah a žádná vnitřní pohoří). */
 
-struct mountain_range;
+struct mountain_range {
+    std::vector<mountain_range> in = {};
+    mountain_range *l = nullptr, *r = nullptr;
+};
 
 int main()
 {

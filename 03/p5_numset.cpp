@@ -1,5 +1,6 @@
 #include <cassert>
 #include <initializer_list>
+#include <unordered_set>
 
 /* Navrhněte typ ‹numset›, kterého hodnoty budou reprezentovat
  * množiny čísel. Jsou-li ‹ns₁›, ‹ns₂› hodnoty typu ‹numset› a dále
@@ -18,7 +19,38 @@
  *  • ‹del_range› a ‹merge› musí mít nejvýše lineární složitost,
  *  • ostatní operace nejvýše logaritmickou. */
 
-struct numset;
+struct numset {
+    std::unordered_set<int> ns = {};
+
+    bool has(int i) const {
+        return this->ns.contains(i);
+    }
+
+    bool add(int i) {
+        if (ns.contains(i))
+            return false;
+        this->ns.insert(i);
+        return true;
+    }
+
+    bool del(int i) {
+        if (!ns.contains(i))
+            return false;
+        this->ns.erase(this->ns.find(i));
+        return true;
+    }
+
+    void merge(const numset &o) {
+        for (int i: o.ns)
+            this->add(i);
+    }
+
+    void del_range(int i, int j) {
+        for (; i <= j; ++i)
+            this->del(i);
+    }
+
+};
 
 int main()
 {
