@@ -1,4 +1,5 @@
 #include <cstddef>
+#include <new>
 #include <vector>
 #include <cassert>
 #include <iostream>
@@ -25,7 +26,7 @@
  *    q₂ = a₂ + 1/q₃ ⟧
  *
  * a tak dále, až než je nějaké ⟦qᵢ⟧ celé číslo, kterým sekvence
- * končí (pro racionální číslo se to jistě stane po konečném počtu
+ * končí (pro racionální číslo se to jistě stane po kaečném počtu
  * kroků). Hodnotám ⟦a₀, a₁, a₂, …⟧ říkáme «koeficienty» řetězového
  * zlomku – jeho hodnota je jimi jednoznačně určena.
  *
@@ -33,16 +34,16 @@
  * Je důležité jak to, které operace jsou požadované, tak to, které
  * nejsou. */
 
-void printv(const std::vector<int> &v) {
-    for (int x: v) 
-        std::cout << x << " ";
-    std::cout << std::endl;
-}
-
 struct rat;
+struct fraction;
 
 rat make_rat(int, int);
 rat base_form(const rat &);
+
+std::vector<int> bi_homographic(
+        int, int, int, int,
+        int, int, int, int,
+        const fraction &, const fraction &);
 
 struct rat {
     int p, q;
@@ -74,6 +75,7 @@ struct rat {
         const rat rb = make_rat(r.p, r.q);
         return (lb.p * rb.q) <=> (rb.p * lb.q);
     }
+
 };
 
 rat base_form(const rat &r) {
@@ -112,35 +114,14 @@ struct fraction {
     }
 
     fraction operator+(const fraction &o) {
-        std::cout << "in" << std::endl;
-        printv(this->a);
-        printv(o.a);
-        std::vector<int> res;
-        int carry = 0;
-        int st = 0;
-        for (std::size_t i = 0; i < std::max(this->len(), o.len()); i++) {
-            st = 
-                (i < this->len() ? this->a[i] : 0) + 
-                (i < o.len() ? o.a[i] : 0) + 
-                carry;
-            carry = st / 10;
-            res.push_back(st % 10);
-        }
-        if (carry != 0)
-            res.push_back(carry);
-        std::cout << "out" << std::endl;
-        printv(res);
-        return {res};
+        return {bi_homographic(0, 1, 1, 0, 0, 0, 0, 1, *this, o)};
     }
 
     fraction operator*(const fraction &o) {
-        return o;
+        return {bi_homographic(1, 0, 0, 0, 0, 0, 0, 1, *this, o)};
     }
 
     friend auto operator<=>(const fraction &l, const fraction &r) {
-        std::cout << "cmp" << std::endl;
-        printv(l.a);
-        printv(r.a);
         if (auto cmp = l.a[0] <=> r.a[0]; cmp != 0)
             return cmp;
         for (std::size_t i = 1; i < std::min(l.len(), r.len()); i++)
@@ -149,10 +130,13 @@ struct fraction {
         return l.len() <=> r.len();
     }
 
+    friend auto operator==(const fraction &l, const fraction &r) {
+        return l.a == r.a;
+    }
+
     std::size_t len() const {
         return this->a.size();
     }
-
 };
 
 void extend_vec(std::vector<int> &t, const std::vector<int> &s) {
@@ -165,10 +149,11 @@ std::vector<int> cfv(int x) {
 }
 
 std::vector<int> cfv(rat x) {
-    if (x.q == 0)
-       return {};
-    std::vector<int> res = {static_cast<int>(x.p / std::floor(static_cast<double>(x.q)))};
-    extend_vec(res, cfv({.p = x.q, .q = x.p % x.q}));
+    std::vector<int> res = {};
+    while (x.q != 0) {
+        res.push_back(static_cast<int>(x.p / std::floor(static_cast<double>(x.q))));
+        x = {x.q, x.p % x.q};
+    }
     return res; 
 }
 
@@ -176,20 +161,82 @@ fraction cf(auto x) {
     return {cfv(x)};
 }
 
-std::vector<int> homographic(int a, int b, int c, int d, fraction x) {
-    if (x.len() == 0)
-        return cfv({a, c});
-    if (a == c && c == 0)
-        return cfv({b, d});
-    if (c && d && std::floor(static_cast<double>(a) / c) == std::floor(static_cast<double>(b) / d)) {
-        std::vector<int> res = {static_cast<int>(std::floor(a / static_cast<double>(c)))};
-        extend_vec(res, homographic(c, d, a % c, b % d, x));
-        return res;
+std::vector<int> homographic(int a, int b, int c, int d, const fraction &x) {
+    std::vector<int> res;
+    std::size_t i = 0;
+    while (i < x.len()) {
+        if (a == c && c == 0) {
+            extend_vec(res, cfv({b, d}));
+            return res;
+        } else if (c && d && std::floor(static_cast<double>(a) / c) == std::floor(static_cast<double>(b) / d)){
+            res.push_back(static_cast<int>(std::floor(a / static_cast<double>(c))));
+            std::vector<int> aux = {c, d, a % c, b % d};
+            a = aux[0], b = aux[1], c = aux[2], d = aux[3];
+        } else {
+            std::vector<int> aux = {a * x.a[i] + b, a, c * x.a[i] + d, c};
+            a = aux[0], b = aux[1], c = aux[2], d = aux[3];
+            ++i;
+        }
     }
-    int fst = x.a[0];
-    std::vector<int> rest = {};
-    rest.insert(rest.begin(), x.a.begin() + 1, x.a.end());
-    return homographic(a * fst + b, a, c * fst + d, c, {rest});
+    extend_vec(res, cfv({a, c}));
+    return res;
+}
+
+std::vector<int> since(const std::vector<int> &s, int i) {
+    std::vector<int> res;
+    res.reserve(res.size() + distance(s.begin() - i, s.end()));
+    res.insert(res.end(), s.begin() + i, s.end());
+    return res;
+}
+
+std::vector<int> bi_homographic(
+        int a, int b, int c, int d, 
+        int e, int f, int g, int h, 
+        const fraction &x, const fraction &y) {
+    std::size_t i = 0, j = 0;
+    std::vector<int> res;
+    while (i < x.len() && j < y.len()) {
+        if (a == b && b == e && e == d && d == 0) {
+            extend_vec(res, homographic(c, d, g, h, {since(y.a, j)}));
+            return res;
+        } else if (a == c && c == e && e == f && f == 0) {
+            extend_vec(res, homographic(b, d, f, h, {since(x.a, i)}));
+            return res;
+        } else if (e && f && g && h) {
+            double ae = std::floor(static_cast<double>(a) / e);
+            double bf = std::floor(static_cast<double>(b) / f);
+            double cg = std::floor(static_cast<double>(c) / g);
+            double dh = std::floor(static_cast<double>(d) / h);
+            if (ae == bf && bf == cg && cg == dh) {
+                res.push_back(a / e);
+                std::vector<int> aux = {a % e, b % f, c % g, d % h};
+                a = e, b = f, c = g, d = h;
+                e = aux[0], f = aux[1], g = aux[2], h = aux[3];
+            }
+        } else if (f * g * h == 0 || std::abs(b / f - d / h) > std::abs(c / g - d / h)) {
+                std::vector<int> aux = {
+                    a * x.a[i] + c, b * x.a[i] + d, a, b,
+                    e * x.a[i] + g, f * x.a[i] + h, e, f
+                };
+                a = aux[0], b = aux[1], c = aux[2], d = aux[3];
+                e = aux[4], f = aux[5], g = aux[6], h = aux[7];
+                ++i;
+        } else {
+                std::vector<int> aux = {
+                    a * y.a[j] + b, a, c * y.a[j] + d, c,
+                    e * y.a[j] + f, e, g * y.a[j] + h, g
+                };
+                a = aux[0], b = aux[1], c = aux[2], d = aux[3];
+                e = aux[4], f = aux[5], g = aux[6], h = aux[7];
+                ++j;
+        }
+    }
+    if (i == x.len()) {
+        extend_vec(res, homographic(a, b, e, f, {since(y.a, j)}));
+    } else {
+        extend_vec(res, homographic(a, c, e, g, {since(x.a, i)}));
+    }
+    return res;
 }
 
 
@@ -203,9 +250,6 @@ int main()
 
     fraction f_1, f_2, f_3, f_4, f_5;
 
-    std::cout << "balls" << "\n";
-    printv(homographic(2, 0, 0, 1, cf(rat {17, 6})));
-
     f_1.set_coefficients( c_1 );
     f_2.set_coefficients( c_2 );
     f_3.set_coefficients( c_3 );
@@ -217,7 +261,7 @@ int main()
     assert( f_3 < f_1 + f_1 + f_1 + f_1 );
     assert( f_4 < f_1 );
     assert( f_4 + f_4 + f_4 > f_1 );
-    //assert( f_2 * f_5 == f_1 );
+    assert( f_2 * f_5 == f_1 );
 
     return 0;
 }
