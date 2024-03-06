@@ -144,11 +144,11 @@ void extend_vec(std::vector<int> &t, const std::vector<int> &s) {
     t.insert(t.end(), s.begin(), s.end());
 }
 
-std::vector<int> cfv(int x) {
+std::vector<int> cf(int x) {
     return {x};
 }
 
-std::vector<int> cfv(rat x) {
+std::vector<int> cf(rat x) {
     std::vector<int> res = {};
     while (x.q != 0) {
         res.push_back(static_cast<int>(x.p / std::floor(static_cast<double>(x.q))));
@@ -157,16 +157,12 @@ std::vector<int> cfv(rat x) {
     return res; 
 }
 
-fraction cf(auto x) {
-    return {cfv(x)};
-}
-
 std::vector<int> homographic(int a, int b, int c, int d, const fraction &x) {
     std::vector<int> res;
     std::size_t i = 0;
     while (i < x.len()) {
         if (a == c && c == 0) {
-            extend_vec(res, cfv({b, d}));
+            extend_vec(res, cf({b, d}));
             return res;
         } else if (c && d && std::floor(static_cast<double>(a) / c) == std::floor(static_cast<double>(b) / d)){
             res.push_back(static_cast<int>(std::floor(a / static_cast<double>(c))));
@@ -178,7 +174,7 @@ std::vector<int> homographic(int a, int b, int c, int d, const fraction &x) {
             ++i;
         }
     }
-    extend_vec(res, cfv({a, c}));
+    extend_vec(res, cf({a, c}));
     return res;
 }
 
