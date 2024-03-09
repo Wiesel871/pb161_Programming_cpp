@@ -64,6 +64,10 @@ struct natural {
         n.push_back(x);
     }
 
+    void pop() {
+        n.pop_back();
+    }
+
     uint64_t len() const {
         return n.size();
     }
@@ -74,6 +78,11 @@ struct natural {
 
     uint64_t operator[](size_t i) const {
         return n[i];
+    }
+
+    natural &operator=(uint64_t r) {
+        (*this) = natural(r);
+        return *this;
     }
 
     friend bool operator==(const natural &l, const natural &r) {
@@ -121,6 +130,8 @@ struct natural {
             res.push(subres & DOWN);
             carry = l[i] < ri;
         }
+        while (res.len() > 1 && res[res.len() - 1] == 0)
+            res.pop();
         return res;
     }
 
@@ -151,7 +162,7 @@ struct natural {
         uint64_t carry = 0;
         uint64_t subres = 0;
         std::vector<natural> subreses (l.len());
-        subreses[0].n.pop_back();
+        subreses[0].pop();
         for (size_t i = 1; i < l.len(); ++i)
             for (size_t j = 0; j < i - 1; ++j)
                 subreses[i].push(0);
@@ -171,7 +182,7 @@ struct natural {
             x &= DOWN;
         }
         while (res[res.len() - 1] == 0 && res.len() > 1)
-            res.n.pop_back();
+            res.pop();
 
         return res;
     }
@@ -207,6 +218,9 @@ int main()
     assert(test * one == test);
     assert(test * zero == zero);
     assert(test + zero == test);
+    test = 1;
+    test.push(1);
+    assert(test - natural(2) == natural(DOWN));
 
     return 0;
 }
