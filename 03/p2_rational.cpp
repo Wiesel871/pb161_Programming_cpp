@@ -1,7 +1,6 @@
 #include <cassert>
 #include <cmath>
-#include <compare>
-#include <new>
+#include <utility>
 #include <iostream>
 
 /* V tomto příkladu budeme programovat jednoduchá racionální čísla
@@ -54,8 +53,8 @@ struct rat {
     }
 
     friend auto operator<=>(const rat &l, const rat &r) {
-        const rat lb = make_rat(l.p, l.q);
-        const rat rb = make_rat(r.p, r.q);
+        const rat lb = base_form(l);
+        const rat rb = base_form(r);
         return (lb.p * rb.q) <=> (rb.p * lb.q);
     }
 };
@@ -71,7 +70,7 @@ rat base_form(const rat &r) {
         return {1, r.q / r.p};
     }
     rat res = r;
-    for (int i = 2; i < std::sqrt(std::min(res.q, res.p)); i += 1 + (i != 2)) {
+    for (int i = 2; i * i <= std::min(std::abs(res.q), std::abs(res.p)); i += 1 + (i != 2)) {
         while (res.p % i == 0 && res.q % i == 0) {
             res.p /= i;
             res.q /= i;
@@ -81,7 +80,6 @@ rat base_form(const rat &r) {
 }
 
 rat make_rat(int p, int q) {
-    assert(q != 0);
     if (q < 0)
         return base_form({-p, -q});
     return base_form({p, q});
@@ -119,6 +117,26 @@ int main()
     assert( half + third < one );
     assert( minus_half < minus_sixth );
     assert( minus_half + third == minus_sixth );
+
+    rat a = make_rat(12, 7);
+    rat b = make_rat(2, 3);
+
+    a = a + b;
+    assert(a >= b);
+    std::swap(a, b);
+    assert(a < b);
+    a = a - b;
+    assert(a < b);
+    a = a * b;
+    assert(a != b);
+    a = a / b;
+    assert(a != b);
+    a = a - b;
+    assert(a < b);
+    a = a - b;
+    assert(a < b);
+    a = a + b;
+    assert(a < b);
 
     return 0;
 }
