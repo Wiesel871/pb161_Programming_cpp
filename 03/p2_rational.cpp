@@ -87,10 +87,6 @@ rat make_rat(int p, int q) {
     return base_form({p, q});
 }
 
-
-
-rat make_rat( int, int );
-
 int main()
 {
     rat one = make_rat( 1, 1 ),

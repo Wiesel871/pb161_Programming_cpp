@@ -1,6 +1,8 @@
 #include <cassert>
 #include <cstdint>
 #include <vector>
+#include <memory>
+#include <iostream>
 
 /* Vaším úkolem je vytvořit typ ‹mountain_range›, který bude
  * reprezentovat rekurzivní pohoří. Rekurzivní pohoří má tento tvar:
@@ -43,10 +45,44 @@
  *
  * Nově vytvořená hodnota typu ‹mountain_range› reprezentuje prázdné
  * pohoří (prázdný svah a žádná vnitřní pohoří). */
+void extend_vec(std::vector<int> &t, const std::vector<int> &s) {
+    t.reserve(t.size() + distance(s.begin(), s.end()));
+    t.insert(t.end(), s.begin(), s.end());
+}
+
+std::vector<int> reversed(const std::vector<int> &s) {
+    std::vector<int> res = {};
+    for (size_t i = 0; i < s.size(); ++i) {
+        res.push_back(s.end()[-(i + 1)]);
+    }
+    return res;
+}
 
 struct mountain_range {
-    std::vector<mountain_range> in = {};
-    mountain_range *l = nullptr, *r = nullptr;
+    int r = 0;
+    std::vector<int> in = {};
+
+    int get(int i) const {
+        return in[i];
+    }
+
+    void set_slope(const std::vector<int> &v) {
+        in = v;
+        extend_vec(in, reversed(v));
+        r = v.size();
+    }
+
+    void insert(const mountain_range &inner) {
+        if (in.empty()) {
+            (*this) = inner;
+            return;
+        }
+        auto aux = inner.in;
+        for (int &x: aux)
+            x += in[r];
+        in.insert(in.begin() + r, aux.begin(), aux.end());
+        r += aux.size();
+    }
 };
 
 int main()
