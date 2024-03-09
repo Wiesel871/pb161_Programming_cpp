@@ -1,6 +1,5 @@
 #include <cassert>
 #include <cmath>
-#include <iostream>
 
 /* Doplňte definice typů ‹point›, ‹polygon› a ‹circle› tak, abyste
  * pak mohli s jejich pomocí možné implementovat tyto čisté funkce:
@@ -50,11 +49,11 @@ circle make_circle(point p, point e) {
 }
 
 double area(const polygon &p) {
-    return (p.n * p.r * p.r * std::sin(6.283 / p.n)) / 2;
+    return (p.n * p.r * p.r * std::sin((2 * M_PI) / p.n)) / 2;
 }
 
 double area(const circle &c) {
-    return 3.1415 * c.r * c.r;
+    return M_PI * c.r * c.r;
 }
 
 int main()
