@@ -89,7 +89,7 @@ rat base_form(const rat &r) {
         return {1, r.q / r.p};
     }
     rat res = r;
-    for (int i = 2; i < std::sqrt(std::min(res.q, res.p)); i += 1 + (i != 2)) {
+    for (int i = 2; i * i <= std::min(std::abs(res.q), std::abs(res.p)); i += 1 + (i != 2)) {
         while (res.p % i == 0 && res.q % i == 0) {
             res.p /= i;
             res.q /= i;
