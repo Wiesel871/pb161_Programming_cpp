@@ -1,6 +1,9 @@
 #include <cassert>
 #include <memory>
+#include <utility>
 #include <vector>
+#include <iostream>
+
 
 /* Uvažme typ ‹element› hodnot, které (z nějakého důvodu) nelze
  * kopírovat. Našim cílem bude naprogramovat funkci, která vrátí
@@ -28,7 +31,25 @@ using data = std::vector< element >;
  * Nápověda: Protože nemůžete přímo manipulovat hodnotami typu
  * ‹element›, zkuste využít k zapamatování si dosud nejlepšího
  * kandidáta iterátor. */
-element &least(data d) {
+element least(data &&d) {
+    auto p = d.begin();
+    for (auto e = d.begin() + 1; e < d.end(); ++e) {
+        if (e->less_than(*p))
+            p = e;
+    }
+    return std::move(*p);
+}
+
+const element &least(const data &d) {
+    auto p = d.begin();
+    for (auto e = d.begin() + 1; e < d.end(); ++e) {
+        if (e->less_than(*p))
+            p = e;
+    }
+    return *p;
+}
+
+element &least(data &d) {
     auto p = d.begin();
     for (auto e = d.begin() + 1; e < d.end(); ++e) {
         if (e->less_than(*p))

@@ -1,4 +1,5 @@
 #include <cassert>
+#include <stack>
 
 /* V tomto příkladu implementujeme jednoduchou datovou strukturu,
  * které se říká «zipper» – reprezentuje sekvenci prvků, přitom
@@ -20,7 +21,63 @@
  *    ‹true› bylo-li to možné
  */
 
-struct zipper;
+struct zipper {
+    std::stack<int> left, right;
+    int focused;
+    
+    zipper(int x) {
+        focused = x;
+    }
+
+    int &focus() {
+        return focused;
+    }
+
+    int focus() const {
+        return focused;
+    }
+
+    bool shift_left() {
+        if (left.empty())
+            return false;
+        right.push(focused);
+        focused = left.top();
+        left.pop();
+        return true;
+    }
+
+    bool shift_right() {
+        if (right.empty())
+            return false;
+        left.push(focused);
+        focused = right.top();
+        right.pop();
+        return true;
+    }
+
+    void insert_left(int x) {
+        left.push(x);
+    }
+
+    void insert_right(int x) {
+        right.push(x);
+    }
+
+    bool erase_left() {
+        if (left.empty())
+            return false;
+        left.pop();
+        return true;
+    }
+
+    bool erase_right() {
+        if (right.empty())
+            return false;
+        right.pop();
+        return true;
+    }
+
+};
 
 int main()
 {

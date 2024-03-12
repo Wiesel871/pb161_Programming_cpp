@@ -43,7 +43,11 @@ using node_pool = std::vector< node >;
  * metodu ‹update›, která upraví hodnotu v aktuálním uzlu. Metodu
  * ‹update› je dovoleno použít pouze na uzly typu ‹op_num›. */
 
-struct node_ref;
+struct node_ref {
+    int val = 0;
+    int op = 0;
+    node_ref(int x, int op) : val{x}, op{op} {}
+};
 
 /* Typ ‹eval› reprezentuje výraz jako celek. Umožňuje vytvářet nové
  * výrazy ze stávajících (pomocí metod ‹add›, ‹mul› a ‹num›) a
@@ -57,8 +61,16 @@ struct eval
     std::vector< node_ref > roots();
 
     node_ref add( node_ref, node_ref );
-    node_ref mul( node_ref, node_ref );
-    node_ref num( int );
+    node_ref mul( node_ref l, node_ref r);
+    
+    // vyhodnocovani number ale zadani num tak nevim
+    node_ref num(int x) {
+        return {x, op_num};
+    }
+
+    node_ref number(int x) {
+        return {x, op_num};
+    }
 };
 
 int main()

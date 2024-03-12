@@ -1,4 +1,6 @@
 #include <cassert>
+#include <stack>
+#include <cmath>
 
 /* Naprogramujte jednoduchý zásobníkový evaluátor aritmetických
  * výrazů zapsaných v RPN (postfixové notaci). Operace:
@@ -19,7 +21,50 @@ struct add {};  /* addition */
 struct mul {};  /* multiplication */
 struct dist {}; /* absolute value of difference */
 
-struct eval;
+struct eval {
+    std::stack<int> st = {};
+
+    eval &push(int x) {
+        st.push(x);
+        return (*this);
+    }
+    
+    int top() const {
+        return st.top();
+    }
+
+    int &top() {
+        return st.top();
+    }
+
+    int pop() {
+        int x = st.top();
+        st.pop();
+        return x;
+    }
+
+    bool empty() const {
+        return st.empty();
+    }
+
+    eval &apply(add) {
+        int x = pop();
+        int y = pop();
+        return push(x + y);
+    }
+
+    eval &apply(mul) {
+        int x = pop();
+        int y = pop();
+        return push(x * y);
+    }
+
+    eval &apply(dist) {
+        int x = pop();
+        int y = pop();
+        return push(std::abs(x - y));
+    }
+};
 
 int main()
 {

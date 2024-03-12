@@ -1,6 +1,7 @@
 #include <cassert>
 #include <utility>
 #include <stdexcept>
+#include <iostream>
 
 /* V tomto příkladu se budeme zabývat (velmi zjednodušenými)
  * bankovními půjčkami. Navrhneme 2 třídy: ‹account›, která bude mít
@@ -20,8 +21,46 @@
  * musí být vždy plně splacena (tzn. zabraňte situaci, kdy se
  * informace o dluhu „ztratí“ aniž by byl tento dluh splacen). */
 
-struct account;
-struct loan;
+struct account {
+    int _balance = 0;
+    int balance() const {
+        return _balance;
+    }
+
+    void deposit(int x) {
+        _balance += x;
+    }
+
+    void withdraw(int x) {
+        _balance -= x;
+    }
+};
+struct loan {
+    int _loan = 0;
+    account &ac;
+    loan(account &a, int l) : ac {a} {
+        a.deposit(l);
+        _loan = l;
+    }
+
+    bool repay() {
+        ac.withdraw(_loan);
+        _loan = 0;
+        return true;
+    }
+
+    bool repay(int x) {
+        if (x > _loan)
+            return false;
+        ac.withdraw(x);
+        _loan -= x;
+        return true;
+    }
+
+    ~loan() {
+        repay();
+    }
+};
 
 int main()
 {
