@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <vector>
 #include <cassert>
 
@@ -44,9 +45,28 @@ using node_pool = std::vector< node >;
  * ‹update› je dovoleno použít pouze na uzly typu ‹op_num›. */
 
 struct node_ref {
-    int val = 0;
-    int op = 0;
-    node_ref(int x, int op) : val{x}, op{op} {}
+    std::size_t i = 0;
+    const node_pool &nodes;
+    node_ref(std::size_t i, const node_pool &v) : i{i}, nodes{v} {}
+    operator int() const {
+        return i;
+    }
+
+    int compute() const {
+        if (nodes[i].op == op_num)
+            return nodes[i].value;
+        if (nodes[i].op == op_add)
+            return node_ref(nodes[i].left, nodes).compute() + node_ref(nodes[i].right, nodes).compute();
+        return left().compute() * right().compute();
+    }
+
+    node_ref left() const {
+        return {static_cast<std::size_t>(nodes[i].left), nodes};
+    }
+
+    node_ref right() const {
+        return {static_cast<std::size_t>(nodes[i].left), nodes};
+    }
 };
 
 /* Typ ‹eval› reprezentuje výraz jako celek. Umožňuje vytvářet nové
@@ -58,18 +78,37 @@ struct eval
 {
     node_pool _pool;
 
-    std::vector< node_ref > roots();
+    std::vector< node_ref > roots() {
+        std::vector<node_ref> res = {};
+        for (std::size_t i = 0; i < _pool.size(); ++i) {
+            if (_pool[i].is_root)
+                res.emplace_back(i, _pool);
+        }
+        return res;
+    }
 
-    node_ref add( node_ref, node_ref );
-    node_ref mul( node_ref l, node_ref r);
+    node_ref add( node_ref l, node_ref r) {
+        _pool[l].is_root = false;
+        _pool[r].is_root = false;
+        _pool.push_back({op_add, l, r, true, 0});
+        return {_pool.size() - 1, _pool};
+    }
+    node_ref mul( node_ref l, node_ref r) {
+        _pool[l].is_root = false;
+        _pool[r].is_root = false;
+        _pool.push_back({op_mul, l, r, true, 0});
+        return {_pool.size() - 1, _pool};
+    };
     
     // vyhodnocovani number ale zadani num tak nevim
     node_ref num(int x) {
-        return {x, op_num};
+        _pool.push_back({op_num, -1, -1, true, x});
+        return {_pool.size() - 1, _pool};
     }
 
     node_ref number(int x) {
-        return {x, op_num};
+        _pool.push_back({op_num, -1, -1, true, x});
+        return {_pool.size() - 1, _pool};
     }
 };
 
