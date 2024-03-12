@@ -1,5 +1,7 @@
 #include <cassert>
 #include <cmath>
+#include <stack>
+#include <type_traits>
 
 /* V této úloze se budeme pohybovat v dvourozměrné ploše a počítat
  * při tom uraženou vzdálenost. Typ ‹walk› nechť má tyto metody:
@@ -26,8 +28,52 @@
  * ¹ Potřebný středový úhel naleznete například vyřešením
  *   rovnoramenného trojúhelníku s délkou ramene ‹radius› a
  *   základnou určenou vzdáleností spojovaných bodů. */
+struct point {
+    double x = 0, y = 0;
 
-struct walk;
+    double line (const point &r) {
+        return std::sqrt(std::pow(x - r.x, 2) + std::pow(y - r.y, 2));
+    }
+};
+
+struct walk {
+    point pos = {};
+    point prev = {};
+    double _distance = 0.0;
+    double last_step = 0.0;
+
+    walk() = default;
+
+    walk(const point &p) : pos{p} {};
+
+    double distance() const {
+        return _distance;
+    }
+
+    walk &line(const point &p) {
+        last_step = pos.line(p);
+        prev = pos;
+        _distance += last_step;
+        pos = p;
+        return (*this);
+    }
+
+    walk &backtrack() {
+        _distance += last_step;
+        std::swap(pos, prev);
+        return (*this);
+    }
+
+    walk &arc(const point &p, double r) {
+        double delta = 2 * std::asin(pos.line(p) / (2 * r));
+        last_step = r * delta;
+        _distance += last_step;
+        prev = pos;
+        pos = p;
+        return (*this);
+    }
+
+};
 
 int main()
 {
