@@ -1,6 +1,5 @@
 #include <cmath>
 #include <cassert>
-#include <iostream>
 
 /* Vaším úkolem je implementovat typ ‹polar›, který realizuje
  * polární reprezentaci komplexního čísla. Protože tato podoba
