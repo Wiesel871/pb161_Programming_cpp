@@ -1,7 +1,6 @@
 #include <cassert>
 #include <cmath>
 #include <utility>
-#include <iostream>
 
 /* V tomto příkladu budeme programovat jednoduchá racionální čísla
  * (taková, že je lze reprezentovat dvojicí celých čísel typu

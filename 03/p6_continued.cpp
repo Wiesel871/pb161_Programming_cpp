@@ -1,8 +1,6 @@
 #include <cstddef>
-#include <new>
 #include <vector>
 #include <cassert>
-#include <iostream>
 #include <cmath>
 
 /* Předmětem tohoto příkladu jsou tzv. «řetězové zlomky». Typ

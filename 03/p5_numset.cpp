@@ -1,5 +1,4 @@
 #include <cassert>
-#include <initializer_list>
 #include <unordered_set>
 
 /* Navrhněte typ ‹numset›, kterého hodnoty budou reprezentovat

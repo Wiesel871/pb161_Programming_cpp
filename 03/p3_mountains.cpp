@@ -1,8 +1,5 @@
 #include <cassert>
-#include <cstdint>
 #include <vector>
-#include <memory>
-#include <iostream>
 
 /* Vaším úkolem je vytvořit typ ‹mountain_range›, který bude
  * reprezentovat rekurzivní pohoří. Rekurzivní pohoří má tento tvar:
