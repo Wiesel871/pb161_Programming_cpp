@@ -13,7 +13,20 @@
 
 using key = std::vector< bool >;
 
-struct trie_node;
+struct trie_node {
+    trie_node *left = nullptr, *right = nullptr;
+
+    void clear() {
+        if (left) {
+            left->clear();
+            delete left;
+        }
+        if (right) {
+            right->clear();
+            delete right;
+        }
+    }
+};
 
 /* Pro jednoduchost nebudeme programovat klasickou metodu ‹insert›.
  * Místo toho umožníme uživateli přímo vystavět trie pomocí metod
@@ -25,7 +38,52 @@ struct trie_node;
  * Hlavní část úkolu tedy spočívá v implementaci metody ‹has›, která
  * pro daný klíč rozhodne, je-li v množině přítomen. */
 
-struct trie;
+struct trie {
+    trie_node *_root = new trie_node;
+
+    bool has(key k) {
+        trie_node *cur = _root;
+        for (bool b: k) {
+            if (!cur)
+                return false;
+            cur = b ? cur->right : cur->left;
+        }
+        return cur && !cur->left && !cur->right;
+    }
+
+    trie_node &root() {
+        return *_root;
+    }
+
+    trie_node &make(trie_node &s, bool k) {
+        if (k) {
+            if (!s.right)
+                s.right = new trie_node;
+            return *s.right;
+        }
+        if (!s.left)
+            s.left = new trie_node;
+        return *s.left;
+    }
+
+    trie_node *make(trie_node *s, key k) {
+        trie_node **cur = &s;
+        for (bool b: k) {
+            if (! *cur) {
+                *cur = new trie_node;
+            }
+            cur = &(b ? (*cur)->right : (*cur)->left); 
+        }
+        return *cur;
+    }
+
+    ~trie() {
+        if (_root) {
+            _root->clear();
+            delete _root;
+        }
+    }
+};
 
 int main()
 {
