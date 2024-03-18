@@ -1,4 +1,7 @@
+#include <array>
 #include <cassert>
+#include <cstdint>
+#include <memory>
 
 /* Předmětem tohoto cvičení je datová struktura, tzv. „rozbalený“
  * zřetězený seznam. Typ, který bude strukturu zastřešovat, by měl
@@ -19,9 +22,78 @@
  *
  * V tomto příkladu není potřeba implementovat mazání prvků. */
 
-struct unrolled_node;
-struct unrolled_iterator;
-struct unrolled;
+struct unrolled_node {
+    unrolled_node *next = nullptr;
+    std::uint8_t len = 0;
+    std::array<int, 4> ar = {};
+};
+
+struct unrolled_iterator {
+    unrolled_node *cur = nullptr;
+    std::uint8_t i = 0;
+
+    int operator++() {
+        if (i == cur->len - 1) {
+            cur = cur->next;
+            i = 0;
+        } else {
+            ++i;
+        }
+        if (!cur)
+            return 0;
+        return cur->ar[i];
+    }
+
+    int *operator->() {
+        return &(cur->ar[i]);
+    }
+
+    int &operator*() {
+        return cur->ar[i];
+    }
+
+    bool operator!=(const unrolled_iterator &r) {
+        return cur != r.cur || i != r.i;
+    }
+};
+
+struct unrolled {
+    unrolled_node *first = nullptr, *last = nullptr;
+
+    bool empty() const {
+        return first == nullptr;
+    }
+
+    unrolled_iterator begin() const {
+        return {first};
+    }
+
+    unrolled_iterator end() const {
+        return {nullptr};
+    }
+
+    void push_back(int x) {
+        if (!last) {
+            first = new unrolled_node;
+            last = first;
+        } else if (last->len == 4) {
+            last->next = new unrolled_node{};
+            last = last->next;
+        }
+        
+        last->ar[last->len] = x;
+        last->len += 1;
+    }
+
+    ~unrolled() {
+        unrolled_node *next = nullptr;
+        for (unrolled_node *p = first; p; p = next) {
+            next = p->next;
+            delete p;
+        }
+    }
+
+};
 
 int main()
 {
