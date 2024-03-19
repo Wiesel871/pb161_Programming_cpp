@@ -1,5 +1,6 @@
 #include <cassert>
 #include <vector>
+#include <array>
 
 /* V tomto cvičení se zaměříme na typy (v tomto cvičení typ ‹solid›)
  * s volitelnými složkami (typ ‹transform_matrix›). Budou nás
@@ -20,7 +21,14 @@
  * Implicitně sestrojená hodnota nechť reprezentuje identitu
  * (hodnoty na hlavní diagonále rovné 1, mimo diagonálu 0). */
 
-struct transform_matrix;
+using matrix = std::array<std::array<double, 3>, 3>; 
+
+struct transform_matrix {
+    matrix ar = {{{1, 0, 0}, {0, 1, 0}, {0, 0, 1}}};
+
+};
+
+static transform_matrix base;
 
 /* Typ ‹solid› bude reprezentovat společné vlastnosti pevných těles
  * (které nezávisí na konkrétním tvaru nebo typu tělesa). Měl by mít
@@ -38,7 +46,41 @@ struct transform_matrix;
  * matici alokujte pouze v případě, že se oproti implicitnímu stavu
  * změní některý koeficient. */
 
-struct solid;
+struct solid {
+    double x = 0, y = 0, z = 0;
+    transform_matrix *transform = &base;
+
+    solid(double x, double y, double z) : x{x}, y{y}, z{z} {}
+
+    double pos_x() const {
+        return x;
+    }
+
+    double pos_y() const {
+        return y;
+    }
+
+    double pos_z() const {
+        return z;
+    }
+
+    double transform_entry(int r, int c) const {
+        return transform->ar[r][c];
+    }
+
+    void transform_set(int r, int c, double v) {
+        if (transform == &base) {
+            transform = new transform_matrix(base);
+        }
+        transform->ar[r][c] = v;
+    }
+
+    ~solid() {
+        if (transform != &base) {
+            delete transform;
+        }
+    }
+};
 
 int main()
 {
