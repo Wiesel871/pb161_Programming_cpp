@@ -1,4 +1,9 @@
 #include <cassert>
+#include <cstddef>
+#include <cstdio>
+#include <vector>
+#include <list>
+#include <memory>
 
 /* V tomto cvičení rozšíříme binární trie z ‹p2› – místo
  * posloupnosti bitů budeme za klíče brát posloupnosti celých čísel
@@ -41,14 +46,80 @@
  * zřetězené seznamy pravých potomků ve fyzicky binárním stromě. */
 
 using key = std::vector< int >;
-struct trie_node;
+
+struct sub_node;
+
+struct trie_node {
+    std::list<sub_node> rs = {};
+};
+
+struct sub_node {
+    trie_node *l;
+    int k;
+
+    sub_node(int k) : k{k} {
+        l = new trie_node;
+    }
+
+    void clear() {
+        for (auto &x: l->rs) {
+            x.clear();
+        }
+        delete l;
+    }
+};
 
 /* Rozhraní typu ‹trie› je velmi jednoduché: má metodu ‹add›, která
  * přidá klíč a metodu ‹has›, která rozhodne, je-li daný klíč
  * přítomen. Obě jako parametr přijmou hodnotu typu ‹key›. Prefixy
  * vložených klíčů nepovažujeme za přítomné. */
 
-struct trie;
+struct trie {
+    std::unique_ptr<trie_node> root = std::make_unique<trie_node>();
+
+    void add(key k) {
+        std::size_t i = 0;
+        auto node = &root->rs;
+        auto p = node->begin();
+        while (i < k.size()) {
+            if (node->empty() || p == node->end() || p->k > k[i]) {
+                node = &(node->insert(p, {k[i]}))->l->rs;
+                p = node->begin();
+                ++i;
+            } else if (p->k == k[i]) {
+                node = &p->l->rs;
+                p = node->begin();
+                ++i;
+            } else {
+                ++p;
+            }
+        }
+    }
+
+    bool has(key k) const {
+        std::size_t i = 0;
+        auto node = &root->rs;
+        auto p = node->begin();
+        while (i < k.size()) {
+            if (p == node->end())
+                return false;
+            if (k[i] == p->k) {
+                ++i;
+                node = &p->l->rs;
+                p = node->begin();
+            } else {
+                ++p;
+            }
+        }
+        return node->empty();
+    }
+
+    ~trie() {
+        for (auto &x : root->rs) {
+            x.clear();
+        }
+    }
+};
 
 int main()
 {
