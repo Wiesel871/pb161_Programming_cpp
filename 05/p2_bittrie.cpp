@@ -1,5 +1,6 @@
 #include <vector>
 #include <cassert>
+#include <memory>
 
 /* Binární trie je «binární» stom, který kóduje množinu bitových
  * řetězců, s rychlým vkládáním a vyhledáváním. Každá hrana kóduje
@@ -14,18 +15,7 @@
 using key = std::vector< bool >;
 
 struct trie_node {
-    trie_node *left = nullptr, *right = nullptr;
-
-    void clear() {
-        if (left) {
-            left->clear();
-            delete left;
-        }
-        if (right) {
-            right->clear();
-            delete right;
-        }
-    }
+    std::unique_ptr<trie_node> left = nullptr, right = nullptr;
 };
 
 /* Pro jednoduchost nebudeme programovat klasickou metodu ‹insert›.
@@ -39,14 +29,14 @@ struct trie_node {
  * pro daný klíč rozhodne, je-li v množině přítomen. */
 
 struct trie {
-    trie_node *_root = new trie_node;
+    std::unique_ptr<trie_node> _root = std::make_unique<trie_node>();
 
     bool has(key k) {
-        trie_node *cur = _root;
+        trie_node *cur = _root.get();
         for (bool b: k) {
             if (!cur)
                 return false;
-            cur = b ? cur->right : cur->left;
+            cur = b ? cur->right.get() : cur->left.get();
         }
         return cur && !cur->left && !cur->right;
     }
@@ -58,31 +48,14 @@ struct trie {
     trie_node &make(trie_node &s, bool k) {
         if (k) {
             if (!s.right)
-                s.right = new trie_node;
+                s.right = std::make_unique<trie_node>();
             return *s.right;
         }
         if (!s.left)
-            s.left = new trie_node;
+            s.left = std::make_unique<trie_node>();
         return *s.left;
     }
 
-    trie_node *make(trie_node *s, key k) {
-        trie_node **cur = &s;
-        for (bool b: k) {
-            if (! *cur) {
-                *cur = new trie_node;
-            }
-            cur = &(b ? (*cur)->right : (*cur)->left); 
-        }
-        return *cur;
-    }
-
-    ~trie() {
-        if (_root) {
-            _root->clear();
-            delete _root;
-        }
-    }
 };
 
 int main()
