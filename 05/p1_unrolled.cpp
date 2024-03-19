@@ -23,7 +23,7 @@
  * V tomto příkladu není potřeba implementovat mazání prvků. */
 
 struct unrolled_node {
-    unrolled_node *next = nullptr;
+    std::unique_ptr<unrolled_node> next = nullptr;
     std::uint8_t len = 0;
     std::array<int, 4> ar = {};
 };
@@ -32,9 +32,10 @@ struct unrolled_iterator {
     unrolled_node *cur = nullptr;
     std::uint8_t i = 0;
 
+
     int operator++() {
         if (i == cur->len - 1) {
-            cur = cur->next;
+            cur = cur->next.get();
             i = 0;
         } else {
             ++i;
@@ -58,14 +59,15 @@ struct unrolled_iterator {
 };
 
 struct unrolled {
-    unrolled_node *first = nullptr, *last = nullptr;
+    std::unique_ptr<unrolled_node> first = nullptr; 
+    unrolled_node *last = nullptr;
 
     bool empty() const {
         return first == nullptr;
     }
 
     unrolled_iterator begin() const {
-        return {first};
+        return {first.get()};
     }
 
     unrolled_iterator end() const {
@@ -74,23 +76,15 @@ struct unrolled {
 
     void push_back(int x) {
         if (!last) {
-            first = new unrolled_node;
-            last = first;
+            first = std::make_unique<unrolled_node>();
+            last = first.get();
         } else if (last->len == 4) {
-            last->next = new unrolled_node{};
-            last = last->next;
+            last->next = std::make_unique<unrolled_node>();
+            last = last->next.get();
         }
         
         last->ar[last->len] = x;
         last->len += 1;
-    }
-
-    ~unrolled() {
-        unrolled_node *next = nullptr;
-        for (unrolled_node *p = first; p; p = next) {
-            next = p->next;
-            delete p;
-        }
     }
 
 };
