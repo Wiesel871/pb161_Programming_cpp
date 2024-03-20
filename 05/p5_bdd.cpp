@@ -1,5 +1,12 @@
+#include <array>
 #include <cassert>
+#include <cstddef>
+#include <cstdio>
 #include <memory>
+#include <utility>
+#include <vector>
+#include <map>
+
 
 /* Binární rozhodovací diagram je úsporná reprezentace booleovských
  * funkcí více parametrů. Lze o nich uvažovat jako o orientovaném
@@ -30,11 +37,54 @@
  * Chování není definováno, obsahuje-li BDD uzel, který nemá
  * nastavené oba následníky. */
 
-struct bdd_node;
-struct bdd;
+struct bdd_node {
+    char var;
+    std::size_t i;
+    std::array<std::size_t, 2> children;
+
+    bdd_node(char c, std::size_t i) : var{c}, i{i}, children{0, 0} {}
+};
+
+struct bdd {
+    std::vector<bdd_node> nodes;
+
+    bdd(char c) {
+        nodes = {{'f', 0}, {'t', 1}, {c, 2}};
+    }
+
+    std::size_t root() {
+        return 2;
+    }
+
+    std::size_t one() {
+        return 1;
+    }
+
+    std::size_t zero() {
+        return 0;
+    }
+
+    std::size_t add_var(char c) {
+        nodes.emplace_back(c, nodes.size());
+        return nodes.size() - 1;
+    }
+
+    void add_edge(std::size_t l, bool val, std::size_t r) {
+        nodes[l].children[val] = r;
+    }
+
+    bool eval(const std::map<char, bool> &m) const {
+        std::size_t i = 2;
+        while (i > 1) {
+            i = nodes[i].children[m.at(nodes[i].var)];
+        }
+        return i;
+    }
+};
 
 int main()
 {
+    static_assert(sizeof(bdd_node) == 4 * sizeof(std::size_t));
     bdd b( 'z' );
     const bdd &cb = b;
 
