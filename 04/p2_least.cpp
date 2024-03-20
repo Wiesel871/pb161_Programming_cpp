@@ -1,8 +1,6 @@
 #include <cassert>
-#include <memory>
 #include <utility>
 #include <vector>
-#include <iostream>
 
 
 /* Uvažme typ ‹element› hodnot, které (z nějakého důvodu) nelze

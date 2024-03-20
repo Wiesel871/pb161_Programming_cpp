@@ -1,7 +1,5 @@
 #include <cassert>
 #include <cmath>
-#include <stack>
-#include <type_traits>
 
 /* V této úloze se budeme pohybovat v dvourozměrné ploše a počítat
  * při tom uraženou vzdálenost. Typ ‹walk› nechť má tyto metody:

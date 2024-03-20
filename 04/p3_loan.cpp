@@ -1,7 +1,4 @@
 #include <cassert>
-#include <utility>
-#include <stdexcept>
-#include <iostream>
 
 /* V tomto příkladu se budeme zabývat (velmi zjednodušenými)
  * bankovními půjčkami. Navrhneme 2 třídy: ‹account›, která bude mít
