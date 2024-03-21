@@ -2,7 +2,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <vector>
-#include <memory>
 #include <stack>
 
 /* Lano je datová struktura, která reprezentuje sekvenci,
@@ -36,11 +35,11 @@ struct rope {
     Tag t;
     rope *l = nullptr;
     rope *r = nullptr;
-    std::vector<char> rep = {};
+    std::vector<int> rep = {};
     std::size_t len_l;
     std::size_t len_f;
     
-    rope(std::vector<char> rep) : t{Leaf}, rep{rep} {
+    rope(std::vector<int> rep) : t{Leaf}, rep{rep} {
         len_f = len_l = rep.size();
     }
 
@@ -70,7 +69,7 @@ struct rope {
         return -1;
     }
 
-    void set(std::size_t i, char c) {
+    void set(std::size_t i, int c) {
         std::stack<rope *> st = {};
         st.push(this);
         while (!st.empty()) {
