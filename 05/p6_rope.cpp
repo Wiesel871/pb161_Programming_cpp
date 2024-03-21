@@ -1,4 +1,9 @@
 #include <cassert>
+#include <cstddef>
+#include <cstdio>
+#include <vector>
+#include <memory>
+#include <stack>
 
 /* Lano je datová struktura, která reprezentuje sekvenci,
  * implementovaná jako binární strom, který má v listech klasická
@@ -22,7 +27,72 @@
  * ¹ Spojení dvou lan lze za cenu dodatečné informace v uzlech, nebo
  *   pomalejší indexace, provést i v konstantním čase. */
 
-struct rope;
+enum Tag {
+    Leaf = 'l',
+    Concat = 'c',
+};
+
+struct rope {
+    Tag t;
+    rope *l = nullptr;
+    rope *r = nullptr;
+    std::vector<char> rep = {};
+    std::size_t len_l;
+    std::size_t len_f;
+    
+    rope(std::vector<char> rep) : t{Leaf}, rep{rep} {
+        len_f = len_l = rep.size();
+    }
+
+    rope(rope &l, rope &r) : t{Concat}, l{&l}, r{&r} {
+        len_l = l.len_f;
+        len_f = len_l + r.len_f;
+    }
+    
+    char get(std::size_t i) const {
+        std::stack<const rope *> st = {};
+        st.push(this);
+        while (!st.empty()) {
+            const rope *cur = st.top();
+            st.pop();
+            switch (cur->t) {
+                case Leaf:
+                    return cur->rep[i];
+                case Concat:
+                    if (i < cur->len_l) {
+                        st.push(cur->l);
+                    } else {
+                        i -= cur->len_l;
+                        st.push(cur->r);
+                    }
+            }
+        }
+        return -1;
+    }
+
+    void set(std::size_t i, char c) {
+        std::stack<rope *> st = {};
+        st.push(this);
+        while (!st.empty()) {
+            rope *cur = st.top();
+            st.pop();
+            switch (cur->t) {
+                case Leaf: 
+                    cur->rep[i] = c;
+                    return;
+                case Concat:
+                    if (i < cur->len_l) {
+                        st.push(cur->l);
+                    } else {
+                        i -= cur->len_l;
+                        st.push(cur->r);
+                    }
+            }
+        }
+    }
+
+};
+
 
 int main()
 {
