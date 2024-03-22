@@ -31,6 +31,23 @@ enum Tag {
     Concat = 'c',
 };
 
+/*
+void print_vec(const std::vector<int> &v) {
+    for (int x:v) {
+        printf("%d ", x);
+    }
+    printf("\n");
+}
+
+int vec_sum(const std::vector<int> &v) {
+    int res = 0;
+    for (int x: v) {
+        res += x;
+    }
+    return res;
+}
+*/
+
 struct rope {
     Tag t;
     rope *l = nullptr;
@@ -51,45 +68,60 @@ struct rope {
     char get(std::size_t i) const {
         std::stack<const rope *> st = {};
         st.push(this);
-        while (!st.empty()) {
+        while (!st.empty() && st.top()->t != Leaf) {
             const rope *cur = st.top();
             st.pop();
-            switch (cur->t) {
-                case Leaf:
-                    return cur->rep[i];
-                case Concat:
-                    if (i < cur->len_l) {
-                        st.push(cur->l);
-                    } else {
-                        i -= cur->len_l;
-                        st.push(cur->r);
-                    }
+            if (i < cur->len_l) {
+                st.push(cur->l);
+            } else {
+                i -= cur->len_l;
+                st.push(cur->r);
             }
         }
-        return -1;
+        return st.top()->rep[i];
     }
 
     void set(std::size_t i, int c) {
         std::stack<rope *> st = {};
         st.push(this);
-        while (!st.empty()) {
+        while (!st.empty() && st.top()->t != Leaf) {
             rope *cur = st.top();
             st.pop();
-            switch (cur->t) {
-                case Leaf: 
-                    cur->rep[i] = c;
-                    return;
-                case Concat:
-                    if (i < cur->len_l) {
-                        st.push(cur->l);
-                    } else {
-                        i -= cur->len_l;
-                        st.push(cur->r);
-                    }
+            if (i < cur->len_l) {
+                st.push(cur->l);
+            } else {
+                i -= cur->len_l;
+                st.push(cur->r);
             }
+        }
+        st.top()->rep[i] = c;
+    }
+
+    /*
+    void print(std::size_t i = 1) const {
+        switch (t) {
+            case Leaf:
+                print_vec(rep);
+                break;
+            case Concat:
+                l->print(i + 1);
+                for (std::size_t j = 0; j < i; ++j)
+                    printf("-");
+                printf("\n");
+                r->print(i + 1);
         }
     }
 
+    int sum() const {
+        switch (t) {
+            case Leaf:
+                return vec_sum(rep);
+            case Concat:
+                return l->sum() + r->sum();
+        }
+        assert(false);
+    }
+    */
 };
 
 
@@ -134,5 +166,16 @@ int main()
     /* subtrees are shared */
     assert( hhw.get( 0 ) == 'x' );
 
+    /*
+    rope *p = new rope({-1, 33}), *q = new rope({-3, -1, 100});
+    p = new rope(*p, *q);
+    p->print();
+    int sub = p->sum();
+    printf("%d\n", sub);
+    assert(sub == 64);
+    delete p->l;
+    delete p->r;
+    delete p;
+    */
     return 0;
 }
