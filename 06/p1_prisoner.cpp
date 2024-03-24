@@ -12,15 +12,38 @@
  * may want to remember past decisions (though we will not implement
  * a strategy like that in this exercise). */
 
-class prisoner;
+class prisoner {
+public:
+    virtual bool betray(bool) {
+        return false;
+    };
+
+};
 
 /* Implement an always-betray strategy in class ‹traitor›, the
  * tit-for-tat strategy in ‹vengeful› and an always-cooperate in
  * ‹benign›. */
 
-class traitor;
-class vengeful;
-class benign;
+class traitor : public prisoner {
+public:
+    bool betray(bool) override {
+        return true;
+    }
+};
+
+class vengeful : public prisoner {
+public:
+    bool betray(bool other) override {
+        return other;
+    }
+};
+
+class benign : public prisoner {
+public:
+    bool betray(bool) override {
+        return false;
+    }
+};
 
 /* Implement a simple strategy evaluator in function ‹play›. It
  * takes two prisoners and the number of rounds and returns a
@@ -34,7 +57,25 @@ class benign;
  *  • a does not betray, b does: 0 / 3
  *  • both betray                1 / 1 */
 
-int play( prisoner &a, prisoner &b, int rounds );
+int eval(bool l, bool r) {
+    if (l == r)
+        return 0;
+    if (l)
+        return -3;
+    return 3;
+}
+
+int play( prisoner &a, prisoner &b, int rounds ) {
+    int res = 0;
+    bool prev_a = false, prev_b = false;
+    for (int i = 0; i < rounds; ++i) {
+        bool aux = prev_a;
+        prev_a = a.betray(prev_b);
+        prev_b = b.betray(aux);
+        res += eval(prev_a, prev_b);
+    }
+    return res;
+}
 
 int main()
 {
