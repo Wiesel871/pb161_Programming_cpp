@@ -10,7 +10,7 @@ ifdef ON_AISA
 	TIDY = /packages/run.64/llvm-15.0.7/bin/clang-tidy
 endif
 VALGRIND = valgrind
-CXXFLAGS = -std=c++20 -Wall -Wextra -Werror
+CXXFLAGS = -g -std=c++20 -Wall -Wextra -Werror
 TDYFLAGS = -std=c++20
 
 -include ../local.mk
