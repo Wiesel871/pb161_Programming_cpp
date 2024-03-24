@@ -19,7 +19,7 @@ using input = std::map< int, bool >;
  * but this time will only define a single method: ‹eval›, which
  * accepts a single ‹input› argument (as a ‹const› reference). */
 
-class node; /* ref: 6 lines */
+/* ref: 6 lines */
 class node {
     public:
     virtual bool eval(const input &) const {
@@ -37,7 +37,7 @@ class node {
  *  • ‹true›  ‹false› → bit 2 of ‹table›
  *  • ‹true›  ‹true›  → bit 3 of ‹table› */
 
-class operation; /* ref: 16 lines */
+/* ref: 16 lines */
 class operation : public node {
     node &l, &r;
     unsigned table;
@@ -63,7 +63,7 @@ class operation : public node {
 /* The leaf nodes carry a single integer (passed in through the
  * constructor) -- the identifier of the variable they represent. */
 
-class variable; /* ref: 7 lines */
+/* ref: 7 lines */
 class variable : public node {
     int x;
 
