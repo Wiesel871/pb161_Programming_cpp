@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstdio>
 #include <set>
 #include <memory>
 
@@ -11,7 +12,12 @@
  * pure ‹virtual› method, ‹accept›. The method should be marked
  * ‹const›. */
 
-class filter;
+class filter {
+    public:
+    virtual bool accept(int) const {
+        return true;
+    }
+};
 
 /* The ‹set› (which we will implement below) will «own» the filter
  * instance and hence will use a ‹unique_ptr› to hold it. */
@@ -33,16 +39,101 @@ using filter_ptr = std::unique_ptr< filter >;
  * pointer to the output filter): you will need to know, in the
  * pre-increment operator, that you ran out of items when skipping
  * numbers which the filter rejected. */
-
-class set_iterator;
 class set;
+
+class set_iterator {
+    public:
+    const set *s;
+    std::set<int>::iterator it;
+
+    friend class set;
+
+    set_iterator(const set *s, std::set<int>::iterator it) : s{s}, it{it} {}
+
+    bool operator!=(const set_iterator &r) const {
+        return !(it == r.it) || !(s == r.s);
+    };
+
+    int operator*() {
+        return *it;
+    }
+
+    set_iterator &operator++();
+};
+
+class set {
+    public:
+    filter_ptr _filter = nullptr;
+    std::set<int> s = {};
+
+
+    friend class set_iterator;
+
+    bool has(int x) const {
+        return ((!_filter) || _filter->accept(x)) && s.contains(x);
+    }
+
+    void add(int x) {
+        if (!_filter || _filter->accept(x))
+        s.insert(x);
+    }
+
+    void set_filter(filter_ptr p) {
+        _filter.release();
+        _filter.swap(p);
+        p.release();
+    }
+
+    set_iterator begin() const {
+        if (!_filter)
+            return {this, s.begin()};
+        auto it = s.begin();
+        while (!_filter->accept(*it))
+            ++it;
+        return {this, it};
+    }
+
+    set_iterator end() const {
+        return {this, s.end()};
+    }
+
+    friend set_iterator &operator++(set_iterator &sit) {
+        if (!sit.s->_filter) {
+            ++(sit.it);
+            return sit;
+        }
+        auto it = sit.it;
+        while (it != sit.s->s.end() && !sit.s->_filter->accept(*it))
+            ++it;
+        sit.it = it;
+        return sit;
+    }
+};
+
+set_iterator &set_iterator::operator++() {
+    if (!s->_filter) {
+        ++(it);
+        return *this;
+    }
+    auto it = this->it;
+    while (it != s->s.end() && !s->_filter->accept(*it))
+        ++it;
+    this->it = it;
+    return *this;
+}
+
 
 /* Finally, implement a filter that only accepts odd numbers. */
 
-class odd;
+class odd : public filter {
+    bool accept(int x) const override {
+        return x % 2;
+    }
+};
 
 int main()
 {
+    std::printf("balls");
     set s;
     for ( int i : { 1, 2, 3, 4 } )
         s.add( i );
