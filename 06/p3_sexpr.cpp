@@ -1,5 +1,6 @@
 #include <memory>
 #include <cassert>
+#include <vector>
 
 /* An s-expression is a tree in which each node has an arbitrary
  * number of children. To make things a little more interesting, our
@@ -9,7 +10,13 @@
  * single (virtual) method: ‹value›, with no arguments and an ‹int›
  * return value. */
 
-class node;
+class node {
+    public:
+    virtual int value() const {
+        return 0;
+    }
+};
+
 using node_ptr = std::unique_ptr< node >;
 
 /* There will be two types of internal nodes: ‹sum› and ‹product›,
@@ -23,13 +30,49 @@ using node_ptr = std::unique_ptr< node >;
  * constructors. It is okay to add an intermediate class to the
  * hierarchy. */
 
-class sum;
-class product;
+class binary : public node {
+    protected:
+    std::vector<node_ptr> children = {};
+
+    public:
+    void add_child(node_ptr p) {
+        children.push_back(std::move(p));
+    }
+};
+
+class sum : public binary {
+    public:
+    int value() const override {
+        int res = 0;
+        for (auto &p: children)
+            res += p->value();
+        return res;
+    }
+};
+
+class product : public binary {
+    public:
+    int value() const override {
+        int res = 1;
+        for (auto &p: children)
+            res *= p->value();
+        return res;
+    }
+};
 
 /* Leaf nodes carry an integer constant, given to them via a
  * constructor. */
 
-class constant;
+class constant : public node {
+    int x;
+    
+    public:
+    constant(int x) : x{x} {}
+
+    int value() const override {
+        return x;
+    }
+};
 
 int main()
 {
