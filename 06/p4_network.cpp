@@ -1,4 +1,5 @@
 #include <cassert>
+#include <vector>
 
 /* V tomto cvičení budeme definovat síť počítadel, přičemž každý
  * uzel má jedno počítadlo znaménkového typu, které je iniciálně
@@ -9,6 +10,7 @@
 /* Události jsou tří typů: ‹reset›, který nastaví počítadlo na 0,
  * ‹increment› ho zvýší o jedna a ‹decrement› ho o jedna sníží. */
 
+// gde enum? xd
 using event = int;
 const event event_reset = 0;
 const event event_increment = 1;
@@ -27,7 +29,35 @@ const event event_decrement = 2;
  * Dobře si rozmyslete, které metody muí být virtuální a které
  * nioliv. */
 
-class node;
+class node {
+    int cur = 0;
+
+    protected:
+    std::vector<node *> children = {};
+
+    public:
+    virtual void react(event e) {
+        switch (e) {
+            case event_reset:
+                cur = 0;
+                break;
+            case event_decrement:
+                --cur;
+                break;
+            case event_increment:
+                ++cur;
+                break;
+        }
+    }
+
+    void connect(node &n) {
+        children.emplace_back(&n);
+    }
+
+    int read() const {
+        return cur;
+    }
+};
 
 /* Následují již konkrétní typy uzlů. Každý uzel nejprve aplikuje
  * příchozí událost na svoje vlastní počítadlo, poté ho přepošle
@@ -38,9 +68,42 @@ class node;
  *  • ‹gate› přepošle stejnou událost, ale pouze je-li nová hodnota
  *    počítadla kladná. */
 
-class forward;
-class invert;
-class gate;
+class forward : public node {
+    public:
+    void react(event e) override {
+        node::react(e);
+        for (auto &p: children)
+            p->react(e);
+    }
+};
+
+class invert : public node {
+    public:
+    void react(event e) override {
+        node::react(e);
+        event inverse = 
+            e == event_reset 
+            ? event_reset 
+            : (e == event_increment
+            ? event_decrement
+            : event_increment);
+        for (auto &p: children)
+            p->react(inverse);
+    }
+
+};
+
+class gate : public node {
+    public:
+    void react(event e) override {
+        node::react(e);
+        if (read() <= 0)
+            return;
+        for (auto &p: children)
+            p->react(e);
+    }
+
+};
 
 int main()
 {
@@ -67,7 +130,7 @@ int main()
     source.connect( sink_1 );
     g_0.connect( sink_1 );
 
-    source.react( event( increment ) );
+    source.react( static_cast<event>( increment ) );
 
     assert( source.read() == 1 );
     assert( g_0.read()    == 1 );
@@ -76,7 +139,7 @@ int main()
     assert( sink_0.read() == 0 );
     assert( sink_1.read() == 2 );
 
-    source.react( event( increment ) );
+    source.react( static_cast<event>( increment ) );
 
     assert( source.read() == 2 );
     assert( g_0.read()    == 2 );
@@ -85,7 +148,7 @@ int main()
     assert( sink_0.read() == 0 );
     assert( sink_1.read() == 4 );
 
-    source.react( event( decrement ) );
+    source.react( static_cast<event>( decrement ) );
 
     assert( source.read() == 1 );
     assert( g_0.read()    == 1 );
@@ -94,7 +157,7 @@ int main()
     assert( sink_0.read() == 0 );
     assert( sink_1.read() == 2 );
 
-    source.react( event( reset ) );
+    source.react( static_cast<event>( reset ) );
 
     assert( source.read() == 0 );
     assert( g_0.read()    == 0 );
@@ -103,7 +166,7 @@ int main()
     assert( sink_0.read() == 0 );
     assert( sink_1.read() == 0 );
 
-    source.react( event( decrement ) );
+    source.react( static_cast<event>( decrement ) );
 
     assert( source.read() == -1 );
     assert( g_0.read()    == -1 );
