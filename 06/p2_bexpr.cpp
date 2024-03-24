@@ -20,6 +20,12 @@ using input = std::map< int, bool >;
  * accepts a single ‹input› argument (as a ‹const› reference). */
 
 class node; /* ref: 6 lines */
+class node {
+    public:
+    virtual bool eval(const input &) const {
+        return true;
+    }
+};
 
 /* Internal nodes are all of the same type, and their constructor
  * takes an unsigned integer, ‹table›, and two ‹node› references.
@@ -32,11 +38,42 @@ class node; /* ref: 6 lines */
  *  • ‹true›  ‹true›  → bit 3 of ‹table› */
 
 class operation; /* ref: 16 lines */
+class operation : public node {
+    node &l, &r;
+    unsigned table;
+    
+    bool eval_table(bool lb, bool rb) const {
+        if (lb && rb)
+            return table & 0b1000;
+        if (lb)
+            return table & 0b0100;
+        if (rb)
+            return table & 0b0010;
+        return table & 0b0001;
+    }
+
+    public:
+    operation(unsigned table, node &l, node &r) : l{l}, r{r}, table{table} {}
+
+    bool eval(const input &inp) const override {
+        return eval_table(l.eval(inp), r.eval(inp));
+    }
+};
 
 /* The leaf nodes carry a single integer (passed in through the
  * constructor) -- the identifier of the variable they represent. */
 
 class variable; /* ref: 7 lines */
+class variable : public node {
+    int x;
+
+    public:
+    variable(int x) : x{x} {}    
+
+    bool eval(const input &inp) const override {
+        return inp.at(x);
+    }
+};
 
 int main()
 {
