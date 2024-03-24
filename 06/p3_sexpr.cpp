@@ -1,5 +1,7 @@
+#include <cstdio>
 #include <memory>
 #include <cassert>
+#include <utility>
 #include <vector>
 
 /* An s-expression is a tree in which each node has an arbitrary
@@ -15,6 +17,8 @@ class node {
     virtual int value() const {
         return 0;
     }
+
+    virtual ~node() = default;
 };
 
 using node_ptr = std::unique_ptr< node >;
@@ -38,6 +42,11 @@ class binary : public node {
     void add_child(node_ptr p) {
         children.push_back(std::move(p));
     }
+
+    ~binary() override {
+        for (auto &x: children)
+            x.reset();
+    }
 };
 
 class sum : public binary {
@@ -48,6 +57,7 @@ class sum : public binary {
             res += p->value();
         return res;
     }
+
 };
 
 class product : public binary {
@@ -72,6 +82,8 @@ class constant : public node {
     int value() const override {
         return x;
     }
+
+    ~constant() override = default;
 };
 
 int main()
