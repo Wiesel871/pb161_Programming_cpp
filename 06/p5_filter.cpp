@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstddef>
 #include <cstdio>
 #include <set>
 #include <memory>
@@ -45,13 +46,12 @@ class set_iterator {
     public:
     const set *s;
     std::set<int>::iterator it;
+    std::size_t counter = 0;
 
-    friend class set;
-
-    set_iterator(const set *s, std::set<int>::iterator it) : s{s}, it{it} {}
+    set_iterator(const set *s, std::set<int>::iterator it, std::size_t c) : s{s}, it{it}, counter{c} {}
 
     bool operator!=(const set_iterator &r) const {
-        return !(it == r.it) || !(s == r.s);
+        return *it != *r.it || it != r.it || counter != r.counter || s != r.s;
     };
 
     int operator*() {
@@ -86,39 +86,32 @@ class set {
 
     set_iterator begin() const {
         if (!_filter)
-            return {this, s.begin()};
+            return {this, s.begin(), 0};
         auto it = s.begin();
-        while (!_filter->accept(*it))
+        std::size_t c = 0;
+        while (!_filter->accept(*it)) {
             ++it;
-        return {this, it};
+            ++c;
+        }
+        return {this, it, c};
     }
 
     set_iterator end() const {
-        return {this, s.end()};
-    }
-
-    friend set_iterator &operator++(set_iterator &sit) {
-        if (!sit.s->_filter) {
-            ++(sit.it);
-            return sit;
-        }
-        auto it = sit.it;
-        while (it != sit.s->s.end() && !sit.s->_filter->accept(*it))
-            ++it;
-        sit.it = it;
-        return sit;
+        return {this, s.end(), s.size()};
     }
 };
 
 set_iterator &set_iterator::operator++() {
+    ++it;
+    ++counter;
     if (!s->_filter) {
-        ++(it);
         return *this;
     }
-    auto it = this->it;
-    while (it != s->s.end() && !s->_filter->accept(*it))
+    
+    while (it != s->s.end() && !(s->_filter->accept(*it))) {
         ++it;
-    this->it = it;
+        ++counter;
+    }
     return *this;
 }
 
@@ -133,7 +126,6 @@ class odd : public filter {
 
 int main()
 {
-    std::printf("balls");
     set s;
     for ( int i : { 1, 2, 3, 4 } )
         s.add( i );
@@ -142,16 +134,18 @@ int main()
     assert( s.has( 2 ) );
 
     int j = 0;
-    for ( int i : s )
+    for ( int i : s ) {
         assert( i == ++j );
+    }
     assert( j == 4 );
 
     s.set_filter( std::make_unique< odd >() );
     assert(  s.has( 1 ) );
     assert( !s.has( 2 ) );
 
-    for ( int i : s )
+    for ( int i : s ) {
         assert( i % 2 == 1 );
+    }
 
     j = 0;
     for ( int i : s )
