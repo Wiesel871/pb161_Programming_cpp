@@ -18,6 +18,8 @@ class filter {
     virtual bool accept(int) const {
         return true;
     }
+
+    virtual ~filter() = default;
 };
 
 /* The ‹set› (which we will implement below) will «own» the filter
@@ -119,9 +121,12 @@ set_iterator &set_iterator::operator++() {
 /* Finally, implement a filter that only accepts odd numbers. */
 
 class odd : public filter {
+    public:
     bool accept(int x) const override {
         return x % 2;
     }
+
+    ~odd() override = default;
 };
 
 int main()
