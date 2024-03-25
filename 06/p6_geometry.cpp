@@ -1,6 +1,7 @@
 #include <cmath>
 #include <cassert>
-#include <tuple>
+#include <cstdio>
+#include <cstdlib>
 
 /* We will go back to a bit of geometry, this time with circles and
  * lines: in this exercise, we will be interested in planar
@@ -66,7 +67,12 @@ struct slope : std::pair< double, double >
  * ‹const› reference to a ‹line› and finally one that accepts any
  * ‹object›. */
 
-class object;
+class object {
+    public:
+    virtual bool intersects(const circle &) const {return false;}
+    virtual bool intersects(const line &) const {return false;}
+    virtual bool intersects(const object &) const {return false;}
+};
 
 /* Put definitions of the classes ‹circle› and ‹line› here. A
  * ‹circle› is given by a ‹point› and a radius (‹double›), while a
@@ -74,8 +80,68 @@ class object;
  * ‹public› and name them ‹p› and ‹q› to make the ‹dist› helper
  * function work. */
 
-struct circle; /* ref: 18 lines */
-struct line;   /* ref: 18 lines */
+/* ref: 18 lines */
+struct circle : public object {
+    public:
+    point p;
+    double r;
+
+    circle(point p, double r) : p{p}, r{r} {}
+
+    bool intersects(const circle &c) const override {
+        double d = dist(p, c.p);
+        return (close(d, 0) && r == c.r) || (d <= (r + c.r) && d >= std::abs(r - c.r)) ;
+    }
+
+    bool intersects(const line &l) const override;
+
+    bool intersects(const object &o) const override {
+        return o.intersects(*this);
+    }
+};
+
+/* ref: 18 lines */
+struct line : public object {
+    public:
+    point p, q;
+    point d;
+
+    line(point p, point q) : p{p}, q{q} {
+        d = {q.first - p.first, q.second - p.second};
+    }
+
+    
+    bool intersects(const line &l) const override {
+        if (d.first == 0 && l.d.first == 0)
+            return close(p.first, l.p.first);
+        if (d.first == 0 || l.d.first == 0)
+            return true;
+        if (d.second == 0 && l.d.second == 0)
+            return close(p.second, l.p.second);
+        if (d.second == 0 || l.d.second == 0)
+            return true;
+
+        double tx = (l.p.first - p.first) / d.first;
+        double ty = (l.p.second - p.second) / d.second;
+        return close(tx, ty);
+    }
+
+    bool intersects(const circle &cir) const override {
+        double a = d.first * d.first + d.second * d.second;
+        double b = 2 * (d.first * (p.first - cir.p.first) + d.second * (p.second - cir.p.second));
+        double dpx = p.first - cir.p.first, dpy = p.second - cir.p.second;
+        double c = dpx * dpx + dpy * dpy - cir.r * cir.r;
+        return b * b - 4 * a * c >= 0;
+    }
+
+    bool intersects(const object &o) const override {
+        return o.intersects(*this);
+    }
+};
+
+bool circle::intersects(const line &l) const {
+    return l.intersects(*this);
+}
 
 /* Definitions of the helper functions. */
 
