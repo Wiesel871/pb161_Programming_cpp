@@ -1,6 +1,5 @@
 #include <cmath>
 #include <cassert>
-#include <cstdio>
 #include <cstdlib>
 
 /* We will go back to a bit of geometry, this time with circles and
@@ -104,6 +103,7 @@ struct circle : public object {
 struct line : public object {
     public:
     point p, q;
+    // TODO remake using slope struct
     point d;
 
     line(point p, point q) : p{p}, q{q} {
