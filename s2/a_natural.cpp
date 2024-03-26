@@ -259,7 +259,6 @@ struct natural {
     }
 
     friend uint64_t operator/(const natural &l, const natural &r) {
-        assert(l.len() && r.len());
         return static_cast<uint64_t>(l.qr_division(r).first);
     }
 
@@ -267,16 +266,14 @@ struct natural {
         return static_cast<uint64_t>(l.qr_division(r).second);
     }
 
-    std::vector<uint64_t> digits(uint64_t base) const {
+    std::vector<natural> digits(uint64_t base) const {
         natural aux = *this;
         natural bn = base;
-        std::vector<uint64_t> res = {};
-        if (base == DOWN) {
-            res = n;
-        } else while (aux > natural(0)) {
+        std::vector<natural> res = {};
+        while (aux > natural(0)) {
             auto p = aux.qr_division(bn);
             aux = p.first;
-            res.push_back(static_cast<uint64_t>(p.second));
+            res.push_back(p.second);
         }
         std::reverse(res.begin(), res.end());
         return res;
