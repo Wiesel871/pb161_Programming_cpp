@@ -14,10 +14,7 @@
 
 class prisoner {
 public:
-    virtual bool betray(bool) {
-        return false;
-    };
-
+    virtual bool betray(bool) = 0;
 };
 
 /* Implement an always-betray strategy in class ‹traitor›, the

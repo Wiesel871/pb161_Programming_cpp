@@ -22,9 +22,7 @@ using input = std::map< int, bool >;
 /* ref: 6 lines */
 class node {
     public:
-    virtual bool eval(const input &) const {
-        return true;
-    }
+    virtual bool eval(const input &) const = 0;
 };
 
 /* Internal nodes are all of the same type, and their constructor

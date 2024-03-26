@@ -14,9 +14,7 @@
 
 class node {
     public:
-    virtual int value() const {
-        return 0;
-    }
+    virtual int value() const = 0;
 
     virtual ~node() = default;
 };

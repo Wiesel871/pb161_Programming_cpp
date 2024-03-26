@@ -15,9 +15,7 @@
 
 class filter {
     public:
-    virtual bool accept(int) const {
-        return true;
-    }
+    virtual bool accept(int) const = 0;
 
     virtual ~filter() = default;
 };

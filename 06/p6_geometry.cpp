@@ -69,9 +69,9 @@ struct slope : std::pair< double, double >
 
 class object {
     public:
-    virtual bool intersects(const circle &) const {return false;}
-    virtual bool intersects(const line &) const {return false;}
-    virtual bool intersects(const object &) const {return false;}
+    virtual bool intersects(const circle &) const = 0;
+    virtual bool intersects(const line &) const = 0;
+    virtual bool intersects(const object &) const = 0;
 };
 
 /* Put definitions of the classes ‹circle› and ‹line› here. A
