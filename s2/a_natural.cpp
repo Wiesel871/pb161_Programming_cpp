@@ -101,7 +101,7 @@ struct natural {
         return *this;
     }
 
-    explicit operator uint64_t() const {
+    uint64_t to_ulong() const {
         uint64_t res = n[0];
         if (len() > 1)
             res += n[1] << 32;
@@ -259,19 +259,18 @@ struct natural {
     }
 
     friend uint64_t operator/(const natural &l, const natural &r) {
-        return static_cast<uint64_t>(l.qr_division(r).first);
+        return l.qr_division(r).first.to_ulong();
     }
 
     friend uint64_t operator%(const natural &l, const natural &r) {
-        return static_cast<uint64_t>(l.qr_division(r).second);
+        return l.qr_division(r).second.to_ulong();
     }
 
-    std::vector<natural> digits(uint64_t base) const {
+    std::vector<natural> digits(natural base) const {
         natural aux = *this;
-        natural bn = base;
         std::vector<natural> res = {};
         while (aux > natural(0)) {
-            auto p = aux.qr_division(bn);
+            auto p = aux.qr_division(base);
             aux = p.first;
             res.push_back(p.second);
         }
