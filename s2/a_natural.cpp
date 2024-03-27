@@ -6,7 +6,6 @@
 #include <vector>
 #include <iostream>
 
-
 /* Tento úkol rozšiřuje ‹s1/f_natural› o tyto operace (hodnoty ‹m› a
  * ‹n› jsou typu ‹natural›):
  *
@@ -44,6 +43,129 @@ inline uint64_t utd(uint64_t x) {
     T.push(subres & DOWN);  \
     carry = utd(subres);    \
 }                           \
+
+struct natural2 {
+    std::vector<bool> n = {};
+
+    natural2(int x = 0) {
+        for (std::size_t i = 0; i < sizeof(int) - 1; ++i)
+            n.emplace_back(x & (1 << i));
+    }
+
+    natural2(double x) {
+        auto ux = static_cast<uint64_t>(x);
+        for (std::size_t i = 0; i < 64; ++i)
+            n.emplace_back(ux & (1 << i));
+    }
+
+    natural2(std::vector<bool> &&n) : n{n} {}
+
+    std::size_t len() const {
+        return n.size();
+    }
+
+    void pop() {
+        n.pop_back();
+    }
+
+    void push(bool b) {
+        n.push_back(b);
+    }
+
+    bool operator[](size_t i) const {
+        return n[i];
+    }
+
+    void printn() const {
+        uint64_t aux = 0;
+        std::size_t j = 1;
+        for (std::size_t i = 0; i < len(); ++i, j = (j % 64) + 1) {
+            aux |= static_cast<uint64_t>(n[i]) << j;
+            if (j == 64) {
+                printf("%lu ", aux);
+                aux = 0;
+            }
+        }
+        if (j > 1)
+            printf("%lu ", aux);
+        printf("\n");
+    }
+
+    friend bool operator==(const natural2 &l, const natural2 &r) {
+        if (l.len() != r.len())
+            return false;
+        for (size_t i = 0; i < l.len(); ++i) {
+            if (l[i] != r[i])
+                return false;
+        }
+        return true;
+    }
+
+    friend auto operator<=>(const natural2 &l, const natural2 &r) {
+        if (auto cmp = l.len() <=> r.len(); cmp != 0)
+            return cmp;
+        for (size_t i = l.len() - 1; i > 0; --i) {
+            if (auto cmp = l[i] <=> r[i]; cmp != 0)            
+                return cmp;
+        }
+        return l[0] <=> r[0]; 
+    }
+    
+    natural2 operator+(const natural2 &r) const {
+        std::vector<bool> res;
+        bool carry = false;
+        for (size_t i = 0; i < std::max(len(), r.len()); ++i) {
+            bool li = i < len() ? n[i] : false;
+            bool ri = i < r.len() ? r[i] : false;
+            res.push_back(li ^ ri ^ carry);
+            carry = (li && ri) || (ri && carry) || (carry && li);
+        }
+        if (carry)
+            res.push_back(carry);
+        return res;
+    }
+
+    natural2 operator-(const natural2 &r) const {
+        std::vector<bool> res;
+        bool carry = false;
+        for (size_t i = 0; i < std::max(len(), r.len()); ++i) {
+            bool li = i < len() ? n[i] : false;
+            bool ri = i < r.len() ? r[i] : false;
+            res.push_back(li - ri - carry);
+            carry = (!li && (ri || carry)) || (li && ri && carry);
+        }
+        while (len() && !res.back())
+            res.pop_back();
+
+        return res;
+    }
+
+    friend natural2 dac_sum(const std::vector<natural2> &subs, size_t i, size_t j) {
+        if (i == j)
+            return subs[i];
+        size_t mid = (i + j) / 2;
+        natural2 l = dac_sum(subs, i, mid);
+        natural2 r = dac_sum(subs, mid + 1, j);
+        return l + r;
+    }
+
+    natural2 operator*(const natural2 &r) const {
+        std::vector<bool> res;
+        uint64_t carry = 0;
+        uint64_t subres = 0;
+        std::vector<natural2> subreses (len());
+        subreses[0].pop();
+        for (size_t i = 1; i < len(); ++i) {
+            for (size_t j = 0; j < i - 1; ++j)
+                subreses[i].push(false);
+
+        }
+        carry = 0;
+
+        return res;
+    }
+
+};
 
 struct natural {
     std::vector<uint64_t> n = {};
