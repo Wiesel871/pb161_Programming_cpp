@@ -238,7 +238,12 @@ struct natural {
     };
 
     double to_double() const {
-        return static_cast<double>(to_sizet());
+        double res = n[0];
+        for (std::size_t i = 1; i < len(); i++) {
+            if (n[i])
+                res += std::pow(2.0, i);
+        }
+        return res;
     }
 
 };
