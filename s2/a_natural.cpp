@@ -39,18 +39,35 @@ struct natural;
 
 natural dac_sum(const std::vector<natural> &, std::size_t, std::size_t);
 
+
+void flush_ending_zeros(std::vector<bool> &n) {
+    while (n.size() > 1 && !n.back())
+        n.pop_back();
+}
+
 struct natural {
     std::vector<bool> n = {};
 
     natural(int x = 0) {
-        for (std::size_t i = 0; i < sizeof(int) - 1; ++i)
-            n.emplace_back(x & (1 << i));
+        auto ux = static_cast<std::size_t>(x);
+        for (std::size_t i = 0; i < sizeof(int); ++i) {
+            n.emplace_back(ux & (1 << i));
+        }
+        flush_ending_zeros(n);
     }
 
     natural(double x) {
-        auto ux = static_cast<uint64_t>(x);
-        for (std::size_t i = 0; i < 64; ++i)
+        auto ux = static_cast<std::size_t>(x);
+        for (std::size_t i = 0; i < sizeof(ux); ++i) {
             n.emplace_back(ux & (1 << i));
+        }
+        flush_ending_zeros(n);
+    }
+
+    natural(std::size_t x) {
+        for (std::size_t i = 0; i < sizeof(x); ++i)
+            n.emplace_back(x & (1 << i));
+        flush_ending_zeros(n);
     }
 
     natural(std::vector<bool> &&n) : n{n} {}
@@ -72,10 +89,10 @@ struct natural {
     }
 
     void printn() const {
-        uint64_t aux = 0;
+        std::size_t aux = 0;
         std::size_t j = 1;
         for (std::size_t i = 0; i < len(); ++i, j = (j % 64) + 1) {
-            aux |= static_cast<uint64_t>(n[i]) << j;
+            aux |= static_cast<std::size_t>(n[i]) << j;
             if (j == 64) {
                 printf("%lu ", aux);
                 aux = 0;
@@ -86,10 +103,16 @@ struct natural {
         printf("\n");
     }
 
-    uint64_t to_u64() const {
-        uint64_t res = 0;
+    void printb() const {
+        for (bool b: n)
+            printf("%d", b);
+        printf("\n");
+    }
+
+    std::size_t to_sizet() const {
+        std::size_t res = 0;
         for (std::size_t i = 0; i < std::min<std::size_t>(64, len()); ++i)
-            res |= static_cast<uint64_t>(n[i]) << i;
+            res |= static_cast<std::size_t>(n[i]) << i;
         return res;
     }
 
@@ -133,17 +156,27 @@ struct natural {
         for (size_t i = 0; i < std::max(len(), r.len()); ++i) {
             bool li = i < len() ? n[i] : false;
             bool ri = i < r.len() ? r[i] : false;
-            res.push_back(li - ri - carry);
+            res.push_back((li - ri) - carry);
             carry = (!li && (ri || carry)) || (li && ri && carry);
         }
-        while (len() && !res.back())
-            res.pop_back();
+        flush_ending_zeros(res);
 
         return res;
     }
 
 
     natural operator*(const natural &r) const {
+        if (len() == 1) {
+            if (n[0])
+                return r;
+            return 0;
+        }
+        if (r.len() == 1) {
+            if (r.n[0])
+                return (*this);
+            return 0;
+        }
+
         std::vector<natural> subreses (len());
         subreses[0].pop();
         for (size_t i = 1; i < len(); ++i) {
@@ -154,7 +187,9 @@ struct natural {
             extend_vec(subreses[i].n, n);
 
         }
-        return dac_sum(subreses, 0, len() - 1);
+        natural res = dac_sum(subreses, 0, len() - 1);
+        flush_ending_zeros(res.n);
+        return res;
     }
 
     natural power(int x) const {
@@ -169,15 +204,25 @@ struct natural {
     std::pair<natural, natural> qr_division(const natural &r) const {
         natural quo = natural(0);
         natural rem = *this;
+        while (rem >= r) {
+            natural temp = r;
+            std::size_t factor = 1;
+            while (rem >= temp) {
+                rem = rem - temp;
+                quo = quo + natural(factor);
+                temp = temp + temp;
+                factor = factor << 1;
+            }
+        }
         return {quo, rem};
     }
 
-    uint64_t operator/(const natural &r) {
-        return qr_division(r).first.to_u64();
+    std::size_t operator/(const natural &r) {
+        return qr_division(r).first.to_sizet();
     }
 
-    uint64_t operator%(const natural &r) {
-        return qr_division(r).second.to_u64();
+    std::size_t operator%(const natural &r) {
+        return qr_division(r).second.to_sizet();
     }
 
     std::vector<natural> digits(natural base) const {
@@ -193,11 +238,7 @@ struct natural {
     };
 
     double to_double() const {
-        double res = n[0];
-        for (std::size_t i = 1; i < len(); ++i) {
-            res += static_cast<double>(n[i]) * (32 << i);
-        }
-        return res;
+        return static_cast<double>(to_sizet());
     }
 
 };
@@ -213,11 +254,28 @@ natural dac_sum(const std::vector<natural> &subs, size_t i, size_t j) {
 
 int main()
 {
+    natural zero;
+    assert(zero.len() == 1);
+    natural zero2;
+    assert(zero2.len() == 1);
+    assert((zero + zero).len() == 1);
+    assert( zero + zero == zero );
+    assert((zero * zero).len() == 1);
+    assert( zero * zero == zero );
+    assert( zero - zero == zero );
+    natural one( 1 );
+    assert( one + zero == one );
+    assert( one.power( 2 ) == one );
+
     natural m( 2.1 ), n( 2.9 );
     assert(m.len() && n.len());
     assert( m == n );
     assert( m / n == 1 );
     assert( m % n == 0 );
+    natural ten(10);
+    ten.printb();
+    assert(m / ten == 0);
+    assert(m % ten == m);
     assert( m.digits( 10 ).size() == 1 );
     assert( m.to_double() == 2.0 );
 
