@@ -3,8 +3,11 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdint>
+#include <iterator>
+#include <sys/types.h>
 #include <vector>
 #include <iostream>
+#include <cmath>
 
 
 /* Tento úkol rozšiřuje ‹s1/f_natural› o tyto operace (hodnoty ‹m› a
@@ -62,10 +65,12 @@ struct natural {
     }
 
     natural(double x) {
-        auto ux = static_cast<uint64_t>(x);
-        n = {ux & DOWN};
-        if (ux > DOWN)
-            n.push_back((utd(x)));
+        n = {};
+        x = std::floor(x);
+        while (std::floor(x)) {
+            push(std::fmod(x, std::pow(2, 32)));
+            x /= std::pow(2, 32);
+        }
     }
 
     void printn() const {
@@ -143,48 +148,56 @@ struct natural {
         return res;
     }
 
-    friend natural operator-(const natural &l, const natural &r) {
-        uint64_t carry = 0, subres = 0;
+    natural &operator+=(const natural &r) {
+        uint64_t carry = 0;
         natural res = 0;
         res.n.clear();
-        for (size_t i = 0; i < l.len(); ++i) {
+        size_t i = 0;
+        for (; i < len(); ++i) {
             uint64_t ri = i < r.len() ? r[i] : 0;
-            subres = (DOWN + 1 + l[i]) - (ri + carry);
-            res.push(subres & DOWN);
-            carry = l[i] < ri;
+            n[i] += ri + carry;
+            carry = n[i] > DOWN;
+            n[i] &= DOWN;
         }
-        while (res.len() > 1 && res[res.len() - 1] == 0)
-            res.pop();
-        return res;
+        for (; i < r.len(); ++i) {
+            push(r[i] + carry);
+            carry = n.back() > DOWN;
+            n.back() &= DOWN;
+        }
+        if (carry)
+            push(carry);
+
+        return *this;
+
     }
 
-
-    natural operator*(uint64_t x) const {
+    natural operator-(const natural &r) const {
         uint64_t carry = 0, subres = 0;
         natural res = 0;
         res.n.clear();
         for (size_t i = 0; i < len(); ++i) {
-            SETWC(n[i] * x, res);
+            uint64_t ri = i < r.len() ? r[i] : 0;
+            subres = (DOWN + 1 + n[i]) - (ri + carry);
+            res.push(subres & DOWN);
+            carry = n[i] < ri;
         }
-        if (carry)
-            res.push(carry);
+        while (res.len() > 1 && !res.n.back())
+            res.pop();
         return res;
     }
 
-    /*
-    natural operator+(uint64_t x) {
-        natural res = 0;
+    natural &operator-=(const natural &r) {
         uint64_t carry = 0, subres = 0;
-        SETWC(x + n[0], res);
-        SETWC((len() >= 2 ? n[1] : 0), res);
-        for (std::size_t i = 2; i < len(); ++i) {
-            SETWC(n[i], res);
+        for (size_t i = 0; i < len(); ++i) {
+            uint64_t ri = i < r.len() ? r[i] : 0;
+            subres = (DOWN + 1 + n[i]) - (ri + carry);
+            carry = n[i] < ri;
+            n[i] = (subres & DOWN);
         }
-        if (carry)
-            res.push(carry);
-        return res;
+        while (!n.back() && len() > 1)
+            pop();
+        return *this;
     }
-    */
 
     natural &operator++() {
         uint64_t carry = 1;
@@ -252,18 +265,24 @@ struct natural {
         natural quo = natural(0);
         natural rem = *this;
         while (rem >= r) {
-            rem = rem - r;
-            ++quo;
+            uint64_t factor = 1;
+            natural tmp = r;
+            while (rem >= tmp) {
+                rem -= tmp;
+                quo += factor;
+                tmp += tmp;
+                factor = factor << 1;
+            }
         }
         return {quo, rem};
     }
 
-    friend uint64_t operator/(const natural &l, const natural &r) {
-        return l.qr_division(r).first.to_ulong();
+    natural operator/(const natural &r) const {
+        return qr_division(r).first;
     }
 
-    friend uint64_t operator%(const natural &l, const natural &r) {
-        return l.qr_division(r).second.to_ulong();
+    natural operator%(const natural &r) const {
+        return qr_division(r).second;
     }
 
     std::vector<natural> digits(natural base) const {
@@ -280,9 +299,9 @@ struct natural {
 
     double to_double() const {
         double res = n[0];
-        for (std::size_t i = 1; i < len(); ++i) {
-            res += static_cast<double>(n[i]) * (32 << i);
-        }
+        for (std::size_t i = 1; i < len(); ++i)
+            res += static_cast<double>(n[i]) * std::pow(std::pow(2.0, 32.0), i);
+
         return res;
     }
 
@@ -297,6 +316,11 @@ int main()
     assert( m % n == 0 );
     assert( m.digits( 10 ).size() == 1 );
     assert( m.to_double() == 2.0 );
-
+    natural d1 { std::pow( 2, 130 ) };
+    //1.361129467683754e+39 
+    natural d2 { 2 };
+    double dist { d1.to_double() - std::pow( 2, 130 ) };
+    // -1.361129467683754e+39 
+    assert(std::fabs( dist ) <= std::pow( 2, 130 - 52 ));
     return 0;
 }
