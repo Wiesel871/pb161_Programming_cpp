@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdint>
-#include <iterator>
 #include <sys/types.h>
 #include <vector>
 #include <iostream>
@@ -67,11 +66,14 @@ struct natural {
     natural(double x) {
         n = {};
         x = std::floor(x);
-        while (std::floor(x)) {
+        while (x) {
             push(std::fmod(x, std::pow(2, 32)));
             x /= std::pow(2, 32);
+            x = std::floor(x);
         }
     }
+
+    natural(std::vector<uint64_t> &&n) : n{n} {}
 
     void printn() const {
         std::cout << "nat: ";
@@ -265,14 +267,18 @@ struct natural {
         natural quo = natural(0);
         natural rem = *this;
         while (rem >= r) {
-            uint64_t factor = 1;
-            natural tmp = r;
-            while (rem >= tmp) {
-                rem -= tmp;
-                quo += factor;
-                tmp += tmp;
-                factor = factor << 1;
+            natural factor = 1;
+            natural prev_fac = 1;
+            natural prev_div = r;
+            natural div = r;
+            while (rem >= div) {
+                prev_div = div;
+                div += div;
+                prev_fac = factor;
+                factor += factor;
             }
+            rem -= prev_div;
+            quo += prev_fac;
         }
         return {quo, rem};
     }
@@ -322,5 +328,12 @@ int main()
     double dist { d1.to_double() - std::pow( 2, 130 ) };
     // -1.361129467683754e+39 
     assert(std::fabs( dist ) <= std::pow( 2, 130 - 52 ));
+    for (int i = 0; i < 130; ++i) {
+        d1.printn();
+        assert(d1 == natural(std::pow(2, 130 - i)));
+        assert(d1 % d2 == 0);
+        d1 = d1 / d2;
+    }
+    assert(d1 == 1);
     return 0;
 }
