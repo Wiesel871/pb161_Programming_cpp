@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdint>
-#include <sys/types.h>
 #include <vector>
 #include <iostream>
 #include <cmath>
@@ -268,8 +267,8 @@ struct natural {
         natural rem = *this;
         while (rem >= r) {
             natural factor = 1;
-            natural prev_fac = 1;
-            natural prev_div = r;
+            natural prev_fac = 0;
+            natural prev_div = 1;
             natural div = r;
             while (rem >= div) {
                 prev_div = div;
@@ -329,11 +328,23 @@ int main()
     // -1.361129467683754e+39 
     assert(std::fabs( dist ) <= std::pow( 2, 130 - 52 ));
     for (int i = 0; i < 130; ++i) {
-        d1.printn();
         assert(d1 == natural(std::pow(2, 130 - i)));
         assert(d1 % d2 == 0);
         d1 = d1 / d2;
     }
     assert(d1 == 1);
+
+    int f = 60;
+    int b = 5;
+    printf("%f\n", std::fmod(std::pow(b, f), b));
+    natural d3 (std::pow(b, f));
+    natural d4 (b);
+    for (int i = 0; i < f; ++i) {
+        //assert(d4 == natural(std::pow(4, x - i)));
+        
+        assert(d3 % d4 == 0);
+        d3 = d3 / d4;
+    }
+    assert(d3 == 1);
     return 0;
 }
