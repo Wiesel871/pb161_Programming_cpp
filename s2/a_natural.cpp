@@ -291,6 +291,8 @@ struct natural {
     }
 
     std::vector<natural> digits(natural base) const {
+        if (len() == 1 && n[0] == 0)
+            return {{0}};
         natural aux = *this;
         std::vector<natural> res = {};
         while (aux > natural(0)) {
@@ -334,6 +336,7 @@ int main()
     }
     assert(d1 == 1);
 
+    /*
     int f = 60;
     int b = 5;
     printf("%f\n", std::fmod(std::pow(b, f), b));
@@ -346,5 +349,9 @@ int main()
         d3 = d3 / d4;
     }
     assert(d3 == 1);
+    */
+    natural base(2 * std::pow(1777, 3));
+    n = natural();
+    assert(n.digits(base).size() == 1);
     return 0;
 }
