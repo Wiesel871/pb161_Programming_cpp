@@ -1,4 +1,9 @@
+#include <cerrno>
+#include <cstddef>
+#include <cstdio>
 #include <fcntl.h>
+#include <stdexcept>
+#include <string>
 #include <unistd.h>
 #include <system_error>
 #include <cassert>
@@ -43,6 +48,97 @@
  * Pokus o čtení nebo zápis s použitím neplatného popisovače
  * (implicitně sestrojeného, vykradeného, nebo již uzavřeného) nechť
  * skončí výjimkou ‹std::invalid_argument›. */
+void print(const std::vector<char> &v) {
+    for (char c: v) {
+        printf("%d ", c);
+    }
+    printf("\n");
+}
+
+struct fd {
+    private:
+        int d = -1;
+    public:
+        fd(const char *path, int flags) {
+            if ((d = open(path, flags)) == -1)
+                throw std::system_error();
+
+        }
+
+        fd(int du) {
+            if ((d = dup(du)) == -1)
+                throw std::system_error();
+        }
+
+        fd() {
+            d = -1;
+        }
+
+        fd(fd &&r) {
+            d = r.d;
+            r.d = -1;
+        }
+
+        fd(const fd &r) {
+            if ((d = dup(r.d)) == -1)
+                throw std::system_error();
+        }
+
+        fd &operator=(fd &&r) {
+            if (d != -1)
+                close();
+            d = r.d;
+            r.d = -1;
+            return *this;
+        }
+
+        fd &operator=(const fd &r) {
+            if (d != -1)
+                close();
+            if ((d = dup(r.d)) == -1)
+                throw std::system_error();
+            return *this;
+        }
+
+
+        void close() {
+            if (d == -1)
+                throw std::invalid_argument("attempt on closing invalid descriptor");
+            ::close(d);
+            d = -1;
+        }
+
+        std::vector<char> read(std::size_t s) {
+            if (d == -1)
+                throw std::invalid_argument("attempt on reading invalid descriptor");
+            std::vector<char> res(s);
+            int bytes = 0;
+            if ((bytes = ::read(d, res.data(), s)) == -1)
+                throw std::system_error();
+            res.resize(bytes);
+            return res;
+        }
+
+        void write(const std::vector<char> &v) {
+            if (d == -1)
+                throw std::invalid_argument("attempt on writing to invalid descriptor");
+            if (::write(d, v.data(), v.size()) == -1)
+                throw std::system_error();
+        }
+
+        ~fd() {
+            if (d != -1)
+                close();
+        }
+};
+
+fd fd_open(const char *path, int flags) {
+    return {path, flags};
+}
+
+fd fd_dup(int du) {
+    return {du};
+}
 
 int main()
 {
