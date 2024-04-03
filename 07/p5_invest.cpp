@@ -17,18 +17,20 @@ struct insufficient_funds {};
  * okolností nezáporný. Jakýkoliv pokus o jeho snížení pod nulu musí
  * skončit výjimkou ‹insuficient_funds›. */
 
-struct account {
-    double b = 0;
+using u64 = std::uint64_t;
 
-    long balance() const noexcept {
+struct account {
+    u64 b = 0;
+
+    u64 balance() const noexcept {
         return b;
     }
 
-    void deposit(double amount) noexcept {
+    void deposit(u64 amount) noexcept {
         b += amount;
     }
 
-    void withdraw(std::uint64_t amount) {
+    void withdraw(u64 amount) {
         if (amount > b)
             throw insufficient_funds{};
         b -= amount;
@@ -47,20 +49,32 @@ struct account {
  * ‹next_year› připočítá příslušný úrok. */
 
 struct investment {
-    account &ac;
-    std::uint64_t b = 0;
-    std::uint64_t i = 0;
-    investment(account &ac, std::uint64_t amount, std::uint64_t interest) : ac{ac}, i{interest} {
+    account *ac;
+    u64 b = 0;
+    u64 i = 0;
+    investment(account &ac, u64 amount, u64 interest) : ac{&ac}, i{interest} {
         ac.withdraw(amount);
         b = amount;
     }
 
+    investment(investment &&inv) : ac{inv.ac}, b{inv.b}, i{inv.i} {
+        inv.b = 0;
+    }
+
+    investment &operator=(investment &&inv) {
+        ac = inv.ac;
+        b = inv.b;
+        i = inv.i;
+        inv.b = 0;
+        return *this;
+    }
+
     void next_year() noexcept {
-        
+        b += (b * i) / 1000;
     }
 
     ~investment() {
-        ac.deposit(b);
+        ac->deposit(b);
     }
 };
 
