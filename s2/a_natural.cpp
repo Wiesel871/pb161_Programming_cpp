@@ -290,6 +290,18 @@ struct natural {
         return qr_division(r).second;
     }
 
+    std::vector<natural> digits(double base) const {
+        if (len() == 1 && n[0] == 0)
+            return {{0}};
+        return digits(natural(base));
+    }
+
+    std::vector<natural> digits(int base) const {
+        if (len() == 1 && n[0] == 0)
+            return {{0}};
+        return digits(natural(base));
+    }
+
     std::vector<natural> digits(natural base) const {
         if (len() == 1 && n[0] == 0)
             return {{0}};
@@ -308,7 +320,6 @@ struct natural {
         double res = n[0];
         for (std::size_t i = 1; i < len(); ++i)
             res += static_cast<double>(n[i]) * std::pow(std::pow(2.0, 32.0), i);
-
         return res;
     }
 
