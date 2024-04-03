@@ -1,6 +1,10 @@
 #include <cassert>
+#include <cstddef>
 #include <vector>
 #include <tuple>
+#include <utility>
+#include <stack>
+#include <cstdio>
 
 /* Napište generický podprogram ‹partition( seq, p )›, který
  * přeuspořádá zadanou sekvenci tak, že všechny prvky menší než ‹p›
@@ -19,34 +23,77 @@
  * k volajícímu. Hodnoty typu ‹seq› nelze kopírovat, máte ale
  * povoleno použít pro výpočet dodatečnou paměť. Metody ‹size› ani
  * ‹swap› výjimkou skončit nemohou. */
+struct sequence
+{
+    std::size_t size() const noexcept { return data.size(); }
+
+    void swap( int i, int j ) noexcept
+    {
+        std::swap( data[ i ], data[ j ] );
+    }
+
+    int compare( std::size_t i, int p )
+    {
+        int value = data[ i ];
+
+        if ( value % 3 == 0 )
+            throw std::exception();
+
+        return value < p ? -1 : value == p ? 0 : 1;
+    }
+
+    sequence( std::vector< int > d ) : data( d ) {}
+
+    private:
+    std::vector< int > data;
+};
+
+struct rollback {
+    sequence *seq;
+    std::stack<std::pair<int, int>> st = {};
+
+    void swap(int i, int j) {
+        st.push({i, j});
+        seq->swap(i, j);
+    }
+
+    void abort() noexcept {
+        st = {};
+    }
+
+    ~rollback() {
+        while (!st.empty()) {
+            auto [i, j] = st.top();
+            st.pop();
+            seq->swap(j, i);
+        }
+    }
+};
+
+void partition(sequence &seq, int pivot) {
+    if (!seq.size())
+        return;
+    rollback r = {&seq};
+    int pi = -1;
+    for (std::size_t i = 0; i < seq.size(); ++i) {
+        if (seq.compare(i, pivot) == -1) {
+            ++pi;
+            r.swap(i, pi);
+        }
+    }
+
+    for (std::size_t i = pi + 1; i < seq.size(); ++i) {
+        if (seq.compare(i, pivot) == 0) {
+            ++pi;
+            r.swap(i, pi);
+        }
+    }
+
+    r.abort();
+}
 
 int main()
 {
-    struct sequence
-    {
-        std::size_t size() const noexcept { return data.size(); }
-
-        void swap( int i, int j ) noexcept
-        {
-            std::swap( data[ i ], data[ j ] );
-        }
-
-        int compare( std::size_t i, int p )
-        {
-            int value = data[ i ];
-
-            if ( value % 3 == 0 )
-                throw std::exception();
-
-            return value < p ? -1 : value == p ? 0 : 1;
-        }
-
-        sequence( std::vector< int > d ) : data( d ) {}
-        auto &operator=( const sequence & ) = delete;
-
-    private:
-        std::vector< int > data;
-    };
 
     auto check = []( const std::vector< int > &values, int pivot )
     {
@@ -56,9 +103,9 @@ int main()
         std::size_t i = 0;
         auto size = seq.size();
 
-        while ( i < size && seq.compare( i, pivot ) == -1 ) ++i;
-        while ( i < size && seq.compare( i, pivot ) == 0 ) ++i;
-        while ( i < size && seq.compare( i, pivot ) == 1 ) ++i;
+        while ( i < size && seq.compare( i, pivot ) == -1 ) {++i; };
+        while ( i < size && seq.compare( i, pivot ) == 0 ) {++i; };
+        while ( i < size && seq.compare( i, pivot ) == 1 ) {++i; };
 
         assert( i == size );
     };
