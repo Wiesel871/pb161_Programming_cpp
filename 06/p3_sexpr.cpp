@@ -1,4 +1,3 @@
-#include <cstdio>
 #include <memory>
 #include <cassert>
 #include <utility>
@@ -39,11 +38,6 @@ class binary : public node {
     public:
     void add_child(node_ptr p) {
         children.push_back(std::move(p));
-    }
-
-    ~binary() override {
-        for (auto &x: children)
-            x.reset();
     }
 };
 

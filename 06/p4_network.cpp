@@ -85,8 +85,8 @@ class invert : public node {
             e == event_reset 
             ? event_reset 
             : (e == event_increment
-            ? event_decrement
-            : event_increment);
+                ? event_decrement
+                : event_increment);
         for (auto &p: children)
             p->react(inverse);
     }

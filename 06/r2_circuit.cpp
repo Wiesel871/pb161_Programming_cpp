@@ -1,4 +1,6 @@
 #include <cassert>
+#include <array>
+
 
 /* V tomto cvičení se budeme zabývat voláním virtuálních metod
  * zevnitř třídy samotné – přístup, který bychom mohli nazvat
@@ -23,7 +25,21 @@
  * pevnou hodnotu ‹false›. Chování není určeno, je-li v obvodu
  * cyklus. */
 
-class component;
+class component {
+    protected:
+    std::array<component *, 2> parents = {nullptr, nullptr};
+
+    public:
+    void connect(int i, component &c) {
+        parents[i] = &c;
+    }
+
+    virtual bool read() noexcept = 0;
+
+    bool get(int i) const {
+        return parents[i] && parents[i]->read();
+    }
+};
 
 /* Dále doplňte tyto odvozené třídy:
  *
@@ -33,9 +49,30 @@ class component;
  *    vrátí vždy ‹false›; další volání ‹read› vrátí hodnotu, kterou
  *    měl vstup 0 při předchozím volání ‹read›. */
 
-class nand;
-class source;
-class delay;
+class nand : public component {
+    public:
+    bool read() noexcept override {
+        return !(get(0) && get(1));
+    }
+};
+
+class source : public component {
+    public:
+    bool read() noexcept override {
+        return true;
+    }
+};
+
+class delay : public component {
+    bool last = false;
+
+    public:
+    bool read() noexcept override {
+        bool res = last;
+        last = get(0);
+        return res;
+    }
+};
 
 int main()
 {

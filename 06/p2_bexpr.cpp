@@ -1,6 +1,5 @@
 #include <cassert>
 #include <map>
-#include <stdexcept>
 
 /* Boolean expressions with variables, represented as binary trees.
  * Internal nodes carry a logical operation on the values obtained
