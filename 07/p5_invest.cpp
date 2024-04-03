@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <utility>
 #include <cassert>
 
@@ -9,14 +10,31 @@
  * zhodnocovat, a při zničení vrátí investované peníze na původní
  * účet. */
 
-struct insufficient_funds;
+struct insufficient_funds {};
 
 /* Typ ‹account› nechť má metody ‹balance›, ‹deposit› and
  * ‹withdraw›. Startovní zůstatek je 0 a musí zůstat za všech
  * okolností nezáporný. Jakýkoliv pokus o jeho snížení pod nulu musí
  * skončit výjimkou ‹insuficient_funds›. */
 
-struct account;
+struct account {
+    double b = 0;
+
+    long balance() const noexcept {
+        return b;
+    }
+
+    void deposit(double amount) noexcept {
+        b += amount;
+    }
+
+    void withdraw(std::uint64_t amount) {
+        if (amount > b)
+            throw insufficient_funds{};
+        b -= amount;
+    }
+
+};
 
 /* Konečně typ ‹investment›, kterého konstruktor má 3 parametry:
  *
@@ -28,7 +46,23 @@ struct account;
  * při zničení je musí vrátit, včetně nahromaděných úroků. Metoda
  * ‹next_year› připočítá příslušný úrok. */
 
-struct investment;
+struct investment {
+    account &ac;
+    std::uint64_t b = 0;
+    std::uint64_t i = 0;
+    investment(account &ac, std::uint64_t amount, std::uint64_t interest) : ac{ac}, i{interest} {
+        ac.withdraw(amount);
+        b = amount;
+    }
+
+    void next_year() noexcept {
+        
+    }
+
+    ~investment() {
+        ac.deposit(b);
+    }
+};
 
 int main()
 {
