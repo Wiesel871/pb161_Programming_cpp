@@ -23,57 +23,34 @@
  * k volajícímu. Hodnoty typu ‹seq› nelze kopírovat, máte ale
  * povoleno použít pro výpočet dodatečnou paměť. Metody ‹size› ani
  * ‹swap› výjimkou skončit nemohou. */
-struct sequence
-{
-    std::size_t size() const noexcept { return data.size(); }
 
-    void swap( int i, int j ) noexcept
-    {
-        std::swap( data[ i ], data[ j ] );
-    }
 
-    int compare( std::size_t i, int p )
-    {
-        int value = data[ i ];
+void partition(auto &seq, int pivot) {
 
-        if ( value % 3 == 0 )
-            throw std::exception();
+    struct rollback {
+        decltype(seq) seqR;
+        std::stack<std::pair<int, int>> st = {};
 
-        return value < p ? -1 : value == p ? 0 : 1;
-    }
-
-    sequence( std::vector< int > d ) : data( d ) {}
-
-    private:
-    std::vector< int > data;
-};
-
-struct rollback {
-    sequence *seq;
-    std::stack<std::pair<int, int>> st = {};
-
-    void swap(int i, int j) {
-        st.push({i, j});
-        seq->swap(i, j);
-    }
-
-    void abort() noexcept {
-        st = {};
-    }
-
-    ~rollback() {
-        while (!st.empty()) {
-            auto [i, j] = st.top();
-            st.pop();
-            seq->swap(j, i);
+        void swap(int i, int j) {
+            st.push({i, j});
+            seqR.swap(i, j);
         }
-    }
-};
 
-void partition(sequence &seq, int pivot) {
+        void abort() noexcept {
+            st = {};
+        }
+
+        ~rollback() {
+            while (!st.empty()) {
+                auto [i, j] = st.top();
+                st.pop();
+                seqR.swap(j, i);
+            }
+        }
+    };
     if (!seq.size())
         return;
-    rollback r = {&seq};
+    rollback r = {seq};
     int pi = -1;
     for (std::size_t i = 0; i < seq.size(); ++i) {
         if (seq.compare(i, pivot) == -1) {
@@ -94,6 +71,31 @@ void partition(sequence &seq, int pivot) {
 
 int main()
 {
+
+    struct sequence
+    {
+        std::size_t size() const noexcept { return data.size(); }
+
+        void swap( int i, int j ) noexcept
+        {
+            std::swap( data[ i ], data[ j ] );
+        }
+
+        int compare( std::size_t i, int p )
+        {
+            int value = data[ i ];
+
+            if ( value % 3 == 0 )
+                throw std::exception();
+
+            return value < p ? -1 : value == p ? 0 : 1;
+        }
+
+        sequence( std::vector< int > d ) : data( d ) {}
+
+        private:
+        std::vector< int > data;
+    };
 
     auto check = []( const std::vector< int > &values, int pivot )
     {
