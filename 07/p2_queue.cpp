@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstddef>
-#include <queue>
+#include <vector>
+#include <cstdio>
 
 /* Naprogramujte typ ‹queue›, který bude reprezentovat «omezenou»
  * frontu celých čísel (velikost fronty je zadaná jako parametr
@@ -15,38 +16,47 @@
  * složitost O(1). Metody ‹push› ani ‹pop› nesmí alokovat dodatečnou
  * paměť. */
 
-struct queue_empty {
+struct queue_empty {};
 
-};
-
-struct queue_full {
-
-};
+struct queue_full {};
 
 struct queue {
     private:
-    std::queue<int> inner = {};
-    std::size_t limit = 0;
+    std::vector<int> q;
+    std::size_t start = 0;
+    std::size_t used = 0;
+
+    void shiftR() {
+        start = (start + 1) % q.size();
+    }
 
     public:
-    queue(std::size_t lim) : limit{lim} {}
+    queue(std::size_t s) {
+        q = std::vector<int>(s);
+    }
 
     bool empty() const {
-        return inner.empty();
+        return used == 0;
+    }
+
+    bool full() const {
+        return used == q.size();
     }
 
     int pop() {
         if (empty())
             throw queue_empty{};
-        int res = inner.front();
-        inner.pop();
-        return res;
+        std::size_t aux = start;
+        shiftR();
+        --used;
+        return q[aux];
     }
 
     void push(int x) {
-        if (inner.size() == limit)
+        if (full())
             throw queue_full{};
-        inner.push(x);
+        q[(start + used) % q.size()] = x;
+        ++used;
     }
 };
 
