@@ -32,6 +32,20 @@
  *
  * Zejména se nesmí žádný token ztratit, ani nesmí nikde zůstat
  * přebytečný vykradený (moved from) token. */
+void buckets(auto &list, auto &vec) {
+    std::size_t i = 0;
+    while (!list.empty()) {
+        vec[i % vec.size()].emplace(std::move(list.front()));
+        try {
+            list.drop();
+        } catch (...) {
+            list.front() = vec[i % vec.size()].pop();
+            throw;
+        }
+        ++i;
+    }
+
+}
 
 int main()
 {
