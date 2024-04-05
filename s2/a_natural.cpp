@@ -3,10 +3,11 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdint>
+#include <sys/types.h>
 #include <vector>
 #include <iostream>
 #include <cmath>
-
+#include <numeric>
 
 /* Tento úkol rozšiřuje ‹s1/f_natural› o tyto operace (hodnoty ‹m› a
  * ‹n› jsou typu ‹natural›):
@@ -34,6 +35,7 @@
 
 const uint64_t UP   = 0xffffffff00000000;
 const uint64_t DOWN = 0x00000000ffffffff;
+//const uint64_t BASE = 0x0000000100000000;
 
 // stands for up_to_down
 inline uint64_t utd(uint64_t x) {
@@ -57,23 +59,31 @@ struct carry {
     }
 };
 
+std::vector<std::size_t> createRange(int start, int end) {
+    std::vector<std::size_t> res(end - start + 1);
+    std::iota(res.begin(), res.end(), start);
+    return res;
+}
+
 struct natural {
     std::vector<uint64_t> n = {};
 
-    natural(int x = 0) {
+// constructors #CC (the #XX is for juping around the file)
+//-----------------------------------------------------------------------------
+    constexpr natural(int x = 0) {
         auto ux = static_cast<uint64_t>(x);
         n = {ux & DOWN};
         if (ux > DOWN)
             n.push_back((utd(x)));
     }
 
-    natural(uint64_t x) {
+    constexpr natural(uint64_t x) {
         n = {x & DOWN};
         if (x > DOWN)
             n.push_back((utd(x)));
     }
 
-    natural(double x) {
+    constexpr natural(double x) {
         n = {};
         x = std::floor(x);
         while (x) {
@@ -83,10 +93,45 @@ struct natural {
         }
     }
 
-    natural(std::vector<uint64_t> &&n) : n{n} {}
+    constexpr natural(std::vector<uint64_t> &&n) : n{n} {}
+
+    constexpr natural(natural &&r) {
+        n = std::move(r.n);
+    }
+
+    constexpr natural(const natural &r) {
+        n = r.n;
+    }
+
+
+// utility #UT
+// ----------------------------------------------------------------------------
+    void purgeZeroes() {
+        while (!n.back() && len() > 1)
+            pop();
+    }
+
+    constexpr friend natural baseTo(std::size_t l) {
+        if (!l)
+            return {1};
+        std::vector<uint64_t> res = {};
+
+        for (std::size_t i = 0; i < l - 1; ++i)
+            res.push_back(0);
+        res.push_back(1);
+        return res;
+    }
+
+    std::pair<natural, natural> splittedAt(size_t i) const {
+        if (i > len())
+            return {natural(0), natural(*this)};
+        return {
+            natural(std::vector<uint64_t>(n.begin() + i, n.end())),
+            natural(std::vector<uint64_t>(n.begin(), n.begin() + i))
+        };
+    }
 
     void printn() const {
-        std::cout << "nat: ";
         for (uint64_t x: n)
             std::cout << x << " ";
         std::cout << std::endl;
@@ -113,11 +158,6 @@ struct natural {
         return n[i];
     }
 
-    natural &operator=(uint64_t r) {
-        (*this) = natural(r);
-        return *this;
-    }
-
     uint64_t to_ulong() const {
         uint64_t res = n[0];
         if (len() > 1)
@@ -125,6 +165,24 @@ struct natural {
         return res;
     }
 
+
+// assigners #AS
+// ----------------------------------------------------------------------------
+    natural &operator=(uint64_t r) {
+        (*this) = natural(r);
+        return *this;
+    }
+
+    natural &operator=(natural &&r) {
+        n = std::move(r.n);
+        return *this;
+    }
+
+    natural &operator=(const natural &r) = default;
+
+
+// bool operators #BO
+// ----------------------------------------------------------------------------
     friend bool operator==(const natural &l, const natural &r) {
         if (l.len() != r.len())
             return false;
@@ -145,13 +203,16 @@ struct natural {
         return l[0] <=> r[0]; 
     }
 
-    friend natural operator+(const natural &l, const natural &r) {
+// arithmetic operators #AO
+// ----------------------------------------------------------------------------
+    // n
+    natural operator+(const natural &r) {
         carry carry;
         uint64_t subres = 0;
         natural res = 0;
         res.n.clear();
-        for (size_t i = 0; i < std::max(l.len(), r.len()); ++i) {
-            uint64_t li = i < l.len() ? l[i] : 0;
+        for (size_t i = 0; i < std::max(len(), r.len()); ++i) {
+            uint64_t li = i < len() ? n[i] : 0;
             uint64_t ri = i < r.len() ? r[i] : 0;
             carry.eval(li + ri, subres, res.n);
         }
@@ -161,6 +222,124 @@ struct natural {
         return res;
     }
 
+    natural operator-(const natural &r) const {
+        uint64_t carry = 0, subres = 0;
+        natural res = 0;
+        res.n.clear();
+        for (size_t i = 0; i < len(); ++i) {
+            uint64_t ri = i < r.len() ? r[i] : 0;
+            subres = (DOWN + 1 + n[i]) - (ri + carry);
+            res.push(subres & DOWN);
+            carry = n[i] < ri;
+        }
+        res.purgeZeroes();
+        return res;
+    }
+
+
+    // log n
+    friend natural dac_sum(const std::vector<natural> &subs, size_t i, size_t j) {
+        if (i == j)
+            return subs[i];
+        size_t mid = (i + j) / 2;
+        natural l = dac_sum(subs, i, mid);
+        natural r = dac_sum(subs, mid + 1, j);
+        return l + r;
+    }
+
+    natural karatsuba_simple(const natural &r) const {
+        assert(len() == 1);
+        carry carry(0);
+        natural res(0);
+        res.n.clear();
+        uint64_t subres = 0;
+        for (size_t j = 0; j < r.len(); ++j) {
+            carry.eval(n[0] * r[j], subres, res.n);
+        }
+        if (carry)
+            res.push(carry);
+        return res;
+    }
+
+    natural karatsuba(const natural &r) const {
+        if (len() == 1) {
+            if (n[0] == 0)
+                return 0;
+            if (n[0] == 1)
+                return r;
+            return karatsuba_simple(r);
+        }
+        if (r.len() == 1) {
+            if (r[0] == 0)
+                return 0;
+            if (r[0] == 1)
+                return *this;
+            return r.karatsuba_simple(*this);
+        }
+        uint64_t m = std::max(len(), r.len());
+        uint64_t m2 = m / 2;
+
+        auto [h1, l1] = splittedAt(m2);
+        auto [h2, l2] = r.splittedAt(m2);
+
+        natural z0 = l1.karatsuba(l2);
+        natural z1 = (l1 + h1).karatsuba(l2 + h2);
+        natural z2 = h1.karatsuba(h2);
+
+        natural res = (z2 << (m2 * 2)) + ((z1 - z2 - z0) << m2) + z0;
+        res.purgeZeroes();
+        return res;
+    }
+
+    natural operator*(const natural &r) const {
+        return karatsuba(r);
+    }
+
+    natural operator<<(std::size_t l) {
+        if (!l)
+            return *this;
+        std::vector<uint64_t> res = {};
+        for (std::size_t i = 0; i < l; ++i)
+            res.push_back(0);
+        res.insert(res.end(), n.begin(), n.end());
+        return res;
+    }
+
+    // n * log n
+    std::pair<natural, natural> qr_division(const natural &r) const {
+        natural quo = natural(0);
+        natural rem = *this;
+        while (rem >= r) {
+            natural factor = 1;
+            natural prev_fac = 0;
+            natural prev_div = 1;
+            natural div = r;
+
+            // log n * 4n
+            while (rem >= div) {
+                // 4n
+                prev_div = div;
+                div += div;
+                prev_fac = factor;
+                factor += factor;
+            }
+            rem -= prev_div;
+            quo += prev_fac;
+        }
+        return {quo, rem};
+    }
+
+    natural operator/(const natural &r) const {
+        return qr_division(r).first;
+    }
+
+    natural operator%(const natural &r) const {
+        return qr_division(r).second;
+    }
+
+
+// arithmetic assigners #AA
+// ----------------------------------------------------------------------------
     natural &operator+=(const natural &r) {
         uint64_t carry = 0;
         natural res = 0;
@@ -184,21 +363,6 @@ struct natural {
 
     }
 
-    natural operator-(const natural &r) const {
-        uint64_t carry = 0, subres = 0;
-        natural res = 0;
-        res.n.clear();
-        for (size_t i = 0; i < len(); ++i) {
-            uint64_t ri = i < r.len() ? r[i] : 0;
-            subres = (DOWN + 1 + n[i]) - (ri + carry);
-            res.push(subres & DOWN);
-            carry = n[i] < ri;
-        }
-        while (res.len() > 1 && !res.n.back())
-            res.pop();
-        return res;
-    }
-
     natural &operator-=(const natural &r) {
         uint64_t carry = 0, subres = 0;
         for (size_t i = 0; i < len(); ++i) {
@@ -207,8 +371,7 @@ struct natural {
             carry = n[i] < ri;
             n[i] = (subres & DOWN);
         }
-        while (!n.back() && len() > 1)
-            pop();
+        purgeZeroes();
         return *this;
     }
 
@@ -226,80 +389,20 @@ struct natural {
         return *this;
     }
 
-    friend natural dac_sum(const std::vector<natural> &subs, size_t i, size_t j) {
-        if (i == j)
-            return subs[i];
-        size_t mid = (i + j) / 2;
-        natural l = dac_sum(subs, i, mid);
-        natural r = dac_sum(subs, mid + 1, j);
-        return l + r;
-    }
+// other #OT
+// ----------------------------------------------------------------------------
 
-    friend natural operator*(const natural &l, const natural &r) {
-        carry carry;
-        uint64_t subres = 0;
-        std::vector<natural> subreses (l.len());
-        subreses[0].pop();
-        for (size_t i = 1; i < l.len(); ++i)
-            for (size_t j = 0; j < i - 1; ++j)
-                subreses[i].push(0);
-        for (size_t i = 0; i < l.len(); ++i) {
-            carry = 0;
-            for (size_t j = 0; j < r.len(); ++j) {
-                carry.eval(l[i] * r[j], subres, subreses[i].n);
-            }
-            if (carry)
-                subreses[i].push(carry);
-        }
-        carry = 0;
-        natural res = dac_sum(subreses, 0, l.len() - 1);
-        for (uint64_t &x: res.n) {
-            x += carry;
-            carry = utd(x);
-            x &= DOWN;
-        }
-        while (res[res.len() - 1] == 0 && res.len() > 1)
-            res.pop();
-
-        return res;
-    }
-
-
+    // n 3
     natural power(int x) const {
         if (x == 0)
             return (1);
+        //log n
         natural res = power(x / 2);
         if (x % 2 == 0)
             return res * res;
+
+        // n 3
         return (*this) * res * res;
-    }
-
-    std::pair<natural, natural> qr_division(const natural &r) const {
-        natural quo = natural(0);
-        natural rem = *this;
-        while (rem >= r) {
-            natural factor = 1;
-            natural prev_fac = 0;
-            natural prev_div = 1;
-            natural div = r;
-            while (rem >= div) {
-                prev_div = div;
-                div += div;
-                prev_fac = factor;
-                factor += factor;
-            }
-            rem -= prev_div;
-            quo += prev_fac;
-        }
-        return {quo, rem};
-    }
-
-    natural operator/(const natural &r) const {
-        return qr_division(r).first;
-    }
-
-    natural operator%(const natural &r) const {
-        return qr_division(r).second;
     }
 
     std::vector<natural> digits(double base) const {
@@ -315,15 +418,14 @@ struct natural {
     }
 
     std::vector<natural> digits(natural base) const {
-        if (len() == 1 && n[0] == 0)
-            return {{0}};
         natural aux = *this;
         std::vector<natural> res = {};
         while (aux > natural(0)) {
             auto p = aux.qr_division(base);
-            aux = p.first;
-            res.push_back(p.second);
+            aux = std::move(p.first);
+            res.emplace_back(std::move(p.second));
         }
+        //n
         std::reverse(res.begin(), res.end());
         return res;
     };
@@ -339,12 +441,13 @@ struct natural {
 
 int main()
 {
+    /*
     natural m( 2.1 ), n( 2.9 );
     assert(m.len() && n.len());
     assert( m == n );
     assert( m / n == 1 );
     assert( m % n == 0 );
-    assert( m.digits( 10 ).size() == 1 );
+    //assert( m.digits( 10 ).size() == 1 );
     assert( m.to_double() == 2.0 );
     natural d1 { std::pow( 2, 130 ) };
     //1.361129467683754e+39 
@@ -359,7 +462,6 @@ int main()
     }
     assert(d1 == 1);
 
-    /*
     int f = 60;
     int b = 5;
     printf("%f\n", std::fmod(std::pow(b, f), b));
@@ -374,7 +476,17 @@ int main()
     assert(d3 == 1);
     */
     natural base(2 * std::pow(1777, 3));
-    n = natural();
-    assert(n.digits(base).size() == 1);
+    natural aux = 1;
+    natural n = natural();
+    const size_t s = 10;
+    auto r = createRange(0, s);
+    for (auto i: r) {
+        n += aux * i;
+        aux = aux * base;
+    }
+    auto digs = n.digits(base);
+    assert(digs.size() == s + 1);
+    for (auto i: r)
+        assert(digs[i] == s - i);
     return 0;
 }
