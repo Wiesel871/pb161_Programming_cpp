@@ -8,6 +8,7 @@
 #include <iostream>
 #include <cmath>
 #include <numeric>
+#include <queue>
 
 /* Tento úkol rozšiřuje ‹s1/f_natural› o tyto operace (hodnoty ‹m› a
  * ‹n› jsou typu ‹natural›):
@@ -65,11 +66,13 @@ std::vector<std::size_t> createRange(int start, int end) {
     return res;
 }
 
+
 struct natural {
     std::vector<uint64_t> n = {};
 
 // constructors #CC (the #XX is for juping around the file)
 //-----------------------------------------------------------------------------
+
     constexpr natural(int x = 0) {
         auto ux = static_cast<uint64_t>(x);
         n = {ux & DOWN};
@@ -106,6 +109,18 @@ struct natural {
 
 // utility #UT
 // ----------------------------------------------------------------------------
+    
+    natural copy() const {
+        return *this;
+    }
+
+    friend void mergeQ(std::queue<natural> &q1, std::queue<natural> &q2) {
+        while (!q2.empty()) {
+            q1.push(std::move(q2.front()));
+            q2.pop();
+        }
+    }
+
     void purgeZeroes() {
         while (!n.back() && len() > 1)
             pop();
@@ -295,17 +310,24 @@ struct natural {
         return karatsuba(r);
     }
 
-    natural operator<<(std::size_t l) {
-        if (!l)
+    natural operator<<(std::size_t r) const {
+        if (!r)
             return *this;
         std::vector<uint64_t> res = {};
-        for (std::size_t i = 0; i < l; ++i)
+        for (std::size_t i = 0; i < r; ++i)
             res.push_back(0);
         res.insert(res.end(), n.begin(), n.end());
         return res;
     }
 
-    // n * log n
+    natural operator>>(std::size_t r) const {
+        if (!r)
+            return *this;
+        if (r >= len())
+            return 0;
+        return std::vector<uint64_t>(n.begin() + (len() - r), n.end());
+    }
+
     std::pair<natural, natural> qr_division(const natural &r) const {
         natural quo = natural(0);
         natural rem = *this;
@@ -315,9 +337,7 @@ struct natural {
             natural prev_div = 1;
             natural div = r;
 
-            // log n * 4n
             while (rem >= div) {
-                // 4n
                 prev_div = div;
                 div += div;
                 prev_fac = factor;
@@ -329,12 +349,48 @@ struct natural {
         return {quo, rem};
     }
 
+    std::pair<natural, natural> recDivRem(const natural &r) const {
+        printn();
+        r.printn();
+        std::size_t m = len() - r.len();
+        if (m < 2)
+            return qr_division(r);
+        std::size_t k = m / 2;
+        auto [r1, r0] = r.splittedAt(k);
+        auto [l1, l0] = splittedAt(2 * k);
+        auto [Q1, R1] = l1.recDivRem(r1);
+        natural aux = Q1 * (r0 << k) - l0 - R1 << (2 * k);
+        natural rs = r << k;
+        natural prev = 0;
+        while (aux > natural(0)) {
+            Q1 -= 1;
+            prev = aux;
+            aux -= rs;
+        }
+        aux = rs - prev;
+        auto [a1, a0] = aux.splittedAt(k);
+        auto [Q0, R0] = a1.recDivRem(r1);
+        aux = Q0 * r0 - (R0 << k) - a0; 
+        prev = 0;
+        while (aux > 0) {
+            Q0 -= 1;
+            prev = aux;
+            aux -= r;
+        }
+        aux = r - prev;
+        ((Q1 << k) + Q0).printn();
+        aux.printn();
+        return {(Q1 << k) + Q0, aux};
+    }
+
     natural operator/(const natural &r) const {
         return qr_division(r).first;
+        //return recDivRem(r).first;
     }
 
     natural operator%(const natural &r) const {
         return qr_division(r).second;
+        //return recDivRem(r).second;
     }
 
 
@@ -417,18 +473,53 @@ struct natural {
         return digits(natural(base));
     }
 
-    std::vector<natural> digits(natural base) const {
-        natural aux = *this;
+    std::vector<natural> digits(const natural &base) const {
+        return primitiveDigits(base);
+        /*
+        auto subres = copy().schohange_digits(base);
         std::vector<natural> res = {};
-        while (aux > natural(0)) {
-            auto p = aux.qr_division(base);
-            aux = std::move(p.first);
-            res.emplace_back(std::move(p.second));
+        while (!subres.empty()) {
+            res.emplace_back(std::move(subres.front()));
+            subres.pop();
         }
-        //n
+        return res;
+        */
+    };
+
+    std::vector<natural> primitiveDigits(const natural &base) const {
+        std::vector<natural> res = {};
+        natural aux = *this;
+        while (aux > natural(0)) {
+            auto [q, r] = aux.qr_division(base);
+            aux = std::move(q);
+            res.emplace_back(std::move(r));
+        }
         std::reverse(res.begin(), res.end());
         return res;
-    };
+    }
+
+    std::queue<natural> schohange_digits(natural base) {
+        std::queue<natural> res = {};
+        if (*this < base) {
+            res.emplace(std::move(*this));
+            return res;
+        }
+        auto range = createRange(0, 33 * (len() / base.len()));
+        auto k = *std::lower_bound(range.begin(), range.end(), 0, [&](std::size_t l, std::size_t) {
+                natural b2k2 = base.power(2 * l - 2);
+                return b2k2 < *this && *this < b2k2 * base * base;
+                });
+        --k;
+        assert(k);
+        auto [Q, R] = qr_division(base.power(k));
+        //auto [Q, R] = recDivRem(base.power(k));
+        auto r = R.schohange_digits(base);
+        res = Q.schohange_digits(base);
+        for (std::size_t i = 0; i < k - r.size(); ++i)
+            res.push(0);
+        mergeQ(res, r);
+        return res;
+    }
 
     double to_double() const {
         double res = n[0];
