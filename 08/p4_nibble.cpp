@@ -1,4 +1,7 @@
 #include <cassert>
+#include <cstddef>
+#include <cstdint>
+#include <vector>
 
 /* In this exercise, we will implement a class that represents an
  * array of nibbles (half-bytes) stored compactly, using a byte
@@ -20,7 +23,26 @@
  *  • a «conversion operator» which allows implicit conversion of a
  *    ‹nibble_ref› to an ‹uint8_t›. */
 
-class nibble_ref; /* reference implementation: 17 lines */
+class nibble_ref {
+    std::size_t i = 0;
+    std::vector<bool> *v = nullptr;
+
+    public:
+    nibble_ref(std::size_t i, std::vector<bool> *v) : i{i}, v{v} {}
+
+    operator uint8_t() {
+        // could do for but unroll faster
+        return (*v)[i] | ((*v)[i + 1] << 1) | ((*v)[i + 2] << 2) | ((*v)[i + 3] << 3);
+    }
+
+    nibble_ref &operator=(uint8_t x) {
+        (*v)[i    ] = x & 0b0001;
+        (*v)[i + 1] = x & 0b0010;
+        (*v)[i + 2] = x & 0b0100;
+        (*v)[i + 3] = x & 0b1000;
+        return *this;
+    }
+}; /* reference implementation: 17 lines */
 
 /* The ‹nibble_ptr› class works as a pointer. «Dereferencing» a
  * ‹nibble_ptr› should result in a ‹nibble_ref›. To make
@@ -34,7 +56,25 @@ class nibble_ref; /* reference implementation: 17 lines */
  *  • an «equality comparison» operator, which checks whether two
  *    ‹nibble_ptr› instances point to the same place in memory. */
 
-class nibble_ptr; /* reference implementation: 18 lines */
+class nibble_ptr {
+    std::size_t i = 0;
+    std::vector<bool> *v = nullptr;
+
+    public:
+    nibble_ptr(std::size_t i, std::vector<bool> *v) : i{i}, v{v} {}
+
+    nibble_ref operator*() {
+        return {i, v};
+    }
+
+    nibble_ptr &operator++() {
+        i += 4;
+        return *this;
+    }
+
+    bool operator==(const nibble_ptr &r) const = default;
+
+}; /* reference implementation: 18 lines */
 
 /* And finally the ‹nibble_vec›: this class should provide 4
  * methods:
@@ -48,7 +88,32 @@ class nibble_ptr; /* reference implementation: 18 lines */
  *  • ‹get( i )› which returns a ‹nibble_ref› to the ‹i›-th nibble.
  */
 
-class nibble_vec; /* reference implementation: 16 lines */
+class nibble_vec {
+    std::vector<bool> vec = {};
+
+    public:
+    nibble_vec() = default;
+
+    void push_back(uint8_t x) {
+        vec.push_back(x & 0b0001);
+        vec.push_back(x & 0b0010);
+        vec.push_back(x & 0b0100);
+        vec.push_back(x & 0b1000);
+        assert(vec.size() % 4 == 0);
+    }
+
+    nibble_ptr begin() {
+        return {0, &vec};
+    }
+
+    nibble_ptr end() {
+        return {vec.size(), &vec};
+    }
+
+    nibble_ref get(std::size_t i) {
+        return {i * 4, &vec};
+    }
+}; /* reference implementation: 16 lines */
 
 /* ¹ In particular, obtaining a pointer (e.g. by using ‹begin›) will
  *   allow you to change the value that it points to, even if
