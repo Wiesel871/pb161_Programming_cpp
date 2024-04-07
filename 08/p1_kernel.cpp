@@ -1,5 +1,6 @@
 #include <set>
 #include <cassert>
+#include <unordered_set>
 
 /* Napište funkci ‹kernel›, která spočítá rozklad¹ množiny celých
  * čísel ‹s› podle jádra funkce ‹f›. Jádrem funkce myslíme relaci
@@ -9,7 +10,26 @@
  * Můžete předpokládat, že návratový typ funkce ‹f› je ‹int›.
  * Časová složitost nesmí být horší, než O(n⋅logn). */
 
-auto kernel( const std::set< int > &, auto );
+auto kernel( const std::set< int > &s, auto f) {
+    std::unordered_set<int> used = {};
+    std::set<std::set<int>> res = {};
+    for (auto i = s.begin(); i != s.end(); ++i) {
+        if (used.contains(*i))
+            continue;
+        std::set<int> subres = {*i};
+        used.insert(*i);
+        auto j = i;
+        ++j;
+        for (; j != s.end(); ++j) {
+            if (f(*i) != f(*j))
+                continue;
+            used.insert(*j);
+            subres.insert(*j);
+        }
+        res.insert(subres);
+    }
+    return res;
+}
 
 /* ¹ Rozkladem množiny ⟦X⟧ podle ekvivalence ⟦R⟧ myslíme systém
  *   množin ⟦S⟧, který tuto relaci respektuje: je-li ⟦ [a] = { b ∈ X
