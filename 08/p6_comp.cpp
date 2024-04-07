@@ -1,3 +1,4 @@
+#include <cmath>
 #include <vector>
 #include <tuple>
 #include <cassert>
@@ -28,7 +29,61 @@
  * Nápověda: zvažte, jak využít ‹std::tuple› s vhodnými parametry.
  * K vyřešení příkladu stačí už probrané konstrukce. */
 
-struct components;
+struct components {
+    std::vector<int> l = {};
+    std::vector<int> r = {};
+
+    struct iterator {
+        std::size_t i = 0;
+        std::vector<int> *l;
+        std::vector<int> *r;
+
+        iterator &operator++() {
+            ++i;
+            return *this;
+        }
+
+        std::tuple<int &, int &> operator*() {
+            return {(*l)[i], (*r)[i]};
+        }
+
+        bool operator!=(const iterator &ri) const {
+            return i != ri.i || l != ri.l || r != ri.r;
+        }
+    };
+
+    friend iterator;
+
+    iterator begin() {
+        return {0, &l, &r};
+    }
+
+    iterator end() {
+        return {size(), &l, &r};
+    }
+
+    std::size_t size() const {
+        return l.size();
+    }
+
+    const std::vector<int> &left() const {
+        return l;
+    }
+
+    const std::vector<int> &right() const {
+        return r;
+    }
+
+    void push_back(const std::tuple<int, int> &t) {
+        l.push_back(std::get<0>(t));
+        r.push_back(std::get<1>(t));
+    }
+
+    void emplace_back(int li, int ri) {
+        l.push_back(li);
+        r.push_back(ri);
+    }
+};
 
 int main()
 {
