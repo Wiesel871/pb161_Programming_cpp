@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 
 /* Navrhněte typ ‹bitref›, který se bude co nejvíce podobat
  * (nekonstantní) referenci na hodnotu typu ‹bool›, ale bude
@@ -33,7 +34,87 @@
  * Navíc musí být možné použít ‹br› jako podmínku příkazů ‹if›,
  * ‹while›, ‹for›. */
 
-struct bitref;
+struct bitref {
+    std::byte *b = nullptr;
+    std::byte mask;
+    uint8_t i;
+
+    bitref(std::byte *b, uint8_t i) : b{b}, mask{std::byte{1} << i}, i{i} {}
+
+    bitref &operator=(bool n) {
+        if (!n)
+            (*b) &= ~mask;
+        else
+            (*b) |= mask;
+        return *this;
+    }
+
+    operator bool() const {
+        return static_cast<bool>(*b & mask);
+    }
+
+    bool operator&(bool r) const {
+        return *this == r;
+    }
+
+    bool operator&&(bool r) const {
+        return *this == r;
+    }
+
+    bool operator||(bool r) const {
+        return static_cast<bool>(*this) || r;
+    }
+
+    bool operator|(const bitref &r) const {
+        return (*b | *r.b) != std::byte{0};
+    } 
+
+    bool operator+=(bool r) {
+        if (!r)
+            return *this;
+        *this = r;
+        return *this;
+    }
+
+    bool operator-=(bool r) {
+        if (!r)
+            return *this;
+        *this = *this - r;
+        return *this;
+    }
+
+    bool operator*=(bool r) {
+        *this = *this & r;
+        return *this;
+    }
+
+    bool operator/=(bool r) {
+        *this = *this / r;
+        return *this;
+    }
+
+    bool operator%=(bool r) {
+        *this = *this % r;
+        return *this;
+    }
+
+    bool operator&=(bool r) {
+        *this = *this & r;
+        return *this;
+    }
+
+    bool operator|=(bool r) {
+        *this = *this | r;
+        return *this;
+    }
+
+    bool operator^=(bool r) {
+        *this = *this ^ r;
+        return *this;
+    }
+
+
+};
 
 int main()
 {
