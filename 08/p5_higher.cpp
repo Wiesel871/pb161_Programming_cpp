@@ -1,3 +1,4 @@
+#include <utility>
 #include <vector>
 #include <cassert>
 
@@ -17,7 +18,12 @@
  * parametr). Výsledkem je ‹std::vector› hodnot, které vzniknou
  * voláním ‹f› na jednotlivé prvky kontejneru ‹c›. */
 
-// …
+auto map(auto f, const auto &c) {
+    std::vector<decltype(f(*c.begin()))> res = {};
+    for (const auto &x: c)
+        res.push_back(f(x));
+    return res;
+}
 
 /* Funkce ‹zip› je podobná, ale ‹f› je funkce o dvou parametrech a
  * na vstupu jsou dva kontejnery ‹c› a ‹d› (nemusí být stejného
@@ -27,7 +33,13 @@
  * Nemají-li kontejnery stejnou délku, přebývající hodnoty v tom
  * delším se ignorují. */
 
-// …
+auto zip(auto f, const auto &c, const auto &d) {
+    auto l = c.begin();
+    std::vector<decltype(f(*l, *d.begin()))> res = {};
+    for (auto r = d.begin(); l != c.end() && r != d.end(); ++l, ++r)
+        res.push_back(f(*l, *r));
+    return res;
+}
 
 /* Konečně funkce ‹fold› bude mít parametry ‹f›, ‹i› a ‹c›, kde ‹f›
  * je binární funkce, ‹i› je iniciální hodnota a ‹c› je vstupní
@@ -36,7 +48,11 @@
  * prázdný, výsledkem je ‹i›. Parametry funkce ‹f› mohou být obecně
  * různých typů, musí být ale kompatibilní s ‹i› a ‹c›. */
 
-// …
+auto fold(auto f, auto i, const auto &c) {
+    for (const auto &x: c)
+        i = f(i, x);
+    return i;
+}
 
 int main()
 {
