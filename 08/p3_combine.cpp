@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cstddef>
 #include <vector>
 #include <initializer_list>
 
@@ -26,6 +27,16 @@
  * Příklad: Je-li ‹f› kvadratická (opět ve velikosti výsledku i
  * čase), celková složitost by měla být nejvýše ⟦O(n²⋅log(n))⟧.
  * Zde by ‹f› mohl být například tenzorový součin. */
+auto dac_combine(auto &s, auto f, std::size_t l, std::size_t r) {
+    if (l == r)
+        return s[l];
+    std::size_t mid = (l + r) / 2;
+    return f(dac_combine(s, f, l, mid), dac_combine(s, f, mid + 1, r));
+}
+
+auto combine(auto &s, auto f) {
+    return dac_combine(s, f, 0, s.size() - 1);
+}
 
 int main()
 {
