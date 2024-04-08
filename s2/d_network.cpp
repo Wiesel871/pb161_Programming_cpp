@@ -102,7 +102,7 @@ class node {
             return true;
         visited.insert(this);
         for (const node *n: neighbors) 
-            if (!visited.contains(n) && n->reachable(r))
+            if (n && !visited.contains(n) && n->reachable(r))
                 return true;
         return false;
     }
