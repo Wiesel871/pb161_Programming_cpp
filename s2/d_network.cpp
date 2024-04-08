@@ -1,4 +1,11 @@
 #include <cassert>
+#include <cstddef>
+#include <vector>
+#include <memory>
+#include <array>
+#include <utility>
+#include <unordered_set>
+#include <unordered_map>
 
 /* Vaším úkolem bude tentokrát naprogramovat simulátor počítačové
  * sítě, s těmito třídami, které reprezentují propojitelné síťové
@@ -47,11 +54,159 @@
  *
  * Cykly, které prochází více sítěmi (a tedy prohází alespoň dvěma
  * směrovači), neuvažujeme. */
-
-class endpoint;
-class bridge;
-class router;
 class network;
+
+class node {
+    size_t lim = 0;
+
+    void one_way_dc(node *r) {
+        neighbors.erase(r);
+    }
+
+    bool one_way_con(node *r) {
+        if (!has_free_port())
+            return false;
+        neighbors.insert(r);
+        return true;
+    }
+
+    bool has_free_port() const {
+        return lim != neighbors.size();
+    }
+
+    public:
+    std::unordered_set<node *> neighbors = {};
+    network *parent = nullptr;
+
+    node(network *p, size_t len) : lim(len), parent{p}  {}
+
+    virtual bool connect(node *r) {
+        if (!has_free_port())
+            return false;
+        if (!r->one_way_con(this))
+            return false;
+        neighbors.insert(r);
+        return true;
+    }
+
+    virtual bool disconnect(node *r) {
+        if (!neighbors.contains(r))
+            return false;
+        r->one_way_dc(this);
+        neighbors.erase(r);
+        return true;
+    }
+
+    bool reachable(const node *r, std::unordered_set<const node *> &visited) const {
+        if (this == r)
+            return true;
+        visited.insert(this);
+        for (const node *n: neighbors) 
+            if (!visited.contains(n) && n->reachable(r))
+                return true;
+        return false;
+    }
+
+    bool reachable(const node *r) const {
+        std::unordered_set<const node *> visited = {};
+        return reachable(r, visited);
+    }
+
+    ~node() {
+        for (node *n: neighbors) {
+            assert(n->neighbors.contains(this));
+            n->neighbors.erase(this);
+        }
+    }
+};
+
+class endpoint : public node {
+    public:
+    endpoint(network *p) : node(p, 1) {}
+};
+
+class bridge : public node {
+    public:
+    bridge(network *p, size_t len) : node(p, len) {}
+};
+
+class router : public bridge {
+    public:
+    router(network *p, size_t len) : bridge(p, len) {}
+
+    bool connect(node *r) override {
+        for (node *n : neighbors) {
+            if (parent == n->parent)
+                return false;
+        }
+        return node::connect(r);
+    }
+};
+
+class network {
+    std::vector<std::unique_ptr<node>> nodes = {};
+
+    bool df_search(const node *source, const node *cur, std::unordered_set<const node *> &visited) const {
+        visited.insert(cur);
+        for (const node *n: cur->neighbors) {
+            if (n == source)
+                continue;
+            if (visited.contains(n))
+                return true;
+            if (!visited.contains(n) && df_search(cur, n, visited))
+                return true;
+        }
+        return false;
+    }
+
+    bool df_fix(node *source, node *cur, std::unordered_set<node *> &visited) const {
+        visited.insert(cur);
+        for (node *n: cur->neighbors) {
+            if (n == source)
+                continue;
+            if (visited.contains(n))
+                assert(cur->disconnect(n));
+            if (!visited.contains(n))
+                df_fix(cur, n, visited);
+        }
+        return false;
+    }
+
+    public:
+    node *add_endpoint() {
+        nodes.emplace_back(new endpoint(this));
+        return nodes.back().get();
+    }
+
+    node *add_bridge(size_t len = 2) {
+        nodes.emplace_back(new bridge(this, len));
+        return nodes.back().get();
+    }
+
+    node *add_router(size_t len = 2) {
+        nodes.emplace_back(new router(this, len));
+        return nodes.back().get();
+    }
+
+
+    bool has_loops() {
+        std::unordered_set<const node *> visited = {};
+        for (const auto &n: nodes) {
+            if (!visited.contains(n.get()) && df_search(nullptr, n.get(), visited))
+                return true;
+        }
+        return false;
+    }
+
+    void fix_loops() {
+        std::unordered_set<node *> visited = {};
+        for (const auto &n: nodes) {
+            if (!visited.contains(n.get()))
+                df_fix(nullptr, n.get(), visited);
+        }
+    }
+
+};
 
 int main()
 {
