@@ -50,6 +50,10 @@ struct components {
         bool operator!=(const iterator &ri) const {
             return i != ri.i || l != ri.l || r != ri.r;
         }
+
+        bool operator==(const iterator &ri) const {
+            return i == ri.i || l == ri.l || r == ri.r;
+        }
     };
 
     friend iterator;
