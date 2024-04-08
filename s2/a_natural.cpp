@@ -306,6 +306,7 @@ struct natural {
         return res;
     }
 
+    // n ^ log2 3 = n ^ 1.6
     natural operator*(const natural &r) const {
         return karatsuba(r);
     }
@@ -350,8 +351,6 @@ struct natural {
     }
 
     std::pair<natural, natural> recDivRem(const natural &r) const {
-        printn();
-        r.printn();
         std::size_t m = len() - r.len();
         if (m < 2)
             return qr_division(r);
@@ -378,8 +377,6 @@ struct natural {
             aux -= r;
         }
         aux = r - prev;
-        ((Q1 << k) + Q0).printn();
-        aux.printn();
         return {(Q1 << k) + Q0, aux};
     }
 
