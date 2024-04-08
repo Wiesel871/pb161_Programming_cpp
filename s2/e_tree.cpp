@@ -78,23 +78,11 @@
  * pracovat s kvalifikací ‹const›. Vytvoříme-li kopii hodnoty typu
  * ‹tree›, tato bude obsahovat kopii celého stromu. Je-li umožněno
  * kopírování jednotlivých uzlů, nemá určeno konkrétní chování. */
+
 class tree;
 
-
 class node {
-    std::size_t cur;
-
     public:
-
-    static std::size_t id;
-    static std::size_t offset;
-    static std::size_t count;
-
-    node() {
-        ++count;
-        cur = id++;
-        printf("node %lu created\n", cur);
-    }
 
     virtual void set(int, const tree &) = 0;
     virtual void take(int, tree &&) = 0;
@@ -110,22 +98,15 @@ class node {
     virtual int size() const = 0;
     virtual bool as_bool() const = 0;
     virtual int as_int() const = 0;
+    virtual void print(int t = 0) const = 0;
 
-    void off_print() const {
-        for (std::size_t i = 0; i < offset; ++i)
+    void print_off(int t) const {
+        for (int i = 0; i < t; ++i)
             printf("\t");
     }
 
-    virtual ~node() {
-        --count;
-        off_print();
-        printf("node %lu destroyed, %lu remaining\n", cur, count);
-    };
+    virtual ~node() = default;
 };
-
-std::size_t node::id = 0;
-std::size_t node::offset = 0;
-std::size_t node::count = 0;
 
 class tree {
     public:
@@ -152,27 +133,21 @@ class tree {
     }
 
     tree(tree &&r) {
-        std::size_t test = n->id;
         n.swap(r.n);
-        r.n.release();
+        r.n.reset();
         assert(r.is_null());
-        assert(test == n->id);
     }
 
     tree &operator=(tree &&r) {
-        std::size_t test = n->id;
         n.swap(r.n);
-        r.n.release();
+        r.n.reset();
         assert(r.is_null());
-        assert(test == n->id);
         return *this;
     }
 
     tree &operator=(const tree &r) {
-        std::size_t test = n->id;
-        n.release();
+        n.reset();
         *this = r.n->copy();
-        assert(n->id > test);
         return *this;
     }
 };
@@ -182,9 +157,7 @@ class node_bool : public node {
 
     public:
     friend tree;
-    node_bool(bool v = false) : val{v} {
-        printf("bool created %d\n", v);
-    }
+    node_bool(bool v = false) : val{v} {}
 
     void set(int, const tree &) override {
         throw std::domain_error("bool node is leaf structure");
@@ -207,8 +180,6 @@ class node_bool : public node {
     };
 
     tree copy() const override {
-        off_print();
-        printf("bool %lu is copied\n", id);
         return (val);
     }
 
@@ -244,10 +215,12 @@ class node_bool : public node {
         return static_cast<int>(val);
     };
 
-    ~node_bool() override {
-        off_print();
-        printf("bool destroyed\n");
-    };
+    void print(int t = 0) const override {
+        print_off(t);
+        printf("bool %d\n", val);
+    }
+
+    ~node_bool() override = default;
 };
 
 class node_int : public node {
@@ -255,9 +228,7 @@ class node_int : public node {
 
     public:
     friend tree;
-    node_int(int v = 0) : val{v} {
-        printf("int created %d\n", v);
-    }
+    node_int(int v = 0) : val{v} {}
 
     void set(int, const tree &) override {
         throw std::domain_error("int node is leaf structure");
@@ -280,8 +251,6 @@ class node_int : public node {
     };
 
     tree copy() const override {
-        off_print();
-        printf("int %lu copied\n", id);
         return (val);
     }
 
@@ -317,10 +286,12 @@ class node_int : public node {
         return val;
     };
 
-    ~node_int() override {
-        off_print();
-        printf("int destroyed %d\n", val);
-    };
+    void print(int t = 0) const override {
+        print_off(t);
+        printf("int %d\n", val);
+    }
+
+    ~node_int() override = default;
 };
 
 class node_array : public node {
@@ -332,7 +303,6 @@ class node_array : public node {
     node_array() {
         s = 0;
         children = std::vector<tree>(0);
-        printf("array created\n");
     };
 
     void set(int idx, const tree &t) override {
@@ -347,20 +317,16 @@ class node_array : public node {
         if (static_cast<std::size_t>(idx) >= children.size())
             children.resize(idx + 1);
         s += children[idx].is_null();
-        std::size_t test = id;
         children[idx] = std::move(t);
-        assert(test == id);
     };
 
     void take(int idx, tree &t) override {
         if (static_cast<std::size_t>(idx) >= children.size())
             children.resize(idx + 1);
         s += children[idx].is_null();
-        std::size_t test = id;
         children[idx].n.swap(t.n);
-        t.n.release();
+        t.n.reset();
         assert(t.is_null());
-        assert(test == id);
     };
 
     node &get(int idx) override {
@@ -376,26 +342,20 @@ class node_array : public node {
     }
 
     tree copy() const override {
-        off_print();
-        printf("array %lu copied\n", id);
-        ++offset;
         auto *res = new node_array();
         for (const auto &t: children) {
             if (t.is_null()) {
-                printf("\n");
                 res->children.emplace_back();
             } else {
                 res->children.push_back(t.n->copy());
             }
         }
-        --offset;
         return res;
     };
 
     tree copy(int idx) const override {
-        if (idx >= size())
+        if (static_cast<std::size_t>(idx) >= children.size())
             throw std::out_of_range("index beyond array scope");
-        printf("%lu ar:", id);
         return children[idx].n->copy();
     };
 
@@ -436,19 +396,28 @@ class node_array : public node {
         throw std::domain_error("array isnt convertable to int");
     };
 
-    ~node_array() override {
-        off_print();
-        printf("array destroyed\n");
-        ++offset;
-        for (auto &ch: children) {
-            if (ch.is_null()) {
+    void print(int t = 0) const override {
+        print_off(t);
+        printf("array\n");
+        for (std::size_t i = 0; i < children.size(); ++i) {
+            print_off(t + 1);
+            printf("%lu\n", i);
+            if (children[i].is_null()) {
                 printf("\n");
                 continue;
             }
-            ch.n.release();
+            children[i].n->print(t + 1);
+        }
+    }
+
+    ~node_array() override {
+        for (auto &ch: children) {
+            if (ch.is_null()) {
+                continue;
+            }
+            ch.n.reset();
             assert(ch.is_null());
         }
-        --offset;
     };
 };
 
@@ -457,28 +426,20 @@ class node_object : public node {
 
     public:
     friend tree;
-    node_object() {
-        printf("object created\n");
-    };
+    node_object() = default;
 
     void set(int idx, const tree &t) override {
-        std::size_t test = id;
         children[idx] = (*t).copy();
-        assert(id > test);
     };
 
     void take(int idx, tree &&t) override {
-        std::size_t test = id;
         children[idx] = std::move(t);
-        assert(id == test);
     };
 
     void take(int idx, tree &t) override {
-        std::size_t test = id;
         children[idx].n.swap(t.n);
-        t.n.release();
+        t.n.reset();
         assert(t.is_null());
-        assert(test == id);
     };
 
     node &get(int idx) override {
@@ -494,26 +455,17 @@ class node_object : public node {
     };
 
     tree copy() const override {
-        off_print();
-        printf("object %lu copied\n", id);
-        ++offset;
         auto *res = new node_object();
-        std::size_t test = id;
         for (const auto &[k, t]: children) {
             res->children.emplace(k, t.n->copy());
         }
-        --offset;
-        assert(id > test);
         return res;
     };
 
     tree copy(int idx) const override {
         if (!children.contains(idx))
             throw std::out_of_range("identifier missing from object");
-        printf("%lu ob: ", id);
-        std::size_t test = id;
         auto res = children.at(idx).n->copy();
-        assert(id > test); 
         return res;
     };
 
@@ -534,7 +486,10 @@ class node_object : public node {
     };
 
     int size() const override {
-        return children.size();
+        int res = 0;
+        for (const auto &[_, t]: children)
+            res += !t.is_null();
+        return res;
     };
 
     bool as_bool() const override {
@@ -545,19 +500,28 @@ class node_object : public node {
         throw std::domain_error("object isnt convertable to int");
     };
 
-    ~node_object() override {
-        off_print();
-        printf("object destroyed\n");
-        ++offset;
-        for (auto &[_, ch]: children) {
+    void print(int t = 0) const override {
+        print_off(t);
+        printf("object\n");
+        for (const auto &[k, ch]: children) {
+            print_off(t + 1);
+            printf("%d\n", k);
             if (ch.is_null()) {
                 printf("\n");
                 continue;
             }
-            ch.n.release();
+            ch.n->print(t + 1);
+        }
+    }
+
+    ~node_object() override {
+        for (auto &[_, ch]: children) {
+            if (ch.is_null()) {
+                continue;
+            }
+            ch.n.reset();
             assert(ch.is_null());
         }
-        --offset;
     };
 };
 
@@ -589,7 +553,6 @@ int main()
          ta = make_array(),
          to = make_object();
     printf("\nafter make:\n");
-    assert(tt.n->id == 4);
 
     const tree &c_tt = tt,
                &c_ta = ta,
@@ -601,7 +564,6 @@ int main()
     auto &no = *to;
     const auto &c_no = no;
 
-    assert(tt.n->id == 4);
 
     printf("\n1st asserts\n");
 
@@ -612,9 +574,7 @@ int main()
     printf("\n2nd asserts\n");
 
     na.set( 0, ta );
-    assert(tt.n->id == 5);
     na.take( 1, make_bool() );
-    assert(tt.n->id == 6);
 
 
     assert(na.size() == 2);
@@ -623,7 +583,6 @@ int main()
     assert( !c_ta.is_null() );
     assert( !c_to.is_null() );
 
-    assert(tt.n->id == 6);
 
     printf("\n3nd asserts\n");
 
@@ -638,6 +597,15 @@ int main()
     assert( c_no.get( 1 ).size() == 2 );
 
     printf("\ndone\n");
+
+    auto &root = na;
+
+    root.get(1).take(5, make_int());
+    //root.print();
+    assert(root.get(1).size() == 2);
+    assert(root.get(1).get(1).is_array());
+    root.take(3, make_array());
+    //root.print();
 
     return 0;
 }
