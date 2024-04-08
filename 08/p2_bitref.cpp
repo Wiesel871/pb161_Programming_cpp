@@ -37,9 +37,9 @@
 struct bitref {
     std::byte *b = nullptr;
     std::byte mask;
-    uint8_t i;
+    int i;
 
-    bitref(std::byte *b, uint8_t i) : b{b}, mask{std::byte{1} << i}, i{i} {}
+    bitref(std::byte *b, int i) : b{b}, mask{std::byte{1} << i}, i{i} {}
 
     bitref &operator=(bool n) {
         if (!n)
