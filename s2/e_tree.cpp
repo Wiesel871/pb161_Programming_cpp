@@ -145,13 +145,17 @@ class tree {
     tree &operator=(tree &&r) {
         n.swap(r.n);
         r.n.reset();
+        assert(r.n == nullptr);
         assert(r.is_null());
         return *this;
     }
 
     tree &operator=(const tree &r) {
-        n.reset();
-        *this = r.n->copy();
+        assert(n == nullptr);
+        tree c = r.n->copy();
+        *this = std::move(c);
+        assert(r.n);
+        assert(!r.is_null());
         return *this;
     }
 };
@@ -299,36 +303,47 @@ class node_int : public node {
 };
 
 class node_array : public node {
-    std::vector<tree> children;
-    int s = 0;
+    std::vector<std::unique_ptr<node>> children;
 
     public:
     friend tree;
     node_array() {
-        s = 0;
-        children = std::vector<tree>(0);
+        children = std::vector<std::unique_ptr<node>>(0);
     };
 
     void set(int idx, const tree &t) override {
-        if (idx >= size())
+        if (static_cast<std::size_t>(idx) >= children.size())
             children.resize(idx + 1);
-        s += children[idx].is_null();
-
-        children[idx] = (*t).copy();
+        if (t.is_null()) {
+            children[idx].reset();
+            return;
+        }
+        tree c = (*t).copy();
+        children[idx].swap(c.n);
+        c.n.reset();
+        assert(!t.is_null());
     };
 
     void take(int idx, tree &&t) override {
         if (static_cast<std::size_t>(idx) >= children.size())
             children.resize(idx + 1);
-        s += children[idx].is_null();
-        children[idx] = std::move(t);
+        if (t.is_null()) {
+            children[idx].reset();
+            return;
+        }
+        children[idx].swap(t.n);
+        t.n.reset();
+        assert(t.is_null());
     };
 
     void take(int idx, tree &t) override {
         if (static_cast<std::size_t>(idx) >= children.size())
             children.resize(idx + 1);
-        s += children[idx].is_null();
-        children[idx].n.swap(t.n);
+        if (t.is_null()) {
+            children[idx].reset();
+            return;
+        }
+        children[idx].swap(t.n);
         t.n.reset();
         assert(t.is_null());
     };
@@ -347,11 +362,14 @@ class node_array : public node {
 
     tree copy() const override {
         auto *res = new node_array();
-        for (const auto &t: children) {
-            if (t.is_null()) {
+        for (const auto &p: children) {
+            if (!p) {
                 res->children.emplace_back();
             } else {
-                res->children.push_back(t.n->copy());
+                tree c = p->copy();
+                res->children.emplace_back();
+                res->children.back().swap(c.n);
+                c.n.reset();
             }
         }
         return res;
@@ -360,7 +378,7 @@ class node_array : public node {
     tree copy(int idx) const override {
         if (static_cast<std::size_t>(idx) >= children.size())
             throw std::out_of_range("index beyond array scope");
-        return children[idx].n->copy();
+        return children[idx]->copy();
     };
 
     bool is_bool() const override {
@@ -381,7 +399,7 @@ class node_array : public node {
 
     int size(std::size_t l, std::size_t r) const {
         if (l == r)
-            return !children[l].is_null();
+            return children[l] != nullptr;
         std::size_t mid = (l + r) / 2;
         return size(l, mid) + size(mid + 1, r);
     }
@@ -406,44 +424,43 @@ class node_array : public node {
         for (std::size_t i = 0; i < children.size(); ++i) {
             print_off(t + 1);
             printf("%lu\n", i);
-            if (children[i].is_null()) {
+            if (!children[i]) {
                 printf("\n");
                 continue;
             }
-            children[i].n->print(t + 1);
+            children[i]->print(t + 1);
         }
     }
 
-    ~node_array() override {
-        for (auto &ch: children) {
-            if (ch.is_null()) {
-                continue;
-            }
-            ch.n.reset();
-            assert(ch.is_null());
-        }
-    };
+    ~node_array() override = default;
 };
 
 class node_object : public node {
-    std::map<int, tree> children;
+    std::map<int, std::unique_ptr<node>> children;
 
     public:
     friend tree;
     node_object() = default;
 
     void set(int idx, const tree &t) override {
-        children[idx] = (*t).copy();
+        if (t.is_null()) {
+            children[idx].reset();
+            return;
+        }
+        tree c = (*t).copy();
+        children[idx].swap(c.n);
+        c.n.reset();
+        assert(!t.is_null());
     };
 
     void take(int idx, tree &&t) override {
-        children[idx] = std::move(t);
+        children[idx].swap(t.n);
+        t.n.reset();
     };
 
     void take(int idx, tree &t) override {
-        children[idx].n.swap(t.n);
+        children[idx].swap(t.n);
         t.n.reset();
-        assert(t.is_null());
     };
 
     node &get(int idx) override {
@@ -461,7 +478,7 @@ class node_object : public node {
     tree copy() const override {
         auto *res = new node_object();
         for (const auto &[k, t]: children) {
-            res->children.emplace(k, t.n->copy());
+            res->children.emplace(k, t->copy().n);
         }
         return res;
     };
@@ -469,8 +486,7 @@ class node_object : public node {
     tree copy(int idx) const override {
         if (!children.contains(idx))
             throw std::out_of_range("identifier missing from object");
-        auto res = children.at(idx).n->copy();
-        return res;
+        return children.at(idx)->copy();
     };
 
     bool is_bool() const override {
@@ -492,7 +508,7 @@ class node_object : public node {
     int size() const override {
         int res = 0;
         for (const auto &[_, t]: children)
-            res += !t.is_null();
+            res += t != nullptr;
         return res;
     };
 
@@ -510,23 +526,15 @@ class node_object : public node {
         for (const auto &[k, ch]: children) {
             print_off(t + 1);
             printf("%d\n", k);
-            if (ch.is_null()) {
+            if (!ch.get()) {
                 printf("\n");
                 continue;
             }
-            ch.n->print(t + 1);
+            ch->print(t + 1);
         }
     }
 
-    ~node_object() override {
-        for (auto &[_, ch]: children) {
-            if (ch.is_null()) {
-                continue;
-            }
-            ch.n.reset();
-            assert(ch.is_null());
-        }
-    };
+    ~node_object() override = default;
 };
 
 
@@ -632,6 +640,16 @@ int main()
     assert(n.as_bool() == true);
     assert(n.size() == 0);
     assert(!t.is_null());
+
+    tree rc(ta);
+    assert(!ta.is_null());
+
+    t = make_object();
+    (*t).set(0, ta);
+    assert(&root == ta.n.get());
+    (*t).take(1, ta);
+    assert(ta.is_null());
+    (*t).print();
 
     return 0;
 }
