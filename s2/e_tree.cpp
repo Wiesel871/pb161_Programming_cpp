@@ -138,6 +138,10 @@ class tree {
         assert(r.is_null());
     }
 
+    tree(const tree &r) {
+        *this = r.n->copy();
+    }
+
     tree &operator=(tree &&r) {
         n.swap(r.n);
         r.n.reset();
@@ -606,6 +610,28 @@ int main()
     assert(root.get(1).get(1).is_array());
     root.take(3, make_array());
     //root.print();
+    tree t{};
+    t = make_bool( true );
+    auto &n = *t;
+    assert(!t.is_null());
+
+    assert(n.is_bool());
+    assert(!n.is_int());
+    assert(!n.is_array());
+    assert(!n.is_object());
+    assert(n.as_int() == 1);
+    assert(n.as_bool() == true);
+    assert(n.size() == 0);
+    assert(!t.is_null());
+    tree t2 { t };
+    assert(n.is_bool());
+    assert(!n.is_int());
+    assert(!n.is_array());
+    assert(!n.is_object());
+    assert(n.as_int() == true);
+    assert(n.as_bool() == true);
+    assert(n.size() == 0);
+    assert(!t.is_null());
 
     return 0;
 }
