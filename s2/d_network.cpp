@@ -165,7 +165,7 @@ class network {
         return false;
     }
 
-    bool df_fix(node *source, node *cur, std::unordered_set<node *> &visited) const {
+    bool df_fix(node *source, node *cur, std::unordered_set<node *> &visited) {
         visited.insert(cur);
         for (node *n: cur->neighbors) {
             if (n == source)
@@ -195,7 +195,7 @@ class network {
     }
 
 
-    bool has_loops() {
+    bool has_loops() const {
         std::unordered_set<const node *> visited = {};
         for (const auto &n: nodes) {
             if (!visited.contains(n.get()) && df_search(nullptr, n.get(), visited))
