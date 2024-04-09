@@ -112,7 +112,7 @@ class node {
         return reachable(r, visited);
     }
 
-    ~node() {
+    virtual ~node() {
         for (node *n: neighbors) {
             assert(n->neighbors.contains(this));
             n->neighbors.erase(this);
@@ -123,11 +123,15 @@ class node {
 class endpoint : public node {
     public:
     endpoint(network *p) : node(p, 1) {}
+
+    ~endpoint() override = default;
 };
 
 class bridge : public node {
     public:
     bridge(network *p, size_t len) : node(p, len) {}
+
+    ~bridge() override = default;
 };
 
 class router : public bridge {
@@ -141,6 +145,8 @@ class router : public bridge {
         }
         return node::connect(r);
     }
+
+    ~router() override = default;
 };
 
 class network {
