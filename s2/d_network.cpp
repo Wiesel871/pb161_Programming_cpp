@@ -1,11 +1,9 @@
 #include <cassert>
 #include <cstddef>
+#include <stack>
 #include <vector>
 #include <memory>
-#include <array>
-#include <utility>
 #include <unordered_set>
-#include <unordered_map>
 
 /* Vaším úkolem bude tentokrát naprogramovat simulátor počítačové
  * sítě, s těmito třídami, které reprezentují propojitelné síťové
@@ -75,12 +73,16 @@ class node {
     }
 
     public:
-    std::unordered_set<node *> neighbors = {};
+    std::unordered_multiset<node *> neighbors = {};
     network *parent = nullptr;
 
     node(network *p, size_t len) : lim(len), parent{p}  {}
 
     virtual bool connect(node *r) {
+        if (r == nullptr)
+            return false;
+        if (r == this && lim - neighbors.size() < 2)
+            return false;
         if (!has_free_port())
             return false;
         if (!r->one_way_con(this))
@@ -89,7 +91,7 @@ class node {
         return true;
     }
 
-    virtual bool disconnect(node *r) {
+    [[nodiscard]] virtual bool disconnect(node *r) {
         if (!neighbors.contains(r))
             return false;
         r->one_way_dc(this);
@@ -97,23 +99,33 @@ class node {
         return true;
     }
 
-    bool reachable(const node *r, std::unordered_set<const node *> &visited) const {
-        if (this == r)
-            return true;
-        visited.insert(this);
-        for (const node *n: neighbors) 
-            if (n && !visited.contains(n) && n->reachable(r))
-                return true;
-        return false;
-    }
-
     bool reachable(const node *r) const {
+        if (r == nullptr)
+            return false;
         std::unordered_set<const node *> visited = {};
-        return reachable(r, visited);
+        std::stack<const node *> st = {};
+        st.push(this);
+        while (!st.empty()) {
+            const node *t = st.top();
+            st.pop();
+            if (t == r)
+                return true;
+            assert(t != nullptr);
+            if (!visited.contains(t))
+                visited.insert(t);
+            for (const node *x: t->neighbors) {
+                assert(x);
+                if (!visited.contains(x))
+                    st.push(x);
+            }
+        }
+        return false;
     }
 
     virtual ~node() {
         for (node *n: neighbors) {
+            if (n == this)
+                continue;
             assert(n->neighbors.contains(this));
             n->neighbors.erase(this);
         }
@@ -139,8 +151,11 @@ class router : public bridge {
     router(network *p, size_t len) : bridge(p, len) {}
 
     bool connect(node *r) override {
+        if (r == nullptr || r == this)
+            return false;
         for (node *n : neighbors) {
-            if (parent == n->parent)
+            assert(n);
+            if (r->parent == n->parent)
                 return false;
         }
         return node::connect(r);
@@ -232,6 +247,27 @@ int main()
     assert( b->reachable( e2 ) );
     assert( r->connect( b ) );
     assert( !r->connect( e1 ) );
+
+    network s1;
+    auto b1 = s1.add_bridge();
+    auto e21 = s1.add_endpoint();
+    assert(!e21->connect(e21));
+    assert(b1->connect(b1));
+    assert(!b1->connect(e21));
+    /*
+  node  2 endpoint 0
+  node  4 endpoint 0
+  node  5 bridge 1
+  node  6 router 1
+  node  7 endpoint 1
+  connect  1 2
+  connect  1 4
+  connect  5 6
+  connect  5 7
+  assert f.reachable( t ) == t.reachable( f ): 11
+  assert f.reachable( t ) == expect: 11
+  assert f.reachable( t ) == t.reachable( f ): 12
+  */
 
     return 0;
 }
