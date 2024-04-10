@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstddef>
 #include <stack>
+#include <string>
 #include <vector>
 #include <memory>
 #include <unordered_set>
@@ -171,25 +172,14 @@ class network {
     bool df_search(const node *source, const node *cur, std::unordered_set<const node *> &visited) const {
         visited.insert(cur);
         for (const node *n: cur->neighbors) {
+            if (n == cur)
+                return true;
             if (n == source)
                 continue;
             if (visited.contains(n))
                 return true;
             if (!visited.contains(n) && df_search(cur, n, visited))
                 return true;
-        }
-        return false;
-    }
-
-    bool df_fix(node *source, node *cur, std::unordered_set<node *> &visited) {
-        visited.insert(cur);
-        for (node *n: cur->neighbors) {
-            if (n == source)
-                continue;
-            if (visited.contains(n))
-                assert(cur->disconnect(n));
-            if (!visited.contains(n))
-                df_fix(cur, n, visited);
         }
         return false;
     }
@@ -222,9 +212,30 @@ class network {
 
     void fix_loops() {
         std::unordered_set<node *> visited = {};
-        for (const auto &n: nodes) {
-            if (!visited.contains(n.get()))
-                df_fix(nullptr, n.get(), visited);
+        std::stack<std::pair<node *, const node*>> st = {};
+        std::stack<node *> eraser = {};
+        for (auto &n: nodes)
+            st.emplace(n.get(), nullptr);
+        while (!st.empty()) {
+            auto [t, parent] = st.top();
+            st.pop();
+            if (visited.contains(t))
+                continue;
+            for (node *n: t->neighbors) {
+                if (n == parent)
+                    continue;
+                if (n != t && !visited.contains(n)) {
+                    st.emplace(n, t);
+                } else {
+                    eraser.push(n);
+                }
+            }
+
+            while (!eraser.empty()) {
+                if (t->neighbors.contains(eraser.top()))
+                    assert(t->disconnect(eraser.top()));
+                eraser.pop();
+            }
         }
     }
 
@@ -265,6 +276,10 @@ int main()
     assert(!b2->connect(e21));
     assert(b2->disconnect(b2));
     assert(!b2->disconnect(b2));
+    assert(b2->connect(b2));
+    assert(s1.has_loops());
+    s1.fix_loops();
+    assert(!s1.has_loops());
     /*
   node  2 endpoint 0
   node  4 endpoint 0
