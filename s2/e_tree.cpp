@@ -1,8 +1,8 @@
+#include <algorithm>
 #include <cassert>
+#include <cmath>
 #include <cstddef>
 #include <cstdio>
-#include <iterator>
-#include <new>
 #include <stdexcept>
 #include <vector>
 #include <memory>
@@ -139,6 +139,10 @@ class tree {
     }
 
     tree(const tree &r) {
+        if (r.is_null()) {
+            n = nullptr;
+            return;
+        }
         *this = r.n->copy();
     }
 
@@ -558,6 +562,13 @@ tree make_object() {
     return {new node_object()};
 }
 
+static std::size_t tid = 0;
+
+std::tuple<std::size_t, tree> object_id() {
+    tree t{};
+    return std::tuple<std::size_t, tree>{tid++, t};
+}
+
 int main()
 {
     tree tt = make_bool( true ),
@@ -650,6 +661,8 @@ int main()
     (*t).take(1, ta);
     assert(ta.is_null());
     (*t).print();
+
+    auto [id, tr] = object_id();
 
     return 0;
 }
