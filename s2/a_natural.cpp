@@ -39,7 +39,7 @@ const uint64_t DOWN = 0x00000000ffffffff;
 //const uint64_t BASE = 0x0000000100000000;
 
 // stands for up_to_down
-inline uint64_t utd(uint64_t x) {
+constexpr inline uint64_t utd(uint64_t x) {
     return (x & UP) >> 32;
 }
 
@@ -563,10 +563,11 @@ int main()
     }
     assert(d3 == 1);
     */
+    printf("start\n");
     natural base(2 * std::pow(1777, 3));
     natural aux = 1;
     natural n = natural();
-    const size_t s = 10;
+    const size_t s = 200;
     auto r = createRange(0, s);
     for (auto i: r) {
         n += aux * i;
