@@ -30,11 +30,22 @@ inline uint64_t utd(uint64_t x) {
     return (x & UP) >> 32;
 }
 
-#define SETWC(X, T) {       \
-    subres = X + carry;     \
-    T.push(subres & DOWN);  \
-    carry = utd(subres);    \
-}                           \
+struct carry {
+    uint64_t val = 0;
+
+    carry() = default;
+    carry(uint64_t val) : val{val} {}
+
+    void eval(uint64_t x, uint64_t &subres, std::vector<uint64_t> &t) {
+        subres = x + val;
+        t.push_back(subres & DOWN);
+        val = utd(subres);
+    }
+
+    operator uint64_t() const {
+        return val;
+    }
+};
 
 struct natural {
     std::vector<uint64_t> n;
@@ -85,6 +96,11 @@ struct natural {
         return *this;
     }
 
+    void purgeZeroes() {
+        while (!n.back() && len() > 1)
+            pop();
+    }
+
     friend bool operator==(const natural &l, const natural &r) {
         if (l.len() != r.len())
             return false;
@@ -105,14 +121,15 @@ struct natural {
         return l[0] <=> r[0]; 
     }
 
-    friend natural operator+(const natural &l, const natural &r) {
-        uint64_t carry = 0, subres = 0;
-        natural res;
+    natural operator+(const natural &r) {
+        carry carry;
+        uint64_t subres = 0;
+        natural res = 0;
         res.n.clear();
-        for (size_t i = 0; i < std::max(l.len(), r.len()); ++i) {
-            uint64_t li = i < l.len() ? l[i] : 0;
+        for (size_t i = 0; i < std::max(len(), r.len()); ++i) {
+            uint64_t li = i < len() ? n[i] : 0;
             uint64_t ri = i < r.len() ? r[i] : 0;
-            SETWC(li + ri, res);
+            carry.eval(li + ri, subres, res.n);
         }
         if (carry)
             res.push(carry);
@@ -120,34 +137,19 @@ struct natural {
         return res;
     }
 
-    friend natural operator-(const natural &l, const natural &r) {
+    natural operator-(const natural &r) const {
         uint64_t carry = 0, subres = 0;
-        natural res;
+        natural res = 0;
         res.n.clear();
-        for (size_t i = 0; i < l.len(); ++i) {
+        for (size_t i = 0; i < len(); ++i) {
             uint64_t ri = i < r.len() ? r[i] : 0;
-            subres = (DOWN + 1 + l[i]) - (ri + carry);
+            subres = (DOWN + 1 + n[i]) - (ri + carry);
             res.push(subres & DOWN);
-            carry = l[i] < ri;
+            carry = n[i] < ri;
         }
-        while (res.len() > 1 && res[res.len() - 1] == 0)
-            res.pop();
+        res.purgeZeroes();
         return res;
     }
-
-
-    friend natural operator*(uint64_t x, const natural &r) {
-        natural res;
-        res.n.clear();
-        uint64_t carry = 0, subres = 0;
-        for (size_t i = 0; i < r.len(); ++i) {
-            SETWC(r[i] * x, res);
-        }
-        if (carry)
-            res.push(carry);
-        return res;
-    }
-
 
     friend natural dac_sum(const std::vector<natural> &subs, size_t i, size_t j) {
         if (i == j)
@@ -159,7 +161,7 @@ struct natural {
     }
 
     friend natural operator*(const natural &l, const natural &r) {
-        uint64_t carry = 0;
+        carry carry;
         uint64_t subres = 0;
         std::vector<natural> subreses (l.len());
         subreses[0].pop();
@@ -169,7 +171,7 @@ struct natural {
         for (size_t i = 0; i < l.len(); ++i) {
             carry = 0;
             for (size_t j = 0; j < r.len(); ++j) {
-                SETWC(l[i] * r[j], subreses[i]);
+                carry.eval(l[i] * r[j], subres, subreses[i].n);
             }
             if (carry)
                 subreses[i].push(carry);
