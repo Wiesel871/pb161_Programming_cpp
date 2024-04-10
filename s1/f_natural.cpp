@@ -121,7 +121,7 @@ struct natural {
         return l[0] <=> r[0]; 
     }
 
-    natural operator+(const natural &r) {
+    natural operator+(const natural &r) const {
         carry carry;
         uint64_t subres = 0;
         natural res = 0;
