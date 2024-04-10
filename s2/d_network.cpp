@@ -1,7 +1,7 @@
 #include <cassert>
 #include <cstddef>
+#include <cstdio>
 #include <stack>
-#include <string>
 #include <vector>
 #include <memory>
 #include <unordered_set>
@@ -55,6 +55,7 @@
  * směrovači), neuvažujeme. */
 class network;
 
+
 class node {
     size_t lim = 0;
 
@@ -74,10 +75,13 @@ class node {
     }
 
     public:
+    bool is_router = false;
+    //std::size_t nid = 0;
     std::unordered_multiset<node *> neighbors = {};
     network *parent = nullptr;
 
-    node(network *p, size_t len) : lim(len), parent{p}  {}
+    node(network *p, size_t len) : lim(len), parent{p}  {
+    }
 
     virtual bool connect(node *r) {
         if (r == nullptr)
@@ -136,21 +140,26 @@ class node {
 
 class endpoint : public node {
     public:
-    endpoint(network *p) : node(p, 1) {}
+    endpoint(network *p) : node(p, 1) {
+    }
 
     ~endpoint() override = default;
 };
 
 class bridge : public node {
     public:
-    bridge(network *p, size_t len) : node(p, len) {}
+    bridge(network *p, size_t len) : node(p, len) {
+    }
 
     ~bridge() override = default;
 };
 
-class router : public bridge {
+class router : public node {
+    //bool has_in_network = false;
     public:
-    router(network *p, size_t len) : bridge(p, len) {}
+    router(network *p, size_t len) : node(p, len) {
+        is_router = true;
+    }
 
     bool connect(node *r) override {
         if (r == nullptr || r == this)
@@ -169,19 +178,56 @@ class router : public bridge {
 class network {
     std::vector<std::unique_ptr<node>> nodes = {};
 
-    bool df_search(const node *source, const node *cur, std::unordered_set<const node *> &visited) const {
+    bool df_search(
+            const node *source, 
+            const node *cur, 
+            std::unordered_set<const node *> &visited
+        ) const {
+        if (cur->is_router)
+            return false;
+
+        if (visited.contains(cur))
+            return true;
         visited.insert(cur);
         for (const node *n: cur->neighbors) {
             if (n == cur)
                 return true;
             if (n == source)
                 continue;
-            if (visited.contains(n))
-                return true;
-            if (!visited.contains(n) && df_search(cur, n, visited))
+            if (df_search(cur, n, visited))
                 return true;
         }
         return false;
+    }
+
+    void df_fix(
+            node *source, 
+            node *cur, 
+            std::unordered_set<node *> &visited
+            ) {
+        std::unordered_set<node *> copy = {};
+        if (cur->is_router)
+            return;
+
+        if (cur->neighbors.contains(cur))
+            cur->neighbors.erase(cur);
+
+        visited.insert(cur);
+        std::stack<node *> eraser = {};
+
+        for (auto n: cur->neighbors)
+            if (n != source && visited.contains(n))
+                eraser.push(n);
+
+        while (!eraser.empty()) {
+            assert(cur->disconnect(eraser.top()));
+            eraser.pop();
+        }
+
+        for (auto n: cur->neighbors) {
+            if (n != source)
+                df_fix(cur, n, visited);
+        }
     }
 
     public:
@@ -204,39 +250,24 @@ class network {
     bool has_loops() const {
         std::unordered_set<const node *> visited = {};
         for (const auto &n: nodes) {
-            if (!visited.contains(n.get()) && df_search(nullptr, n.get(), visited))
+            if (!visited.contains(n.get()) && df_search(nullptr, n.get(), visited)) {
                 return true;
+            }
         }
         return false;
     }
 
     void fix_loops() {
         std::unordered_set<node *> visited = {};
-        std::stack<std::pair<node *, const node*>> st = {};
-        std::stack<node *> eraser = {};
-        for (auto &n: nodes)
-            st.emplace(n.get(), nullptr);
-        while (!st.empty()) {
-            auto [t, parent] = st.top();
-            st.pop();
-            if (visited.contains(t))
-                continue;
-            for (node *n: t->neighbors) {
-                if (n == parent)
-                    continue;
-                if (n != t && !visited.contains(n)) {
-                    st.emplace(n, t);
-                } else {
-                    eraser.push(n);
-                }
-            }
-
-            while (!eraser.empty()) {
-                if (t->neighbors.contains(eraser.top()))
-                    assert(t->disconnect(eraser.top()));
-                eraser.pop();
+        for (auto &n: nodes) {
+            if (!visited.contains(n.get())) {
+                df_fix(nullptr, n.get(), visited);
             }
         }
+    }
+
+    int size() const {
+        return nodes.size();
     }
 
 };
@@ -280,6 +311,59 @@ int main()
     assert(s1.has_loops());
     s1.fix_loops();
     assert(!s1.has_loops());
+
+    /*
+    network across1;
+    b = across1.add_bridge(2);
+    r1 = across1.add_router(2);
+    network across2;
+    auto r2 = across2.add_router(2);
+    assert(b->connect(r1));
+    assert(b->connect(r2));
+    assert(r1->connect(r2));
+    printf("1: %d\n", across1.size());
+    printf("2: %d\n", across2.size());
+    assert(!across2.has_loops());
+    assert(!across1.has_loops());
+
+    network afterc;
+    e1 = afterc.add_endpoint();
+    r1 = afterc.add_router(2);
+    assert(e1->connect(r1));
+    network cycle;
+    b1 = cycle.add_bridge(2);
+    b2 = cycle.add_bridge(2);
+
+    auto b3 = cycle.add_bridge(2);
+    auto b4 = cycle.add_bridge(3);
+
+    assert(b1->connect(b2));
+    assert(b2->connect(b3));
+    assert(b3->connect(b4));
+    assert(b4->connect(b1));
+    assert(b4->connect(r1));
+
+    assert(cycle.has_loops());
+    assert(afterc.has_loops());
+
+    assert(e1->reachable(b2));
+
+    r2 = cycle.add_router(2);
+    assert(!b4->connect(r1));
+    assert(b4->disconnect(r1));
+    assert(b4->connect(r2));
+    assert(r2->connect(r1));
+    assert(!afterc.has_loops());
+    assert(cycle.has_loops());
+    assert(e1->reachable(b2));
+    afterc.fix_loops();
+    assert(cycle.has_loops());
+    cycle.fix_loops();
+    assert(!cycle.has_loops());
+    assert(e1->reachable(b1));
+    assert(e1->reachable(b2));
+    assert(e1->reachable(b3));
+    */
     /*
   node  2 endpoint 0
   node  4 endpoint 0
