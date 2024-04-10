@@ -47,15 +47,15 @@ struct carry {
     uint64_t val = 0;
 
     carry() = default;
-    carry(uint64_t val) : val{val} {}
+    constexpr carry(uint64_t val) : val{val} {}
 
-    void eval(uint64_t x, uint64_t &subres, std::vector<uint64_t> &t) {
+    constexpr void eval(uint64_t x, uint64_t &subres, std::vector<uint64_t> &t) {
         subres = x + val;
         t.push_back(subres & DOWN);
         val = utd(subres);
     }
 
-    operator uint64_t() const {
+    constexpr operator uint64_t() const {
         return val;
     }
 };
@@ -110,7 +110,7 @@ struct natural {
 // utility #UT
 // ----------------------------------------------------------------------------
     
-    natural copy() const {
+    constexpr natural copy() const {
         return *this;
     }
 
@@ -121,7 +121,7 @@ struct natural {
         }
     }
 
-    void purgeZeroes() {
+    constexpr void purgeZeroes() {
         while (!n.back() && len() > 1)
             pop();
     }
@@ -153,27 +153,27 @@ struct natural {
 
     }
 
-    void push(uint64_t x) {
+    constexpr void push(uint64_t x) {
         n.push_back(x);
     }
 
-    void pop() {
+    constexpr void pop() {
         n.pop_back();
     }
 
-    uint64_t len() const {
+    constexpr uint64_t len() const {
         return n.size();
     }
 
-    uint64_t &operator[](size_t i) {
+    constexpr uint64_t &operator[](size_t i) {
         return n[i];
     }
 
-    uint64_t operator[](size_t i) const {
+    constexpr uint64_t operator[](size_t i) const {
         return n[i];
     }
 
-    uint64_t to_ulong() const {
+    constexpr uint64_t to_ulong() const {
         uint64_t res = n[0];
         if (len() > 1)
             res += n[1] << 32;
@@ -183,12 +183,12 @@ struct natural {
 
 // assigners #AS
 // ----------------------------------------------------------------------------
-    natural &operator=(uint64_t r) {
+    constexpr natural &operator=(uint64_t r) {
         (*this) = natural(r);
         return *this;
     }
 
-    natural &operator=(natural &&r) {
+    constexpr natural &operator=(natural &&r) {
         n = std::move(r.n);
         return *this;
     }
@@ -198,7 +198,7 @@ struct natural {
 
 // bool operators #BO
 // ----------------------------------------------------------------------------
-    friend bool operator==(const natural &l, const natural &r) {
+    constexpr friend bool operator==(const natural &l, const natural &r) {
         if (l.len() != r.len())
             return false;
         for (size_t i = 0; i < l.len(); ++i) {
@@ -208,7 +208,7 @@ struct natural {
         return true;
     }
 
-    friend auto operator<=>(const natural &l, const natural &r) {
+    constexpr friend auto operator<=>(const natural &l, const natural &r) {
         if (auto cmp = l.len() <=> r.len(); cmp != 0)
             return cmp;
         for (size_t i = l.len() - 1; i > 0; --i) {
@@ -221,7 +221,7 @@ struct natural {
 // arithmetic operators #AO
 // ----------------------------------------------------------------------------
     // n
-    natural operator+(const natural &r) {
+    constexpr natural operator+(const natural &r) {
         carry carry;
         uint64_t subres = 0;
         natural res = 0;
@@ -237,7 +237,7 @@ struct natural {
         return res;
     }
 
-    natural operator-(const natural &r) const {
+    constexpr natural operator-(const natural &r) const {
         uint64_t carry = 0, subres = 0;
         natural res = 0;
         res.n.clear();
@@ -253,7 +253,7 @@ struct natural {
 
 
     // log n
-    friend natural dac_sum(const std::vector<natural> &subs, size_t i, size_t j) {
+    constexpr friend natural dac_sum(const std::vector<natural> &subs, size_t i, size_t j) {
         if (i == j)
             return subs[i];
         size_t mid = (i + j) / 2;
@@ -262,7 +262,7 @@ struct natural {
         return l + r;
     }
 
-    natural karatsuba_simple(const natural &r) const {
+    constexpr natural karatsuba_simple(const natural &r) const {
         assert(len() == 1);
         carry carry(0);
         natural res(0);
@@ -276,7 +276,7 @@ struct natural {
         return res;
     }
 
-    natural karatsuba(const natural &r) const {
+    constexpr natural karatsuba(const natural &r) const {
         if (len() == 1) {
             if (n[0] == 0)
                 return 0;
@@ -307,11 +307,11 @@ struct natural {
     }
 
     // n ^ log2 3 = n ^ 1.6
-    natural operator*(const natural &r) const {
+    constexpr natural operator*(const natural &r) const {
         return karatsuba(r);
     }
 
-    natural operator<<(std::size_t r) const {
+    constexpr natural operator<<(std::size_t r) const {
         if (!r)
             return *this;
         std::vector<uint64_t> res = {};
@@ -321,7 +321,7 @@ struct natural {
         return res;
     }
 
-    natural operator>>(std::size_t r) const {
+    constexpr natural operator>>(std::size_t r) const {
         if (!r)
             return *this;
         if (r >= len())
@@ -329,7 +329,7 @@ struct natural {
         return std::vector<uint64_t>(n.begin() + (len() - r), n.end());
     }
 
-    std::pair<natural, natural> qr_division(const natural &r) const {
+    constexpr std::pair<natural, natural> qr_division(const natural &r) const {
         natural quo = natural(0);
         natural rem = *this;
         while (rem >= r) {
@@ -380,12 +380,12 @@ struct natural {
         return {(Q1 << k) + Q0, aux};
     }
 
-    natural operator/(const natural &r) const {
+    constexpr natural operator/(const natural &r) const {
         return qr_division(r).first;
         //return recDivRem(r).first;
     }
 
-    natural operator%(const natural &r) const {
+    constexpr natural operator%(const natural &r) const {
         return qr_division(r).second;
         //return recDivRem(r).second;
     }
@@ -393,7 +393,7 @@ struct natural {
 
 // arithmetic assigners #AA
 // ----------------------------------------------------------------------------
-    natural &operator+=(const natural &r) {
+    constexpr natural &operator+=(const natural &r) {
         uint64_t carry = 0;
         natural res = 0;
         res.n.clear();
@@ -416,7 +416,7 @@ struct natural {
 
     }
 
-    natural &operator-=(const natural &r) {
+    constexpr natural &operator-=(const natural &r) {
         uint64_t carry = 0, subres = 0;
         for (size_t i = 0; i < len(); ++i) {
             uint64_t ri = i < r.len() ? r[i] : 0;
@@ -428,7 +428,7 @@ struct natural {
         return *this;
     }
 
-    natural &operator++() {
+    constexpr natural &operator++() {
         uint64_t carry = 1;
         std::size_t i = 0;
         while (carry && i < len()) {
@@ -446,7 +446,7 @@ struct natural {
 // ----------------------------------------------------------------------------
 
     // n 3
-    natural power(int x) const {
+    constexpr natural power(int x) const {
         if (x == 0)
             return (1);
         //log n
@@ -458,19 +458,19 @@ struct natural {
         return (*this) * res * res;
     }
 
-    std::vector<natural> digits(double base) const {
+    constexpr std::vector<natural> digits(double base) const {
         if (len() == 1 && n[0] == 0)
             return {{0}};
         return digits(natural(base));
     }
 
-    std::vector<natural> digits(int base) const {
+    constexpr std::vector<natural> digits(int base) const {
         if (len() == 1 && n[0] == 0)
             return {{0}};
         return digits(natural(base));
     }
 
-    std::vector<natural> digits(const natural &base) const {
+    constexpr std::vector<natural> digits(const natural &base) const {
         return primitiveDigits(base);
         /*
         auto subres = copy().schohange_digits(base);
@@ -483,7 +483,7 @@ struct natural {
         */
     };
 
-    std::vector<natural> primitiveDigits(const natural &base) const {
+    constexpr std::vector<natural> primitiveDigits(const natural &base) const {
         std::vector<natural> res = {};
         natural aux = *this;
         while (aux > natural(0)) {
@@ -518,7 +518,7 @@ struct natural {
         return res;
     }
 
-    double to_double() const {
+    constexpr double to_double() const {
         double res = n[0];
         for (std::size_t i = 1; i < len(); ++i)
             res += static_cast<double>(n[i]) * std::pow(std::pow(2.0, 32.0), i);
