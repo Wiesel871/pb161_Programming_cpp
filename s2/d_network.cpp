@@ -95,7 +95,8 @@ class node {
         if (!neighbors.contains(r))
             return false;
         r->one_way_dc(this);
-        neighbors.erase(r);
+        if (this != r)
+            neighbors.erase(r);
         return true;
     }
 
@@ -254,6 +255,16 @@ int main()
     assert(!e21->connect(e21));
     assert(b1->connect(b1));
     assert(!b1->connect(e21));
+    assert(b1->disconnect(b1));
+
+    auto r1 = s1.add_router();
+    assert(!r1->connect(r1));
+    auto b2 = s1.add_bridge(4);
+    assert(b2->connect(b2));
+    assert(b2->connect(b2));
+    assert(!b2->connect(e21));
+    assert(b2->disconnect(b2));
+    assert(!b2->disconnect(b2));
     /*
   node  2 endpoint 0
   node  4 endpoint 0
