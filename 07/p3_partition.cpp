@@ -1,7 +1,6 @@
 #include <cassert>
 #include <cstddef>
 #include <vector>
-#include <tuple>
 #include <utility>
 #include <stack>
 #include <cstdio>
@@ -32,7 +31,7 @@ void partition(auto &seq, int pivot) {
         std::stack<std::pair<int, int>> st = {};
 
         void swap(int i, int j) {
-            st.push({i, j});
+            st.emplace(i, j);
             seqR.swap(i, j);
         }
 

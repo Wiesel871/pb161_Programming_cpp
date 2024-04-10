@@ -2,7 +2,6 @@
 #include <exception>
 #include <utility>
 #include <cmath>
-#include <cstdio>
 
 /* † Napište program, který bude řešit systémy lineárních rovnic
  * o dvou neznámých. Rozhraní bude lehce nekonvenční: přetěžte
