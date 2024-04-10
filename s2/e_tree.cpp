@@ -155,9 +155,13 @@ class tree {
     }
 
     tree &operator=(const tree &r) {
-        assert(n == nullptr);
+        if (r.is_null()) {
+            n.reset();
+            return *this;
+        }
         tree c = r.n->copy();
-        *this = std::move(c);
+        n.swap(c.n);
+        c.n.reset();
         assert(r.n);
         assert(!r.is_null());
         return *this;
@@ -402,7 +406,7 @@ class node_array : public node {
     };
 
     int size(std::size_t l, std::size_t r) const {
-        if (l == r)
+        if (l >= r)
             return children[l] != nullptr;
         std::size_t mid = (l + r) / 2;
         return size(l, mid) + size(mid + 1, r);
@@ -482,7 +486,11 @@ class node_object : public node {
     tree copy() const override {
         auto *res = new node_object();
         for (const auto &[k, t]: children) {
-            res->children.emplace(k, t->copy().n);
+            if (t.get() == nullptr) {
+                res->children.emplace();
+            } else {
+                res->children.emplace(k, t->copy().n);
+            }
         }
         return res;
     };
@@ -568,6 +576,19 @@ std::tuple<std::size_t, tree> object_id() {
     tree t{};
     return std::tuple<std::size_t, tree>{tid++, t};
 }
+
+std::tuple<std::size_t, tree> triplet() {
+    tree t{};
+    t = make_object();
+    auto [id, tc] = object_id();
+    t.n->set(id, tc);
+    auto [id2, tc2] = object_id();
+    t.n->set(id2, tc2);
+    auto [id3, tc3] = object_id();
+    t.n->set(id3, tc3);
+    return std::tuple<std::size_t, tree>{tid++, t};
+}
+
 
 int main()
 {
@@ -662,7 +683,18 @@ int main()
     assert(ta.is_null());
     (*t).print();
 
-    auto [id, tr] = object_id();
+    auto [_, tr] = triplet();
+    tr.n->print();
+
+    auto [id, tr2] = object_id();
+
+    (*t).take(id, tr);
+    (*t).set(id, tr2);
+    (*t).take(id, tr2);
+
+    auto [__, tr3] = object_id();
+    t = tr3;
+    t = std::move(tr3);
 
     return 0;
 }
