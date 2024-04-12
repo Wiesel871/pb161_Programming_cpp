@@ -84,7 +84,9 @@ class node {
     }
 
     virtual bool connect(node *r) {
-        if (r == this && lim - neighbors.size() < 2)
+        if (r == this)
+            return false;
+        if (neighbors.contains(r))
             return false;
         if (!has_free_port())
             return false;
@@ -176,10 +178,11 @@ class router : public node {
     }
 
     bool connect(node *r) override {
-        if (r == nullptr || r == this)
+        if (r == nullptr || r == this) {
             return false;
+        }
         if (parent == r->parent) {
-            if (has_in_network)
+            if (has_in_network) 
                 return false;
             if (node::connect(r)) {
                 has_in_network = true;
@@ -318,37 +321,32 @@ int main()
     assert( !r->connect( e1 ) );
 
     network s1;
-    auto b1 = s1.add_bridge();
-    auto e21 = s1.add_endpoint();
-    assert(!e21->connect(e21));
-    assert(b1->connect(b1));
-    assert(!b1->connect(e21));
-    assert(b1->disconnect(b1));
 
-    auto r1 = s1.add_router();
-    assert(!r1->connect(r1));
-    auto b2 = s1.add_bridge(4);
-    assert(b2->connect(b2));
-    assert(b2->connect(b2));
-    assert(!b2->connect(e21));
-    assert(b2->disconnect(b2));
-    assert(!b2->disconnect(b2));
-    assert(b2->connect(b2));
-    assert(s1.has_loops());
-    s1.fix_loops();
-    assert(!s1.has_loops());
+    network n1;
+    network n2;
+
+    auto r1 = n1.add_router(3);
+    auto r2 = n1.add_router(2);
+    assert(r1->connect(r2));
+    assert(!r2->connect(r1));
 
     /*
+     *   edge  3 6
+  node  3 3 router
+  node  6 2 router
+     assert g.at( j ).connect( g.at( i ) ) == can_connect: 36
+  assert g.at( j ).connect( g.at( i ) ) == can_connect: 63
+  eval/d_network.t.hpp:270: g.at( j ).connect( g.at( i ) ) == can_connect
+     * */
+
     network across1;
+    network across2;
     b = across1.add_bridge(2);
     r1 = across1.add_router(2);
-    network across2;
-    auto r2 = across2.add_router(2);
-    assert(b->connect(r1));
-    assert(b->connect(r2));
+    r2 = across2.add_router(2);
+    assert(r1->connect(b));
+    assert(r2->connect(b));
     assert(r1->connect(r2));
-    printf("1: %d\n", across1.size());
-    printf("2: %d\n", across2.size());
     assert(!across2.has_loops());
     assert(!across1.has_loops());
 
@@ -357,8 +355,8 @@ int main()
     r1 = afterc.add_router(2);
     assert(e1->connect(r1));
     network cycle;
-    b1 = cycle.add_bridge(2);
-    b2 = cycle.add_bridge(2);
+    auto b1 = cycle.add_bridge(2);
+    auto b2 = cycle.add_bridge(2);
 
     auto b3 = cycle.add_bridge(2);
     auto b4 = cycle.add_bridge(3);
@@ -389,7 +387,6 @@ int main()
     assert(e1->reachable(b1));
     assert(e1->reachable(b2));
     assert(e1->reachable(b3));
-    */
     /*
   node  2 endpoint 0
   node  4 endpoint 0
