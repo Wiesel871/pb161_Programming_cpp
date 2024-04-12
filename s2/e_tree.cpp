@@ -419,7 +419,7 @@ class node_array : public node {
     };
 
     bool as_bool() const override {
-        return size() != 0;
+        return size();
     };
 
     int as_int() const override {
@@ -525,7 +525,7 @@ class node_object : public node {
     };
 
     bool as_bool() const override {
-        return !children.empty();
+        return size();
     };
 
     int as_int() const override {
