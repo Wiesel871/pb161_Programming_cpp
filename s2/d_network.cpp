@@ -84,8 +84,6 @@ class node {
     }
 
     virtual bool connect(node *r) {
-        if (r == nullptr)
-            return false;
         if (r == this && lim - neighbors.size() < 2)
             return false;
         if (!has_free_port())
@@ -143,6 +141,14 @@ class endpoint : public node {
     endpoint(network *p) : node(p, 1) {
     }
 
+    bool connect(node *r) override {
+        if (r == nullptr)
+            return false;
+        if (parent != r->parent)
+            return false;
+        return node::connect(r);
+    }
+
     ~endpoint() override = default;
 };
 
@@ -151,11 +157,19 @@ class bridge : public node {
     bridge(network *p, size_t len) : node(p, len) {
     }
 
+    bool connect(node *r) override {
+        if (r == nullptr)
+            return false;
+        if (parent != r->parent)
+            return false;
+        return node::connect(r);
+    }
+
     ~bridge() override = default;
 };
 
 class router : public node {
-    //bool has_in_network = false;
+    bool has_in_network = false;
     public:
     router(network *p, size_t len) : node(p, len) {
         is_router = true;
@@ -164,8 +178,20 @@ class router : public node {
     bool connect(node *r) override {
         if (r == nullptr || r == this)
             return false;
+        if (parent == r->parent) {
+            if (has_in_network)
+                return false;
+            if (node::connect(r)) {
+                has_in_network = true;
+                return true;
+            }
+            return false;
+        }
+
+        if (!r->is_router)
+            return false;
+
         for (node *n : neighbors) {
-            assert(n);
             if (r->parent == n->parent)
                 return false;
         }
