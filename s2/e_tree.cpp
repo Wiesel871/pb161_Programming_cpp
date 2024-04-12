@@ -487,7 +487,7 @@ class node_object : public node {
         auto *res = new node_object();
         for (const auto &[k, t]: children) {
             if (t.get() == nullptr) {
-                res->children.emplace();
+                res->children.emplace(k, nullptr);
             } else {
                 res->children.emplace(k, t->copy().n);
             }
@@ -589,6 +589,18 @@ std::tuple<std::size_t, tree> triplet() {
     return std::tuple<std::size_t, tree>{tid++, t};
 }
 
+std::tuple<std::size_t, tree> triplet_ar() {
+    tree t{};
+    t = make_array();
+    auto [id, tc] = object_id();
+    t.n->set(id, tc);
+    auto [id2, tc2] = object_id();
+    t.n->set(id2, tc2);
+    auto [id3, tc3] = object_id();
+    t.n->set(id3, tc3);
+    return std::tuple<std::size_t, tree>{tid++, t};
+}
+
 
 int main()
 {
@@ -681,10 +693,10 @@ int main()
     assert(&root == ta.n.get());
     (*t).take(1, ta);
     assert(ta.is_null());
-    (*t).print();
+    //(*t).print();
 
     auto [_, tr] = triplet();
-    tr.n->print();
+    //tr.n->print();
 
     auto [id, tr2] = object_id();
 
@@ -714,7 +726,16 @@ int main()
         assert(false);
     } catch (std::domain_error &e) {}
 
+    auto [__, take_t] = triplet();
+    
+    assert(!take_t.is_null());
+    auto &take_n = *take_t;
+    assert(!take_n.as_bool());
+    take_n.print();
 
+
+    auto [___, take_n_ar] = triplet_ar();
+    take_n_ar.n->print();
 
 
     return 0;
