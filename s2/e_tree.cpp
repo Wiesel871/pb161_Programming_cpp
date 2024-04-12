@@ -112,33 +112,31 @@ class tree {
     public:
     std::unique_ptr<node> n = nullptr;
     
-    bool is_null() const {
+    bool is_null() const noexcept {
         return n == nullptr;
     }
 
-    node &operator*() {
+    node &operator*() noexcept {
         return *n;
     }
 
-    const node &operator*() const {
+    const node &operator*() const noexcept {
         return *n;
     }
 
     tree() : n{nullptr} {}
-    tree(bool);
-    tree(int);
+    tree(bool) noexcept;
+    tree(int) noexcept;
 
-    tree(node *na) : n{na} {
-        assert(na == n.get());
-    }
+    tree(node *na) noexcept : n{na} {}
 
-    tree(tree &&r) {
+    tree(tree &&r) noexcept {
         n.swap(r.n);
         r.n.reset();
         assert(r.is_null());
     }
 
-    tree(const tree &r) {
+    tree(const tree &r) noexcept {
         if (r.is_null()) {
             n = nullptr;
             return;
@@ -146,15 +144,18 @@ class tree {
         *this = r.n->copy();
     }
 
-    tree &operator=(tree &&r) {
+    tree &operator=(tree &&r) noexcept {
+        if (r.is_null()) {
+            n.reset();
+            return *this;
+        }
         n.swap(r.n);
         r.n.reset();
-        assert(r.n == nullptr);
         assert(r.is_null());
         return *this;
     }
 
-    tree &operator=(const tree &r) {
+    tree &operator=(const tree &r) noexcept {
         if (r.is_null()) {
             n.reset();
             return *this;
@@ -195,7 +196,7 @@ class node_bool : public node {
         throw std::out_of_range("bool node is leaf structure");
     };
 
-    tree copy() const override {
+    tree copy() const noexcept override {
         return (val);
     }
 
@@ -203,31 +204,31 @@ class node_bool : public node {
         throw std::out_of_range("bool node is leaf structure");
     };
 
-    bool is_bool() const override {
+    bool is_bool() const noexcept override {
         return true;
     };
 
-    bool is_int() const override {
+    bool is_int() const noexcept override {
         return false;
     };
 
-    bool is_array() const override {
+    bool is_array() const noexcept override {
         return false;
     };
 
-    bool is_object() const override {
+    bool is_object() const noexcept override {
         return false;
     };
     
-    int size() const override {
+    int size() const noexcept override {
         return 0;
     };
 
-    bool as_bool() const override {
+    bool as_bool() const noexcept override {
         return val;
     };
 
-    int as_int() const override {
+    int as_int() const noexcept override {
         return static_cast<int>(val);
     };
 
@@ -266,7 +267,7 @@ class node_int : public node {
         throw std::out_of_range("int node is leaf structure");
     };
 
-    tree copy() const override {
+    tree copy() const noexcept override {
         return (val);
     }
 
@@ -274,31 +275,31 @@ class node_int : public node {
         throw std::out_of_range("int node is leaf structure");
     };
 
-    bool is_bool() const override {
+    bool is_bool() const noexcept override {
         return false;
     };
 
-    bool is_int() const override {
+    bool is_int() const noexcept override {
         return true;
     };
 
-    bool is_array() const override {
+    bool is_array() const noexcept override {
         return false;
     };
 
-    bool is_object() const override {
+    bool is_object() const noexcept override {
         return false;
     };
     
-    int size() const override {
+    int size() const noexcept override {
         return 0;
     };
 
-    bool as_bool() const override {
+    bool as_bool() const noexcept override {
         return static_cast<bool>(val);
     };
 
-    int as_int() const override {
+    int as_int() const noexcept override {
         return val;
     };
 
@@ -319,7 +320,7 @@ class node_array : public node {
         children = std::vector<std::unique_ptr<node>>(0);
     };
 
-    void set(int idx, const tree &t) override {
+    void set(int idx, const tree &t) noexcept override {
         if (static_cast<std::size_t>(idx) >= children.size())
             children.resize(idx + 1);
         if (t.is_null()) {
@@ -332,7 +333,7 @@ class node_array : public node {
         assert(!t.is_null());
     };
 
-    void take(int idx, tree &&t) override {
+    void take(int idx, tree &&t) noexcept override {
         if (static_cast<std::size_t>(idx) >= children.size())
             children.resize(idx + 1);
         if (t.is_null()) {
@@ -344,7 +345,7 @@ class node_array : public node {
         assert(t.is_null());
     };
 
-    void take(int idx, tree &t) override {
+    void take(int idx, tree &t) noexcept override {
         if (static_cast<std::size_t>(idx) >= children.size())
             children.resize(idx + 1);
         if (t.is_null()) {
@@ -368,18 +369,14 @@ class node_array : public node {
         return *children[idx];
     }
 
-    tree copy() const override {
+    tree copy() const noexcept override {
         auto *res = new node_array();
-        for (const auto &p: children) {
-            if (!p) {
-                res->children.emplace_back();
-            } else {
-                tree c = p->copy();
-                res->children.emplace_back();
-                res->children.back().swap(c.n);
-                c.n.reset();
-            }
-        }
+        assert(res->size() == 0);
+        for (const auto &p: children)
+            if (!p)
+                res->children.emplace_back(nullptr);
+            else
+                res->children.emplace_back(p->copy().n);
         return res;
     };
 
@@ -389,36 +386,36 @@ class node_array : public node {
         return children[idx]->copy();
     };
 
-    bool is_bool() const override {
+    bool is_bool() const noexcept override {
         return false;
     };
 
-    bool is_int() const override {
+    bool is_int() const noexcept override {
         return false;
     };
 
-    bool is_array() const override {
+    bool is_array() const noexcept override {
         return true;
     };
 
-    bool is_object() const override {
+    bool is_object() const noexcept override {
         return false;
     };
 
-    int size(std::size_t l, std::size_t r) const {
+    int size(std::size_t l, std::size_t r) const noexcept {
         if (l >= r)
             return children[l] != nullptr;
         std::size_t mid = (l + r) / 2;
         return size(l, mid) + size(mid + 1, r);
     }
 
-    int size() const override {
+    int size() const noexcept override {
         if (children.empty())
             return 0;
         return size(0, children.size() - 1);
     };
 
-    bool as_bool() const override {
+    bool as_bool() const noexcept override {
         return size();
     };
 
@@ -426,7 +423,7 @@ class node_array : public node {
         throw std::domain_error("array isnt convertable to int");
     };
 
-    void print(int t = 0) const override {
+    void print(int t = 0) const noexcept override {
         print_off(t);
         printf("array\n");
         for (std::size_t i = 0; i < children.size(); ++i) {
@@ -440,7 +437,7 @@ class node_array : public node {
         }
     }
 
-    ~node_array() override = default;
+    ~node_array() noexcept override = default;
 };
 
 class node_object : public node {
@@ -450,7 +447,7 @@ class node_object : public node {
     friend tree;
     node_object() = default;
 
-    void set(int idx, const tree &t) override {
+    void set(int idx, const tree &t) noexcept override {
         if (t.is_null()) {
             children[idx].reset();
             return;
@@ -461,12 +458,12 @@ class node_object : public node {
         assert(!t.is_null());
     };
 
-    void take(int idx, tree &&t) override {
+    void take(int idx, tree &&t) noexcept override {
         children[idx].swap(t.n);
         t.n.reset();
     };
 
-    void take(int idx, tree &t) override {
+    void take(int idx, tree &t) noexcept override {
         children[idx].swap(t.n);
         t.n.reset();
     };
@@ -485,13 +482,11 @@ class node_object : public node {
 
     tree copy() const override {
         auto *res = new node_object();
-        for (const auto &[k, t]: children) {
-            if (t.get() == nullptr) {
+        for (const auto &[k, t]: children)
+            if (!t)
                 res->children.emplace(k, nullptr);
-            } else {
+            else
                 res->children.emplace(k, t->copy().n);
-            }
-        }
         return res;
     };
 
@@ -501,30 +496,30 @@ class node_object : public node {
         return children.at(idx)->copy();
     };
 
-    bool is_bool() const override {
+    bool is_bool() const noexcept override {
         return false;
     };
 
-    bool is_int() const override {
+    bool is_int() const noexcept override {
         return false;
     };
 
-    bool is_array() const override {
+    bool is_array() const noexcept override {
         return false;
     };
 
-    bool is_object() const override {
+    bool is_object() const noexcept override {
         return true;
     };
 
-    int size() const override {
+    int size() const noexcept override {
         int res = 0;
         for (const auto &[_, t]: children)
             res += t != nullptr;
         return res;
     };
 
-    bool as_bool() const override {
+    bool as_bool() const noexcept override {
         return size();
     };
 
@@ -550,23 +545,23 @@ class node_object : public node {
 };
 
 
-tree::tree(bool val) : n{new node_bool(val)} {}
+tree::tree(bool val) noexcept : n{new node_bool(val)} {}
 
-tree::tree(int val) : n{new node_int(val)} {}
+tree::tree(int val) noexcept : n{new node_int(val)} {}
 
-tree make_bool(bool val = false) {
+tree make_bool(bool val = false) noexcept {
     return {val};
 }
 
-tree make_int(int val = 0) {
+tree make_int(int val = 0) noexcept {
     return {val};
 }
 
-tree make_array() {
+tree make_array() noexcept {
     return {new node_array()};
 }
 
-tree make_object() {
+tree make_object() noexcept {
     return {new node_object()};
 }
 
@@ -734,8 +729,14 @@ int main()
     take_n.print();
 
 
-    auto [___, take_n_ar] = triplet_ar();
-    take_n_ar.n->print();
+    assert(!take_t.is_null());
+    assert(!take_n.is_bool());
+    assert(!take_n.is_int());
+    assert(!take_n.is_array());
+    assert(take_n.is_object());
+    assert(take_n.size() == 0);
+    assert(take_n.as_bool() == false);
+    assert(!take_t.is_null());
 
 
     return 0;
