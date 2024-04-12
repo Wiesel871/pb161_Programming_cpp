@@ -691,10 +691,31 @@ int main()
     (*t).take(id, tr);
     (*t).set(id, tr2);
     (*t).take(id, tr2);
+    
+    tree emp = make_object();
+    tree null {};
+    emp.n->set(0, null);
+    emp.n->set(1, null);
+    emp.n->set(2, null);
+    emp.n->set(3, null);
+    assert(!emp.n->as_bool());
 
-    auto [__, tr3] = object_id();
-    t = tr3;
-    t = std::move(tr3);
+    emp = make_array();
+    emp.n->set(400, null);
+    assert(!emp.n->as_bool());
+    try {
+        emp.n->as_int();
+        assert(false);
+    } catch (std::domain_error &e) {}
+    emp.n->set(600, emp);
+    assert(emp.n->as_bool());
+    try {
+        emp.n->as_int();
+        assert(false);
+    } catch (std::domain_error &e) {}
+
+
+
 
     return 0;
 }
