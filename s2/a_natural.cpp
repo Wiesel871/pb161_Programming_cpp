@@ -3,9 +3,12 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstdint>
+#include <sys/types.h>
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include <numeric>
+#include <queue>
 
 /* Tento úkol rozšiřuje ‹s1/f_natural› o tyto operace (hodnoty ‹m› a
  * ‹n› jsou typu ‹natural›):
@@ -31,92 +34,171 @@
  * ‹n› provést nejvýše lineární počet «aritmetických operací» (na
  * hodnotách ‹m›, ‹n›). */
 
-void extend_vec(std::vector<bool> &t, const std::vector<bool> &s) {
-    t.insert(t.end(), s.begin(), s.end());
+const uint64_t UP   = 0xffffffff00000000;
+const uint64_t DOWN = 0x00000000ffffffff;
+//const uint64_t BASE = 0x0000000100000000;
+
+// stands for up_to_down
+constexpr inline uint64_t utd(uint64_t x) {
+    return (x & UP) >> 32;
 }
 
-struct natural;
+struct carry {
+    uint64_t val = 0;
 
-natural dac_sum(const std::vector<natural> &, uint64_t, uint64_t);
+    carry() = default;
+    constexpr carry(uint64_t val) : val{val} {}
 
+    constexpr void eval(uint64_t x, uint64_t &subres, std::vector<uint64_t> &t) {
+        subres = x + val;
+        t.push_back(subres & DOWN);
+        val = utd(subres);
+    }
 
-void flush_ending_zeros(std::vector<bool> &n) {
-    while (n.size() > 1 && !n.back())
-        n.pop_back();
+    constexpr operator uint64_t() const {
+        return val;
+    }
+};
+
+std::vector<std::size_t> createRange(int start, int end) {
+    std::vector<std::size_t> res(end - start + 1);
+    std::iota(res.begin(), res.end(), start);
+    return res;
 }
+
 
 struct natural {
-    std::vector<bool> n = {};
+    std::vector<uint64_t> n = {};
 
-    natural(int x = 0) {
+// constructors #CC (the #XX is for juping around the file)
+//-----------------------------------------------------------------------------
+
+    constexpr natural(int x = 0) {
         auto ux = static_cast<uint64_t>(x);
-        for (uint64_t i = 0; i < sizeof(int); ++i) {
-            n.emplace_back(ux & (1 << i));
+        n = {ux & DOWN};
+        if (ux > DOWN)
+            n.push_back((utd(x)));
+    }
+
+    constexpr natural(uint64_t x) {
+        n = {x & DOWN};
+        if (x > DOWN)
+            n.push_back((utd(x)));
+    }
+
+    constexpr natural(double x) {
+        n = {};
+        x = std::floor(x);
+        while (x) {
+            push(std::fmod(x, std::pow(2, 32)));
+            x /= std::pow(2, 32);
+            x = std::floor(x);
         }
-        flush_ending_zeros(n);
     }
 
-    natural(double x) {
-        auto ux = static_cast<uint64_t>(x);
-        for (uint64_t i = 0; i < sizeof(ux); ++i) {
-            n.emplace_back(ux & (1 << i));
+    constexpr natural(std::vector<uint64_t> &&n) : n{n} {}
+
+    constexpr natural(natural &&r) {
+        n = std::move(r.n);
+    }
+
+    constexpr natural(const natural &r) {
+        n = r.n;
+    }
+
+
+// utility #UT
+// ----------------------------------------------------------------------------
+    
+    constexpr natural copy() const {
+        return *this;
+    }
+
+    friend void mergeQ(std::queue<natural> &q1, std::queue<natural> &q2) {
+        while (!q2.empty()) {
+            q1.push(std::move(q2.front()));
+            q2.pop();
         }
-        flush_ending_zeros(n);
     }
 
-    natural(uint64_t x) {
-        for (uint64_t i = 0; i < sizeof(x); ++i)
-            n.emplace_back(x & (1 << i));
-        flush_ending_zeros(n);
+    constexpr void purgeZeroes() {
+        while (!n.back() && len() > 1)
+            pop();
     }
 
-    natural(std::vector<bool> &&n) : n{n} {}
+    constexpr friend natural baseTo(std::size_t l) {
+        if (!l)
+            return {1};
+        std::vector<uint64_t> res = {};
 
-    uint64_t len() const {
-        return n.size();
-    }
-
-    void pop() {
-        n.pop_back();
-    }
-
-    void push(bool b) {
-        n.push_back(b);
-    }
-
-    bool operator[](size_t i) const {
-        return n[i];
-    }
-
-    void printn() const {
-        uint64_t aux = 0;
-        uint64_t j = 1;
-        for (uint64_t i = 0; i < len(); ++i, j = (j % 64) + 1) {
-            aux |= static_cast<uint64_t>(n[i]) << j;
-            if (j == 64) {
-                printf("%lu ", aux);
-                aux = 0;
-            }
-        }
-        if (j > 1)
-            printf("%lu ", aux);
-        printf("\n");
-    }
-
-    void printb() const {
-        for (bool b: n)
-            printf("%d", b);
-        printf("\n");
-    }
-
-    uint64_t to_sizet() const {
-        uint64_t res = 0;
-        for (uint64_t i = 0; i < std::min<uint64_t>(64, len()); ++i)
-            res |= static_cast<uint64_t>(n[i]) << i;
+        for (std::size_t i = 0; i < l - 1; ++i)
+            res.push_back(0);
+        res.push_back(1);
         return res;
     }
 
-    friend bool operator==(const natural &l, const natural &r) {
+    std::pair<natural, natural> splittedAt(size_t i) const {
+        if (i > len())
+            return {natural(0), natural(*this)};
+        return {
+            natural(std::vector<uint64_t>(n.begin() + i, n.end())),
+            natural(std::vector<uint64_t>(n.begin(), n.begin() + i))
+        };
+    }
+
+    void printn() const {
+        for (uint64_t x: n)
+            std::cout << x << " ";
+        std::cout << std::endl;
+
+    }
+
+    constexpr void push(uint64_t x) {
+        n.push_back(x);
+    }
+
+    constexpr void pop() {
+        n.pop_back();
+    }
+
+    constexpr uint64_t len() const {
+        return n.size();
+    }
+
+    constexpr uint64_t &operator[](size_t i) {
+        return n[i];
+    }
+
+    constexpr uint64_t operator[](size_t i) const {
+        return n[i];
+    }
+
+    constexpr uint64_t to_ulong() const {
+        uint64_t res = n[0];
+        if (len() > 1)
+            res += n[1] << 32;
+        return res;
+    }
+
+
+// assigners #AS
+// ----------------------------------------------------------------------------
+    constexpr natural &operator=(uint64_t r) {
+        (*this) = natural(r);
+        return *this;
+    }
+
+    constexpr natural &operator=(natural &&r) {
+        n = std::move(r.n);
+        return *this;
+    }
+
+    natural &operator=(const natural &r) = default;
+
+
+// bool operators #BO
+// ----------------------------------------------------------------------------
+    constexpr friend bool operator==(const natural &l, const natural &r) {
         if (l.len() != r.len())
             return false;
         for (size_t i = 0; i < l.len(); ++i) {
@@ -126,7 +208,7 @@ struct natural {
         return true;
     }
 
-    friend auto operator<=>(const natural &l, const natural &r) {
+    constexpr friend auto operator<=>(const natural &l, const natural &r) {
         if (auto cmp = l.len() <=> r.len(); cmp != 0)
             return cmp;
         for (size_t i = l.len() - 1; i > 0; --i) {
@@ -135,154 +217,365 @@ struct natural {
         }
         return l[0] <=> r[0]; 
     }
-    
-    natural operator+(const natural &r) const {
-        std::vector<bool> res;
-        bool carry = false;
+
+// arithmetic operators #AO
+// ----------------------------------------------------------------------------
+    // n
+    constexpr natural operator+(const natural &r) {
+        carry carry;
+        uint64_t subres = 0;
+        natural res = 0;
+        res.n.clear();
         for (size_t i = 0; i < std::max(len(), r.len()); ++i) {
-            bool li = i < len() ? n[i] : false;
-            bool ri = i < r.len() ? r[i] : false;
-            res.push_back(li ^ ri ^ carry);
-            carry = (li && ri) || (ri && carry) || (carry && li);
+            uint64_t li = i < len() ? n[i] : 0;
+            uint64_t ri = i < r.len() ? r[i] : 0;
+            carry.eval(li + ri, subres, res.n);
         }
         if (carry)
-            res.push_back(carry);
+            res.push(carry);
+
         return res;
     }
 
-    natural operator-(const natural &r) const {
-        std::vector<bool> res;
-        bool carry = false;
-        for (size_t i = 0; i < std::max(len(), r.len()); ++i) {
-            bool li = i < len() ? n[i] : false;
-            bool ri = i < r.len() ? r[i] : false;
-            res.push_back((li - ri) - carry);
-            carry = (!li && (ri || carry)) || (li && ri && carry);
+    constexpr natural operator-(const natural &r) const {
+        uint64_t carry = 0, subres = 0;
+        natural res = 0;
+        res.n.clear();
+        for (size_t i = 0; i < len(); ++i) {
+            uint64_t ri = i < r.len() ? r[i] : 0;
+            subres = (DOWN + 1 + n[i]) - (ri + carry);
+            res.push(subres & DOWN);
+            carry = n[i] < ri;
         }
-        flush_ending_zeros(res);
-
+        res.purgeZeroes();
         return res;
     }
 
 
-    natural operator*(const natural &r) const {
+    // log n
+    constexpr friend natural dac_sum(const std::vector<natural> &subs, size_t i, size_t j) {
+        if (i == j)
+            return subs[i];
+        size_t mid = (i + j) / 2;
+        natural l = dac_sum(subs, i, mid);
+        natural r = dac_sum(subs, mid + 1, j);
+        return l + r;
+    }
+
+    constexpr natural karatsuba_simple(const natural &r) const {
+        assert(len() == 1);
+        carry carry(0);
+        natural res(0);
+        res.n.clear();
+        uint64_t subres = 0;
+        for (size_t j = 0; j < r.len(); ++j) {
+            carry.eval(n[0] * r[j], subres, res.n);
+        }
+        if (carry)
+            res.push(carry);
+        return res;
+    }
+
+    constexpr natural karatsuba(const natural &r) const {
         if (len() == 1) {
-            if (n[0])
+            if (n[0] == 0)
+                return 0;
+            if (n[0] == 1)
                 return r;
-            return 0;
+            return karatsuba_simple(r);
         }
         if (r.len() == 1) {
-            if (r.n[0])
-                return (*this);
-            return 0;
+            if (r[0] == 0)
+                return 0;
+            if (r[0] == 1)
+                return *this;
+            return r.karatsuba_simple(*this);
         }
+        uint64_t m = std::max(len(), r.len());
+        uint64_t m2 = m / 2;
 
-        std::vector<natural> subreses (len());
-        subreses[0].pop();
-        for (size_t i = 1; i < len(); ++i) {
-            if (!r[i])
-                continue;
-            for (size_t j = 0; j < i - 1; ++j)
-                subreses[i].push(false);
-            extend_vec(subreses[i].n, n);
+        auto [h1, l1] = splittedAt(m2);
+        auto [h2, l2] = r.splittedAt(m2);
 
-        }
-        natural res = dac_sum(subreses, 0, len() - 1);
-        flush_ending_zeros(res.n);
+        natural z0 = l1.karatsuba(l2);
+        natural z1 = (l1 + h1).karatsuba(l2 + h2);
+        natural z2 = h1.karatsuba(h2);
+
+        natural res = (z2 << (m2 * 2)) + ((z1 - z2 - z0) << m2) + z0;
+        res.purgeZeroes();
         return res;
     }
 
-    natural power(int x) const {
-        if (x == 0)
-            return (1);
-        natural res = power(x / 2);
-        if (x % 2 == 0)
-            return res * res;
-        return (*this) * res * res;
+    // n ^ log2 3 = n ^ 1.6
+    constexpr natural operator*(const natural &r) const {
+        return karatsuba(r);
     }
 
-    std::pair<natural, natural> qr_division(const natural &r) const {
+    constexpr natural operator<<(std::size_t r) const {
+        if (!r)
+            return *this;
+        std::vector<uint64_t> res = {};
+        for (std::size_t i = 0; i < r; ++i)
+            res.push_back(0);
+        res.insert(res.end(), n.begin(), n.end());
+        return res;
+    }
+
+    constexpr natural operator>>(std::size_t r) const {
+        if (!r)
+            return *this;
+        if (r >= len())
+            return 0;
+        return std::vector<uint64_t>(n.begin() + (len() - r), n.end());
+    }
+
+    constexpr std::pair<natural, natural> qr_division(const natural &r) const {
         natural quo = natural(0);
         natural rem = *this;
         while (rem >= r) {
-            natural temp = r;
-            uint64_t factor = 1;
-            while (rem >= temp) {
-                rem = rem - temp;
-                quo = quo + natural(factor);
-                temp = temp + temp;
-                factor = factor << 1;
+            natural factor = 1;
+            natural prev_fac = 0;
+            natural prev_div = 1;
+            natural div = r;
+
+            while (rem >= div) {
+                prev_div = div;
+                div += div;
+                prev_fac = factor;
+                factor += factor;
             }
+            rem -= prev_div;
+            quo += prev_fac;
         }
         return {quo, rem};
     }
 
-    uint64_t operator/(const natural &r) {
-        return qr_division(r).first.to_sizet();
-    }
-
-    uint64_t operator%(const natural &r) {
-        return qr_division(r).second.to_sizet();
-    }
-
-    std::vector<natural> digits(natural base) const {
-        natural aux = *this;
-        std::vector<natural> res = {};
+    std::pair<natural, natural> recDivRem(const natural &r) const {
+        std::size_t m = len() - r.len();
+        if (m < 2)
+            return qr_division(r);
+        std::size_t k = m / 2;
+        auto [r1, r0] = r.splittedAt(k);
+        auto [l1, l0] = splittedAt(2 * k);
+        auto [Q1, R1] = l1.recDivRem(r1);
+        natural aux = Q1 * (r0 << k) - l0 - R1 << (2 * k);
+        natural rs = r << k;
+        natural prev = 0;
         while (aux > natural(0)) {
-            auto p = aux.qr_division(base);
-            aux = p.first;
-            res.push_back(p.second);
+            Q1 -= 1;
+            prev = aux;
+            aux -= rs;
+        }
+        aux = rs - prev;
+        auto [a1, a0] = aux.splittedAt(k);
+        auto [Q0, R0] = a1.recDivRem(r1);
+        aux = Q0 * r0 - (R0 << k) - a0; 
+        prev = 0;
+        while (aux > 0) {
+            Q0 -= 1;
+            prev = aux;
+            aux -= r;
+        }
+        aux = r - prev;
+        return {(Q1 << k) + Q0, aux};
+    }
+
+    constexpr natural operator/(const natural &r) const {
+        return qr_division(r).first;
+        //return recDivRem(r).first;
+    }
+
+    constexpr natural operator%(const natural &r) const {
+        return qr_division(r).second;
+        //return recDivRem(r).second;
+    }
+
+
+// arithmetic assigners #AA
+// ----------------------------------------------------------------------------
+    constexpr natural &operator+=(const natural &r) {
+        uint64_t carry = 0;
+        natural res = 0;
+        res.n.clear();
+        size_t i = 0;
+        for (; i < len(); ++i) {
+            uint64_t ri = i < r.len() ? r[i] : 0;
+            n[i] += ri + carry;
+            carry = n[i] > DOWN;
+            n[i] &= DOWN;
+        }
+        for (; i < r.len(); ++i) {
+            push(r[i] + carry);
+            carry = n.back() > DOWN;
+            n.back() &= DOWN;
+        }
+        if (carry)
+            push(carry);
+
+        return *this;
+
+    }
+
+    constexpr natural &operator-=(const natural &r) {
+        uint64_t carry = 0, subres = 0;
+        for (size_t i = 0; i < len(); ++i) {
+            uint64_t ri = i < r.len() ? r[i] : 0;
+            subres = (DOWN + 1 + n[i]) - (ri + carry);
+            carry = n[i] < ri;
+            n[i] = (subres & DOWN);
+        }
+        purgeZeroes();
+        return *this;
+    }
+
+    constexpr natural &operator++() {
+        uint64_t carry = 1;
+        std::size_t i = 0;
+        while (carry && i < len()) {
+            ++n[i];
+            carry = n[i] > DOWN;
+            n[i] &= DOWN;
+            ++i;
+        }
+        if (carry)
+            push(1);
+        return *this;
+    }
+
+// other #OT
+// ----------------------------------------------------------------------------
+
+    // n 3
+    constexpr natural power(int x) const {
+        if (x == 0)
+            return (1);
+        //log n
+        natural res = power(x / 2);
+        if (x % 2 == 0)
+            return res * res;
+
+        // n 3
+        return (*this) * res * res;
+    }
+
+    constexpr std::vector<natural> digits(double base) const {
+        if (len() == 1 && n[0] == 0)
+            return {{0}};
+        return digits(natural(base));
+    }
+
+    constexpr std::vector<natural> digits(int base) const {
+        if (len() == 1 && n[0] == 0)
+            return {{0}};
+        return digits(natural(base));
+    }
+
+    constexpr std::vector<natural> digits(const natural &base) const {
+        return primitiveDigits(base);
+        /*
+        auto subres = copy().schohange_digits(base);
+        std::vector<natural> res = {};
+        while (!subres.empty()) {
+            res.emplace_back(std::move(subres.front()));
+            subres.pop();
+        }
+        return res;
+        */
+    };
+
+    constexpr std::vector<natural> primitiveDigits(const natural &base) const {
+        std::vector<natural> res = {};
+        natural aux = *this;
+        while (aux > natural(0)) {
+            auto [q, r] = aux.qr_division(base);
+            aux = std::move(q);
+            res.emplace_back(std::move(r));
         }
         std::reverse(res.begin(), res.end());
         return res;
-    };
+    }
 
-    double to_double() const {
-        double res = n[0];
-        for (uint64_t i = 1; i < len(); i++) {
-            if (n[i])
-                res += std::pow(2.0, i);
+    std::queue<natural> schohange_digits(natural base) {
+        std::queue<natural> res = {};
+        if (*this < base) {
+            res.emplace(std::move(*this));
+            return res;
         }
+        auto range = createRange(0, 33 * (len() / base.len()));
+        auto k = *std::lower_bound(range.begin(), range.end(), 0, [&](std::size_t l, std::size_t) {
+                natural b2k2 = base.power(2 * l - 2);
+                return b2k2 < *this && *this < b2k2 * base * base;
+                });
+        --k;
+        assert(k);
+        auto [Q, R] = qr_division(base.power(k));
+        //auto [Q, R] = recDivRem(base.power(k));
+        auto r = R.schohange_digits(base);
+        res = Q.schohange_digits(base);
+        for (std::size_t i = 0; i < k - r.size(); ++i)
+            res.push(0);
+        mergeQ(res, r);
+        return res;
+    }
+
+    constexpr double to_double() const {
+        double res = n[0];
+        for (std::size_t i = 1; i < len(); ++i)
+            res += static_cast<double>(n[i]) * std::pow(std::pow(2.0, 32.0), i);
         return res;
     }
 
 };
 
-natural dac_sum(const std::vector<natural> &subs, size_t i, size_t j) {
-    if (i == j)
-        return subs[i];
-    size_t mid = (i + j) / 2;
-    natural l = dac_sum(subs, i, mid);
-    natural r = dac_sum(subs, mid + 1, j);
-    return l + r;
-}
-
 int main()
 {
-    natural zero;
-    assert(zero.len() == 1);
-    natural zero2;
-    assert(zero2.len() == 1);
-    assert((zero + zero).len() == 1);
-    assert( zero + zero == zero );
-    assert((zero * zero).len() == 1);
-    assert( zero * zero == zero );
-    assert( zero - zero == zero );
-    natural one( 1 );
-    assert( one + zero == one );
-    assert( one.power( 2 ) == one );
-
+    /*
     natural m( 2.1 ), n( 2.9 );
     assert(m.len() && n.len());
     assert( m == n );
     assert( m / n == 1 );
     assert( m % n == 0 );
-    natural ten(10);
-    ten.printb();
-    assert(m / ten == 0);
-    assert(m % ten == m);
-    assert( m.digits( 10 ).size() == 1 );
+    //assert( m.digits( 10 ).size() == 1 );
     assert( m.to_double() == 2.0 );
+    natural d1 { std::pow( 2, 130 ) };
+    //1.361129467683754e+39 
+    natural d2 { 2 };
+    double dist { d1.to_double() - std::pow( 2, 130 ) };
+    // -1.361129467683754e+39 
+    assert(std::fabs( dist ) <= std::pow( 2, 130 - 52 ));
+    for (int i = 0; i < 130; ++i) {
+        assert(d1 == natural(std::pow(2, 130 - i)));
+        assert(d1 % d2 == 0);
+        d1 = d1 / d2;
+    }
+    assert(d1 == 1);
 
+    int f = 60;
+    int b = 5;
+    printf("%f\n", std::fmod(std::pow(b, f), b));
+    natural d3 (std::pow(b, f));
+    natural d4 (b);
+    for (int i = 0; i < f; ++i) {
+        //assert(d4 == natural(std::pow(4, x - i)));
+        
+        assert(d3 % d4 == 0);
+        d3 = d3 / d4;
+    }
+    assert(d3 == 1);
+    */
+    printf("start\n");
+    natural base(2 * std::pow(1777, 3));
+    natural aux = 1;
+    natural n = natural();
+    const size_t s = 200;
+    auto r = createRange(0, s);
+    for (auto i: r) {
+        n += aux * i;
+        aux = aux * base;
+    }
+    auto digs = n.digits(base);
+    assert(digs.size() == s + 1);
+    for (auto i: r)
+        assert(digs[i] == s - i);
     return 0;
 }
