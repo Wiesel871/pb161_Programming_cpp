@@ -1,6 +1,5 @@
 #include <cassert>
 #include <cstddef>
-#include <cstdint>
 
 /* Navrhněte typ ‹bitref›, který se bude co nejvíce podobat
  * (nekonstantní) referenci na hodnotu typu ‹bool›, ale bude
@@ -50,30 +49,45 @@ struct bitref {
     }
 
     operator bool() const {
-        return static_cast<bool>(*b & mask);
+        return (*b & mask) != std::byte{0};
     }
 
-    bool operator&(bool r) const {
-        return *this == r;
+    bool as_bool() const {
+        return (*b & mask) != std::byte{0};
     }
 
-    bool operator&&(bool r) const {
-        return *this == r;
+    bool operator==(const bitref &r) const {
+        return as_bool() == r.as_bool();
     }
 
-    bool operator||(bool r) const {
-        return static_cast<bool>(*this) || r;
+    bool operator&&(const bitref &r) const {
+        return as_bool() && r.as_bool();
     }
 
-    bool operator|(const bitref &r) const {
-        return (*b | *r.b) != std::byte{0};
+    bool operator||(const bitref &r) const {
+        return as_bool() || r.as_bool();
+    }
+
+    bool operator&(const bitref &r) const {
+        return as_bool() && r.as_bool();
+    }
+
+    int operator|(const bitref &r) const {
+        return static_cast<int>(*b | *r.b);
     } 
 
-    bool operator+=(bool r) {
+    bool operator+(const bitref &r) const {
+        return as_bool() + r.as_bool();
+    }
+
+    bool operator-(const bitref &r) const {
+        return as_bool() - r.as_bool();
+    }
+
+    bitref &operator+=(bool r) {
         if (!r)
             return *this;
-        *this = r;
-        return *this;
+        return *this = r;
     }
 
     bool operator-=(bool r) {
