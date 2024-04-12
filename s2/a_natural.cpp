@@ -36,7 +36,7 @@
 
 const uint64_t UP   = 0xffffffff00000000;
 const uint64_t DOWN = 0x00000000ffffffff;
-//const uint64_t BASE = 0x0000000100000000;
+const uint64_t BASE = 0x0000000100000000;
 
 // stands for up_to_down
 constexpr inline uint64_t utd(uint64_t x) {
@@ -68,9 +68,12 @@ std::vector<std::size_t> createRange(int start, int end) {
 
 
 struct natural {
+    private:
     std::vector<uint64_t> n = {};
 
-// constructors #CC (the #XX is for juping around the file)
+    public:
+
+// constructors #CC (the #XX is for jumping around the file)
 //-----------------------------------------------------------------------------
 
     constexpr natural(int x = 0) {
@@ -110,6 +113,34 @@ struct natural {
 // utility #UT
 // ----------------------------------------------------------------------------
     
+    
+    constexpr void shiftR() {
+        natural old = *this;
+        uint64_t carry = 0;
+        for (std::size_t i = 0; i < len(); ++i) {
+            carry = (i < len() - 1 && n[i + 1] & 1) * (uint64_t{1} << 31);
+            n[i] >>= 1;
+            n[i] |= carry;
+        }
+        if (n[len() - 1] == 0)
+            pop();
+        assert(old == 0 || old != *this);
+    }
+
+    constexpr void shiftL() {
+        natural old = *this;
+        bool carry = false;
+        for (std::size_t i = 0; i < len(); ++i) {
+            n[i] <<= 1;
+            n[i] += carry;
+            carry = n[i] & BASE;
+            n[i] ^= BASE;
+        }
+        if (carry)
+            push(1);
+        assert(old == 0 || old != *this);
+    }
+
     constexpr natural copy() const {
         return *this;
     }
@@ -151,6 +182,13 @@ struct natural {
             std::cout << x << " ";
         std::cout << std::endl;
 
+    }
+
+    void printnb() const {
+        for (uint64_t x: n) 
+            for (size_t i = 0; i < 8; ++i)
+                printf("%d", static_cast<bool>(x & (1 << i)));
+        printf("\n");
     }
 
     constexpr void push(uint64_t x) {
@@ -220,7 +258,6 @@ struct natural {
 
 // arithmetic operators #AO
 // ----------------------------------------------------------------------------
-    // n
     constexpr natural operator+(const natural &r) {
         carry carry;
         uint64_t subres = 0;
@@ -249,17 +286,6 @@ struct natural {
         }
         res.purgeZeroes();
         return res;
-    }
-
-
-    // log n
-    constexpr friend natural dac_sum(const std::vector<natural> &subs, size_t i, size_t j) {
-        if (i == j)
-            return subs[i];
-        size_t mid = (i + j) / 2;
-        natural l = dac_sum(subs, i, mid);
-        natural r = dac_sum(subs, mid + 1, j);
-        return l + r;
     }
 
     constexpr natural karatsuba_simple(const natural &r) const {
@@ -306,7 +332,6 @@ struct natural {
         return res;
     }
 
-    // n ^ log2 3 = n ^ 1.6
     constexpr natural operator*(const natural &r) const {
         return karatsuba(r);
     }
@@ -330,26 +355,36 @@ struct natural {
     }
 
     constexpr std::pair<natural, natural> qr_division(const natural &r) const {
-        natural quo = natural(0);
-        natural rem = *this;
-        while (rem >= r) {
-            natural factor = 1;
-            natural prev_fac = 0;
-            natural prev_div = 1;
-            natural div = r;
+        natural rem = 0;
+        natural quo = 0;
+        quo.n.resize(len());
+        for (size_t i = len(); i > 0; i--) {
+            natural aux = natural(n[i - 1]) + rem * BASE;
 
-            while (rem >= div) {
-                prev_div = div;
-                div += div;
-                prev_fac = factor;
-                factor += factor;
+            uint64_t lo = 0, ro = DOWN;
+            uint64_t res = 0, check = 0;
+            while (lo <= ro) {
+                check = (lo + ro) >> 1;
+
+                if (natural(check) * r <= aux) {
+                    res = check; 
+                    lo = check + 1;
+                }
+                else {
+                    ro = check - 1;
+                } 
             }
-            rem -= prev_div;
-            quo += prev_fac;
+
+            quo[i - 1] = res;
+            rem = aux - natural(res) * r;
         }
-        return {quo, rem};
+
+        quo.purgeZeroes();
+        rem.purgeZeroes();
+        return {std::move(quo), std::move(rem)};
     }
 
+    /*
     std::pair<natural, natural> recDivRem(const natural &r) const {
         std::size_t m = len() - r.len();
         if (m < 2)
@@ -379,6 +414,7 @@ struct natural {
         aux = r - prev;
         return {(Q1 << k) + Q0, aux};
     }
+    */
 
     constexpr natural operator/(const natural &r) const {
         return qr_division(r).first;
@@ -446,31 +482,32 @@ struct natural {
 // ----------------------------------------------------------------------------
 
     // n 3
-    constexpr natural power(int x) const {
-        if (x == 0)
-            return (1);
-        //log n
-        natural res = power(x / 2);
-        if (x % 2 == 0)
-            return res * res;
-
-        // n 3
-        return (*this) * res * res;
+    constexpr natural power(int n) const {
+        natural x = *this;
+        natural res(1);
+        while (n) {
+            if (n & 1) {
+                res = res * x;
+            }
+            x = x * x;
+            n >>= 1;
+        }
+        return res;
     }
 
-    constexpr std::vector<natural> digits(double base) const {
+    std::vector<natural> digits(double base) const {
         if (len() == 1 && n[0] == 0)
             return {{0}};
         return digits(natural(base));
     }
 
-    constexpr std::vector<natural> digits(int base) const {
+    std::vector<natural> digits(int base) const {
         if (len() == 1 && n[0] == 0)
             return {{0}};
         return digits(natural(base));
     }
 
-    constexpr std::vector<natural> digits(const natural &base) const {
+    std::vector<natural> digits(const natural &base) const {
         return primitiveDigits(base);
         /*
         auto subres = copy().schohange_digits(base);
@@ -483,7 +520,7 @@ struct natural {
         */
     };
 
-    constexpr std::vector<natural> primitiveDigits(const natural &base) const {
+    std::vector<natural> primitiveDigits(const natural &base) const {
         std::vector<natural> res = {};
         natural aux = *this;
         while (aux > natural(0)) {
@@ -495,6 +532,7 @@ struct natural {
         return res;
     }
 
+    /*
     std::queue<natural> schohange_digits(natural base) {
         std::queue<natural> res = {};
         if (*this < base) {
@@ -517,6 +555,7 @@ struct natural {
         mergeQ(res, r);
         return res;
     }
+    */
 
     constexpr double to_double() const {
         double res = n[0];
@@ -529,7 +568,6 @@ struct natural {
 
 int main()
 {
-    /*
     natural m( 2.1 ), n( 2.9 );
     assert(m.len() && n.len());
     assert( m == n );
@@ -549,24 +587,10 @@ int main()
         d1 = d1 / d2;
     }
     assert(d1 == 1);
-
-    int f = 60;
-    int b = 5;
-    printf("%f\n", std::fmod(std::pow(b, f), b));
-    natural d3 (std::pow(b, f));
-    natural d4 (b);
-    for (int i = 0; i < f; ++i) {
-        //assert(d4 == natural(std::pow(4, x - i)));
-        
-        assert(d3 % d4 == 0);
-        d3 = d3 / d4;
-    }
-    assert(d3 == 1);
-    */
     printf("start\n");
     natural base(2 * std::pow(1777, 3));
     natural aux = 1;
-    natural n = natural();
+    n = 0;
     const size_t s = 200;
     auto r = createRange(0, s);
     for (auto i: r) {
