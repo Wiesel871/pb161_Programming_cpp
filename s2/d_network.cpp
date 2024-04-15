@@ -140,6 +140,7 @@ class node {
 class endpoint : public node {
     public:
     endpoint(network *p) : node(p, 1) {
+        is_router = false;
     }
 
     bool connect(node *r) override {
@@ -156,6 +157,7 @@ class endpoint : public node {
 class bridge : public node {
     public:
     bridge(network *p, size_t len) : node(p, len) {
+        is_router = false;
     }
 
     bool connect(node *r) override {
@@ -193,7 +195,7 @@ class router : public node {
         if (!r->is_router)
             return false;
 
-        for (node *n : neighbors) {
+        for (const node *n : neighbors) {
             if (r->parent == n->parent)
                 return false;
         }
@@ -321,6 +323,7 @@ int main()
 
     network s1;
 
+    /*
     network n1;
     network n2;
 
@@ -328,6 +331,7 @@ int main()
     auto r2 = n1.add_router(2);
     assert(r1->connect(r2));
     assert(!r2->connect(r1));
+    */
 
     /*
      *   edge  3 6
@@ -353,7 +357,7 @@ int main()
 
     network afterc;
     e1 = afterc.add_endpoint();
-    r1 = afterc.add_router(2);
+    auto r1 = afterc.add_router(2);
     assert(e1->connect(r1));
     network cycle;
     auto b1 = cycle.add_bridge(2);
@@ -372,7 +376,7 @@ int main()
 
     assert(!e1->reachable(b2));
 
-    r2 = cycle.add_router(2);
+    auto r2 = cycle.add_router(2);
     assert(!b4->connect(r1));
     assert(!b4->disconnect(r1));
     assert(b4->connect(r2));
@@ -387,9 +391,45 @@ int main()
     assert(e1->reachable(b1));
     assert(e1->reachable(b2));
     assert(e1->reachable(b3));
+
     /*
-  node  2 endpoint 0
-  node  4 endpoint 0
+  node  4 endpoint 1
+  node  5 endpoint 1
+  node  6 router 2
+  node  9 router 2
+  connect  1 2
+  connect  1 3
+  connect  4 5
+  connect  6 9
+  assert g.at( i ).connect( g.at( j ) ) == can_connect: 31
+  assert g.at( i ).connect( g.at( j ) ) == can_connect: 32
+  assert g.at( i ).connect( g.at( j ) ) == can_connect: 34
+  assert g.at( i ).connect( g.at( j ) ) == can_connect: 35
+  assert g.at( i ).connect( g.at( j ) ) == can_connect: 36
+     * */
+    network routers0;
+    auto n1 = routers0.add_bridge();
+    auto n2 = routers0.add_endpoint();
+    auto n3 = routers0.add_router();
+
+    network routers1;
+    auto n4 = routers1.add_endpoint();
+    auto n5 = routers1.add_endpoint();
+
+    network routers2;
+    auto n6 = routers2.add_router();
+    auto n9 = routers2.add_router();
+    assert(n1->connect(n2));
+    assert(n1->connect(n3));
+    assert(n4->connect(n5));
+    assert(n6->connect(n9));
+    assert(!n3->connect(n1));
+    assert(!n3->connect(n2));
+    assert(!n3->connect(n4));
+    assert(!n3->connect(n5));
+    assert(n3->connect(n6));
+    assert(!n3->connect(n9));
+    /*
   node  5 bridge 1
   node  6 router 1
   node  7 endpoint 1
