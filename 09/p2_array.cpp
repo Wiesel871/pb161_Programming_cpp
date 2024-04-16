@@ -1,7 +1,5 @@
-
 #include <climits>
 #include <cassert>
-#include <iterator>
 #include <stdexcept>
 #include <variant>
 #include <vector>
@@ -34,18 +32,18 @@ using ar = std::variant<std::vector<int>, constant_ar, iota>;
 struct array {
     std::vector<ar> matrix = {};
 
-    std::size_t size() {
+    std::size_t size() const {
         return matrix.size();
     }
 
-    std::size_t size(std::size_t i) {
+    std::size_t size(std::size_t i) const {
         auto *p = std::get_if<std::vector<int>>(&matrix[i]);
         if (p)
             return p->size();
         return INT_MAX;
     }
 
-    int get(std::size_t i, std::size_t j) {
+    int get(std::size_t i, std::size_t j) const {
         if (i > matrix.size())
             throw std::out_of_range("i");
         if (auto *p = std::get_if<std::vector<int>>(&matrix[i]); p) {

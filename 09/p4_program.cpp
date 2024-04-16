@@ -15,7 +15,7 @@ struct program {
         q.emplace_back(f);
     }
 
-    std::tuple<int, int> eval(int l, int r) {
+    std::tuple<int, int> eval(int l, int r) const {
         for (const auto &f: q) {
             f(l, r);
         }
