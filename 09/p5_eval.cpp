@@ -38,6 +38,22 @@ binary::binary( expr a, expr b )
 
 /* Vaším úkolem je naprogramovat funkci ‹eval›, která takto zadaný
  * výraz vyhodnotí na celé číslo. */
+int eval(const expr &e) {
+    if (auto *c = std::get_if<constant>(&e); c) {
+        return c->value;
+    }
+    if (auto *a = std::get_if<add>(&e); a) {
+        return eval(*a->left) + eval(*a->right);
+    }
+    if (auto *s = std::get_if<subtract>(&e); s) {
+        return eval(*s->left) - eval(*s->right);
+    }
+    if (auto *m = std::get_if<multiply>(&e); m) {
+        return eval(*m->left) * eval(*m->right);
+    }
+    auto &d = std::get<add>(e);
+    return eval(*d.left) + eval(*d.right);
+}
 
 int main()
 {
