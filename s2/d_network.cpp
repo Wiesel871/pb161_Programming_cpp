@@ -62,12 +62,6 @@ class node {
         neighbors.erase(r);
     }
 
-    bool one_way_con(node *r) {
-        if (!has_free_port())
-            return false;
-        neighbors.insert(r);
-        return true;
-    }
 
     bool has_free_port() const {
         return lim != neighbors.size();
@@ -79,7 +73,13 @@ class node {
     std::unordered_multiset<node *> neighbors = {};
     network *parent = nullptr;
 
-    node(network *p, size_t len) : lim(len), parent{p}  {
+    node(network *p, size_t len) : lim(len), parent{p}  {}
+
+    virtual bool one_way_con(node *r) {
+        if (!has_free_port())
+            return false;
+        neighbors.insert(r);
+        return true;
     }
 
     virtual bool connect(node *r) {
@@ -173,6 +173,26 @@ class bridge : public node {
 
 class router : public node {
     bool has_in_network = false;
+
+    bool one_way_con(node *r) override {
+        if (parent == r->parent) {
+            if (has_in_network)
+                return false;
+            if (node::one_way_con(r)) {
+                has_in_network = true;
+                return true;
+            }
+            return false;
+        }
+
+        if (!r->is_router)
+            return false;
+        for (const node *n: neighbors)
+            if (n->parent == r->parent)
+                return false;
+        return node::one_way_con(r);
+    }
+
     public:
     router(network *p, size_t len) : node(p, len) {
         is_router = true;
@@ -428,7 +448,7 @@ int main()
     assert(!n3->connect(n4));
     assert(!n3->connect(n5));
     assert(n3->connect(n6));
-    assert(!n3->connect(n9));
+    assert(!n9->connect(n3));
     /*
   node  5 bridge 1
   node  6 router 1
