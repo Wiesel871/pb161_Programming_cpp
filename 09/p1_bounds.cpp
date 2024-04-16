@@ -1,7 +1,7 @@
 #include <cassert>
-#include <utility>
 #include <map>
 #include <cstdint>
+#include <variant>
 
 /* Implementujte třídu ‹bounds›, která si bude pro každý zadaný
  * celočíselný klíč pamatovat rozsah povolených hodnot. Přitom mez
@@ -9,6 +9,7 @@
  * příslušná danému klíči nijak omezena. */
 
 struct unbounded {};
+struct undefined {};
 
 /* Samotná třída bounds bude mít metody:
  *
@@ -23,135 +24,84 @@ struct unbounded {};
  *
  * Všechny takto zadané intervaly jsou oboustranně otevřené. */
 
-struct bounds {
-    enum type {
-        u, b, ub, bu
-    };
+struct bound {
+    std::variant<int64_t, unbounded, undefined> var;
 
-    type combine(const type &l, const type &r) {
-        switch (l) {
-            case bu: 
-                switch (r) {
-                        case u: return u;
-                        case b: return b;
-                    } assert(false);
-            case ub:
-            default: assert(false);
-        }
+    bound() {
+        var = undefined{};
     }
 
+    bound &operator=(int64_t val) {
+        var = val;
+        return *this;
+    } 
+
+    bound &operator=(unbounded) {
+        var = unbounded{};
+        return *this;
+    }
+
+    std::variant<int64_t, unbounded, undefined> *addr() {
+        return &var;
+    }
+};
+
+struct bounds {
+
     struct inner {
-        type t;
-        int64_t lo;
-        int64_t up;
+        bound lower, upper;
     };
 
-    type def = u;
-    int64_t dl = 0, du = 0;
+    bound d_lower, d_upper;
 
     std::map<int, inner> keys; 
 
     bounds() = default;
 
-    void swap_up(int k, type &t, int64_t &nb) {
-        t = keys[k].t;
-        nb = keys[k].up;
+    void set_lower(int k, auto val) {
+        keys[k].lower = val;
     }
 
-    void swap_lo(int k, type &t, int64_t &nb) {
-        t = keys[k].t;
-        nb = keys[k].lo;
+    void set_upper(int k, auto val) {
+        keys[k].upper = val;
     }
 
-    void set_lower(int k, int64_t nb) {
-        type t = def;
-        int64_t up = du;
-        if (keys.contains(k))
-            swap_up(k, t, up);
-        switch (t) {
-            case u: case bu: keys[k] = {bu, nb, 0}; break;
-            case b: case ub: keys[k] = {b, nb, up};  
-        }
+    void set_default_lower(auto val) {
+        d_lower = val;
     }
 
-    void set_lower(int k, unbounded) {
-        type t = def;
-        int64_t up = du;
-        if (keys.contains(k)) {
-            swap_up(k, t, up);
-        }
-        switch (t) {
-            case u: case bu: keys[k] = {u, 0, 0}; break;
-            case b: case ub: keys[k] = {ub, 0, up};
-        }
-    }
-
-    void set_upper(int k, int64_t nb) {
-        type t = def;
-        int64_t lo = dl;
-        if (keys.contains(k))
-            swap_lo(k, t, lo);
-        switch (t) {
-            case u: case ub: keys[k] = {ub, 0, nb}; break;
-            case b: case bu: keys[k] = {b, lo, nb};
-        }
-    }
-
-    void set_upper(int k, unbounded) {
-        type t = def;
-        int64_t lo = dl;
-        if (keys.contains(k))
-            swap_lo(k, t, lo);
-        switch (t) {
-            case u: case ub: keys[k] = {u, 0, 0}; break;
-            case b: case bu: keys[k] = {bu, lo, 0};
-        }
-    }
-
-    void set_default_lower(int64_t nb) {
-        switch (def) {
-            case u: case bu: def = bu; dl = nb; break;
-            case b: case ub: def = b; dl = nb;
-        }
-    }
-
-    void set_default_lower(unbounded) {
-        switch (def) {
-            case u: case bu: def = u; break;
-            case b: case ub: def = ub;
-        }
-    }
-
-    void set_default_upper(int64_t nb) {
-        switch (def) {
-            case u: case ub: def = ub; du = nb; break;
-            case b: case bu: def = b; du = nb;
-        }
-    }
-
-    void set_default_upper(unbounded) {
-        switch (def) {
-            case u: case bu: def = u; break;
-            case b: case ub: def = ub; 
-        }
+    void set_default_upper(auto val) {
+        d_upper = val;
     }
 
     bool valid(int k, int64_t val) {
-        type t = def;
-        int64_t lo = dl;
-        int64_t up = du;
-        if (keys.contains(k)) {
-            swap_lo(k, t, lo);
-            swap_up(k, t, up);
-        }
+        return below(k, val) && above(k, val);
+    }
 
-        switch (t) {
-            case u: return true;
-            case bu: return val > lo;
-            case ub: return val < up;
-            case b: return val > lo && up;
+    private:
+
+    bool above(int k, int64_t val) {
+        if (int64_t *p = std::get_if<int64_t>(keys[k].lower.addr()); p) {
+            return val > *p;
         }
-        assert(false);
+        if (undefined *p = std::get_if<undefined>(keys[k].lower.addr()); p) {
+            if (int64_t *d = std::get_if<int64_t>(d_lower.addr()); d) {
+                return val > *d;
+            }
+        }
+        return true;
+    }
+
+    bool below(int k, int64_t val) {
+        if (int64_t *p = std::get_if<int64_t>(keys[k].upper.addr()); p) {
+            return val < *p;
+        }
+        if (undefined *p = std::get_if<undefined>(keys[k].upper.addr()); p) {
+            if (int64_t *d = std::get_if<int64_t>(d_upper.addr()); d) {
+                return val < *d;
+            }
+        }
+        return true;
     }
 };
 
