@@ -1,5 +1,10 @@
+
 #include <climits>
 #include <cassert>
+#include <iterator>
+#include <stdexcept>
+#include <variant>
+#include <vector>
 
 /* Implementujte dvourozměrné pole, kde vnitřní pole na daném indexu
  * může být buď obyčejné pole celých čísel (‹std::vector›), nebo
@@ -18,8 +23,55 @@
  *    ‹a.get( a.size() - 1, i ) == n›,
  *  • pro vektor čísel ‹v› volání ‹a.append( v )› vloží ‹v› jako
  *    poslední prvek vnějšího pole ‹a›. */
+struct constant_ar {
+    int val;
+    constant_ar(int val) : val{val} {}
+};
 
-struct array;
+struct iota {};
+
+using ar = std::variant<std::vector<int>, constant_ar, iota>;
+struct array {
+    std::vector<ar> matrix = {};
+
+    std::size_t size() {
+        return matrix.size();
+    }
+
+    std::size_t size(std::size_t i) {
+        auto *p = std::get_if<std::vector<int>>(&matrix[i]);
+        if (p)
+            return p->size();
+        return INT_MAX;
+    }
+
+    int get(std::size_t i, std::size_t j) {
+        if (i > matrix.size())
+            throw std::out_of_range("i");
+        if (auto *p = std::get_if<std::vector<int>>(&matrix[i]); p) {
+            if (j > p->size())
+                throw std::out_of_range("j");
+            return (*p)[j];
+        }
+
+        if (auto *p = std::get_if<constant_ar>(&matrix[i]); p) {
+            return p->val;
+        }
+        return j;
+    }
+
+    void append(const std::vector<int> &v) {
+        matrix.emplace_back(v);
+    }
+
+    void append_const(int c) {
+        matrix.emplace_back(constant_ar(c));
+    }
+
+    void append_iota() {
+        matrix.emplace_back(iota{});
+    }
+};
 
 int main()
 {
