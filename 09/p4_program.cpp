@@ -1,12 +1,27 @@
 #include <cassert>
 #include <tuple>
+#include <functional>
+#include <deque>
 
 /* Implementujte typ ‹program›, který bude reprezentovat výpočet nad
  * stavem určeným dvojicí celých čísel. Na konec stávajícího výpočtu
  * je možné přidat další krok metodou ‹append›, která přijme
  * libovolnou funkci, které lze předat 2 celá čísla. */
 
-struct program;
+struct program {
+    std::deque<std::function<void(int &, int &)>> q;
+
+    void add(std::function<void(int &, int &)> f) {
+        q.emplace_back(f);
+    }
+
+    std::tuple<int, int> eval(int l, int r) {
+        for (const auto &f: q) {
+            f(l, r);
+        }
+        return {l, r};
+    }
+};
 
 int main()
 {
