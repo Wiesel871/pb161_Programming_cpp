@@ -1,4 +1,6 @@
+#include <any>
 #include <cassert>
+#include <vector>
 
 /* Naprogramujte typ ‹any_array›, který bude reprezentovat dynamické
  * pole libovolných hodnot, a bude mít tyto metody:
@@ -18,7 +20,47 @@
  * Metody ‹remove_integers› a ‹remove_floats› musí mít nejvýše
  * lineární časovou složitost, zatímco metoda ‹equals› konstantní. */
 
-struct any_array;
+using aar = std::vector<std::any>;
+
+struct any_array {
+    aar ar = {};
+
+    std::size_t size() const {
+        return ar.size();
+    }
+
+    void append(auto x) {
+        ar.emplace_back(x);
+    }
+
+    void transform_int(auto f) {
+        for (auto &x: ar) {
+            if (x.type() == typeid(int)) {
+                x = f(std::any_cast<int>(x));
+            }
+        }
+    }
+
+    bool equals(int i, const auto &v) const {
+        return ar[i].type() == typeid(decltype(v)) && std::any_cast<decltype(v)>(ar[i]) == v;
+    }
+
+    void remove_integers() {
+        aar aux = {};
+        for (const auto &x: ar)
+            if (x.type() != typeid(int))
+                aux.emplace_back(x);
+        ar = std::move(aux);
+    }
+
+    void remove_floats() {
+        aar aux = {};
+        for (const auto &x: ar)
+            if (x.type() != typeid(double))
+                aux.emplace_back(x);
+        ar = std::move(aux);
+    }
+};
 
 int main()
 {
