@@ -1,5 +1,13 @@
+#include <cstddef>
 #include <vector>
 #include <cassert>
+#include <ranges>
+#include <numeric>
+#include <functional>
+#include <algorithm>
+#include <concepts>
+#include <iterator>
+
 
 /* Napište čistou, generickou funkci ‹distinct( s )›, která spočítá,
  * kolik různých prvků se objevuje ve vzestupně seřazené
@@ -13,6 +21,27 @@
  * Funkce musí pracovat v čase nejvýše ⟦O(k⋅\log(n))⟧, kde ⟦k⟧ je
  * počet různých prvků (výsledek volání ‹distinct›) a ⟦n⟧ je délka
  * vstupní posloupnosti. */
+template<typename T>
+concept Iterable = requires(T a) {
+    { a.size() } -> std::convertible_to<std::size_t>;
+    { a.begin() } -> std::indirectly_readable;
+    { a.end() } -> std::indirectly_readable;
+    
+};
+
+template<Iterable It>
+std::size_t distinct(const It &cont) {
+    if (cont.begin() == cont.end())
+        return 0;
+    auto cur = cont.begin();
+    std::size_t res = 0;
+    while (cur != cont.end()) {
+        res++;
+        cur = std::upper_bound(cur, cont.end(), *cur);
+    }
+    return res;
+}
+
 
 int main()
 {
