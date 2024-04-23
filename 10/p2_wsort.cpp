@@ -32,11 +32,11 @@
  *    ‹seq₁[ j ]›,
  *  • byl zároveň prvek ‹seq₂[ i ]› přesunut na pozici ‹seq₂[ j ]›.
  */
-template<typename T>
-concept Iterable = requires(T a) {
+template<typename Container>
+concept Iterable = requires(Container a) {
     { a.size() } -> std::convertible_to<std::size_t>;
-    { std::begin(a) } -> std::random_access_iterator;
-    { std::end(a) } -> std::random_access_iterator;
+    { a.begin() } -> std::random_access_iterator;
+    { a.end() } -> std::random_access_iterator;
 };
 
 template <Iterable It1, Iterable It2>
