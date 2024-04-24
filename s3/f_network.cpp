@@ -527,7 +527,7 @@ std::list< network > deserialize( std::string_view s) {
     std::list<network> res = {};
 
     for (auto id: order) {
-        res.emplace_back(std::move(subres[id]));
+        res.push_back(std::move(subres[id]));
     }
     return res;
 };
