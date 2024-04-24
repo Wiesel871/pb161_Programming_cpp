@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <vector>
 #include <cassert>
 
@@ -11,6 +12,17 @@
  * různých vah, které se objeví na vstupu, a ⟦n⟧ je délka
  * posloupnosti ‹s›. Je také povoleno využít lineární množství
  * dodatečné paměti. */
+void rec_reorder(auto begin, auto end, auto w) {
+    if (begin == end)
+        return;
+    auto mid = std::stable_partition(begin, end, [&w](const auto &l, const auto &r){return w(l) < w(r);});
+    rec_reorder(begin, mid, w);
+    rec_reorder(mid, end, w);
+}
+
+void reorder(auto &s, auto w) {
+    rec_reorder(s.begin(), s.end(), w);
+}
 
 int main()
 {
