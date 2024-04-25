@@ -1,5 +1,15 @@
+#include <cstddef>
+#include <utility>
 #include <vector>
 #include <cassert>
+#include <ranges>
+#include <numeric>
+#include <functional>
+#include <algorithm>
+#include <concepts>
+#include <iterator>
+
+
 
 /* Implementujte generický podprogram ‹weighted_sort( seq₁, seq₂,
  * weight )› kde:
@@ -22,6 +32,33 @@
  *    ‹seq₁[ j ]›,
  *  • byl zároveň prvek ‹seq₂[ i ]› přesunut na pozici ‹seq₂[ j ]›.
  */
+template<typename Container>
+concept Iterable = requires(Container a) {
+    { a.size() } -> std::convertible_to<std::size_t>;
+    { a.begin() } -> std::random_access_iterator;
+    { a.end() } -> std::random_access_iterator;
+};
+
+template <Iterable It1, Iterable It2>
+void weighted_sort(It1 &seq1, It2 &seq2, auto weight) {
+    // jak sem hledal rieseni tak sem dosel na takyto (nevyuzity) zazrak:
+    // using weight_type = decltype(weight(std::declval<typename decltype(seq1)::value_type>(), std::declval<typename  decltype(seq2)::value_type>()));
+    std::vector<std::size_t> res_i;
+    for (std::size_t i = 0; i < seq1.size(); ++i)
+        res_i.push_back(i);
+    std::sort(res_i.begin(), res_i.end(),
+            [&](std::size_t i, std::size_t j) {
+                return weight(seq1[i], seq2[i]) < weight(seq1[j], seq2[j]);
+            });
+    It1 res1;
+    It2 res2;
+    for (std::size_t i: res_i) {
+        res1.push_back(seq1[i]);
+        res2.push_back(seq2[i]);
+    }
+    seq1 = std::move(res1);
+    seq2 = std::move(res2);
+}
 
 int main()
 {

@@ -1,6 +1,9 @@
 #include <algorithm>
+#include <utility>
 #include <vector>
 #include <cassert>
+#include <iostream>
+#include <stack>
 
 /* Napište podprogram ‹reorder( s, weight )›, který pro zadanou
  * posloupnost ‹s› a funkci ‹weight› na místě přeuspořádá ‹s› tak,
@@ -12,16 +15,19 @@
  * různých vah, které se objeví na vstupu, a ⟦n⟧ je délka
  * posloupnosti ‹s›. Je také povoleno využít lineární množství
  * dodatečné paměti. */
-void rec_reorder(auto begin, auto end, auto w) {
-    if (begin == end)
-        return;
-    auto mid = std::stable_partition(begin, end, [&w](const auto &l, const auto &r){return w(l) < w(r);});
-    rec_reorder(begin, mid, w);
-    rec_reorder(mid, end, w);
-}
-
-void reorder(auto &s, auto w) {
-    rec_reorder(s.begin(), s.end(), w);
+void reorder(auto &s, const auto &w) {
+    std::stack<std::pair<decltype(s.begin()), decltype(s.begin())>> st;
+    st.push({s.begin(), s.end()});
+    while (!st.empty()) {
+        auto [b, e] = st.top();
+        st.pop();
+        if (b == e)
+            continue;
+        auto aux = w(*(b));
+        auto m = std::stable_partition(b, e, [&](const auto &x){return w(x) > aux;});
+        st.push({b, m});
+        st.push({m, e});
+    }
 }
 
 int main()
@@ -86,11 +92,13 @@ int main()
     };
 
     reorder( x, one_way );
+    std::cout << ops << " " << 4 * count + 100 << std::endl;
     assert( ops <= 4 * count + 100 );
     assert( x == y ); /* no change */
     ops = 0;
 
     reorder( x, two_way );
+    std::cout << ops << std::endl;
     assert( ops <= 8 * count + 100 );
     assert( x != y );
     ops = 0;

@@ -1,4 +1,8 @@
 #include <cassert>
+#include <iterator>
+#include <set>
+#include <algorithm>
+#include <ranges>
 
 /* Implementujte množinu libovolných celých čísel, s těmito
  * operacemi:
@@ -13,7 +17,71 @@
  * (přidá prvek) a ‹has› (ověří přítomnost prvku), které mají
  * nejvýše logaritmickou složitost. */
 
-struct set;
+struct set {
+    private:
+    std::set<int> inner;
+
+    public:
+    set(const std::set<int> &r = {}) {
+        inner = r;
+    }
+
+    void add(int x) {
+        inner.insert(x);
+    }
+
+    bool has(int x) const noexcept {
+        return inner.contains(x);
+    }
+
+    set operator|(const set &r) const noexcept {
+        set res;
+        std::set_union(
+                inner.begin(), inner.end(), 
+                r.inner.begin(), r.inner.end(), 
+                std::inserter(res.inner, res.inner.begin()));
+        return res;
+    }
+
+    set operator&(const set &r) const noexcept {
+        set res;
+        std::set_intersection(
+                inner.begin(), inner.end(), 
+                r.inner.begin(), r.inner.end(), 
+                std::inserter(res.inner, res.inner.begin()));
+
+        return res;
+    }
+
+    set operator-(const set &r) const noexcept {
+        set res;
+        std::set_difference(
+                inner.begin(), inner.end(), 
+                r.inner.begin(), r.inner.end(), 
+                std::inserter(res.inner, res.inner.begin()));
+        return res;
+    }
+
+    bool operator<(const set &r) const noexcept {
+        return ((*this) | r).inner == r.inner && inner.size() != r.inner.size();
+    }
+
+    bool operator>(const set &r) const noexcept {
+        return ((*this) | r).inner == inner && inner.size() != r.inner.size();
+    }
+
+    bool operator<=(const set &r) const noexcept {
+        return ((*this) | r).inner == r.inner;
+    }
+
+    bool operator>=(const set &r) const noexcept {
+        return ((*this) | r).inner == inner;
+    }
+
+    bool operator==(const set &r) const noexcept {
+        return inner == r.inner;
+    }
+};
 
 int main()
 {
