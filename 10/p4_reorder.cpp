@@ -1,5 +1,16 @@
+#include <algorithm>
+#include <cstddef>
+#include <iterator>
+#include <type_traits>
+#include <utility>
 #include <vector>
 #include <cassert>
+#include <functional>
+#include <iostream>
+#include <map>
+#include <ranges>
+#include <set>
+#include <stack>
 
 /* Napište podprogram ‹reorder( s, weight )›, který pro zadanou
  * posloupnost ‹s› a funkci ‹weight› na místě přeuspořádá ‹s› tak,
@@ -11,6 +22,21 @@
  * různých vah, které se objeví na vstupu, a ⟦n⟧ je délka
  * posloupnosti ‹s›. Je také povoleno využít lineární množství
  * dodatečné paměti. */
+
+void reorder(auto &s, const auto &w) {
+    std::stack<std::pair<decltype(s.begin()), decltype(s.begin())>> st;
+    st.push({s.begin(), s.end()});
+    while (!st.empty()) {
+        auto [b, e] = st.top();
+        st.pop();
+        if (b == e)
+            continue;
+        auto aux = w(*(b));
+        auto m = std::stable_partition(b, e, [&](const auto &x){return w(x) > aux;});
+        st.push({b, m});
+        st.push({m, e});
+    }
+}
 
 int main()
 {
@@ -74,11 +100,13 @@ int main()
     };
 
     reorder( x, one_way );
+    std::cout << ops << " " << 4 * count + 100 << std::endl;
     assert( ops <= 4 * count + 100 );
     assert( x == y ); /* no change */
     ops = 0;
 
     reorder( x, two_way );
+    std::cout << ops << std::endl;
     assert( ops <= 8 * count + 100 );
     assert( x != y );
     ops = 0;
