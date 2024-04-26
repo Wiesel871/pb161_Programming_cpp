@@ -1,7 +1,5 @@
 #include <cassert>
 #include <sstream>
-#include <cctype>
-#include <streambuf>
 #include <string>
 #include <string_view>
 #include <cstddef>
@@ -9,7 +7,6 @@
 #include <stack>
 #include <vector>
 #include <memory>
-#include <set>
 #include <unordered_set>
 #include <list>
 #include <sstream>
@@ -22,10 +19,6 @@ class network;
 
 class node {
     size_t lim = 0;
-
-    void one_way_dc(node *r) {
-        neighbors.erase(r->id);
-    }
 
 
     bool has_free_port() const {
@@ -41,6 +34,11 @@ class node {
     friend class network;
 
     node(network *p, size_t len) : lim(len), parent{p}  {}
+
+    virtual void one_way_dc(node *r) {
+        neighbors.erase(r->id);
+    }
+
 
     virtual bool one_way_con(node *r) {
         if (!has_free_port())
@@ -163,6 +161,12 @@ class router : public node {
         return node::one_way_con(r);
     }
 
+    void one_way_dc(node *n) noexcept override {
+        if (n->parent == parent)
+            has_in_network = false;
+        node::one_way_dc(n);
+    }
+
     public:
     router(network *p, size_t len, std::string_view s) : node(p, len) {
         is_router = true;
@@ -191,6 +195,15 @@ class router : public node {
                 return false;
         }
         return node::connect(r);
+    }
+
+    bool disconnect(node *n) noexcept override {
+        if (node::disconnect(n)) {
+            if (n->parent == parent)
+                has_in_network = false;
+            return true;
+        }
+        return false;
     }
 
     ~router() override = default;
@@ -286,6 +299,18 @@ class network {
         }
     }
 
+    network(const network &n) : id{ids++} {
+        for (auto &n: n.nodes) {
+            if (n->is_router) {
+                add_router(n->lim, n->id);
+            } else if (n->id.back() == '$') {
+                add_endpoint();
+            } else {
+                add_bridge(n->lim, n->id);
+            }
+        }
+    }
+
     network &operator=(network &&n) {
         id = n.id;
         nodes = std::move(n.nodes);
@@ -356,9 +381,9 @@ class network {
         return nodes.size();
     }
 
-    std::string serialize() const {
+    std::string serialize(std::map<std::size_t, std::size_t> ids) const {
         std::ostringstream res;
-        res << "#" << id << " " << endpoints().size() << "\n";
+        res << "#" << ids[id] << " " << endpoints().size() << "\n";
         for (const auto &b: bridges()) {
             res << "\t" << b->id << " " << b->lim << " ";
             std::ostringstream neighbors;
@@ -378,7 +403,7 @@ class network {
                     continue;
                 }
                 assert(n->parent);
-                neighbors << n->parent->id << " ";
+                neighbors << ids[n->parent->id] << " ";
                 neighbors << n->id << " ";
             }
             res << in_net << " " << neighbors.str() << "\n";
@@ -420,10 +445,20 @@ std::size_t network::ids = 0;
 */
 //# znaci novu siet, \t novy bridge v poslednej sieti, \v novy router
 
+std::map<std::size_t, std::size_t> get_ids(const std::list<network> &l) {
+    std::map<std::size_t, std::size_t> res;
+    std::size_t id = 0;
+    for (const auto &n: l) {
+        res[n.id] = id++;
+    }
+    return res;
+}
+
 std::string serialize( const std::list< network > & l) {
     std::ostringstream res;
+    auto ids = get_ids(l);
     for (const auto &n: l) {
-        res << n.serialize();
+        res << n.serialize(ids);
     }
     return res.str();
 };
@@ -502,7 +537,7 @@ std::list< network > deserialize( std::string_view s) {
                            auto router = routers[key].first;
                            auto neighs = &routers[key].second;
                            if (in_net != "%")
-                               router->connect(inner_nodes[in_net].first);
+                               assert(router->connect(inner_nodes[in_net].first));
                            while (!line.eof()) {
                                std::string neigh_id;
                                std::size_t par;
@@ -519,7 +554,8 @@ std::list< network > deserialize( std::string_view s) {
         auto &[router, neighs] = n;
         assert(rid.second == router->parent->id);
         for (const auto &neigh: neighs) {
-            if (!router->neighbors.contains(routers.at(neigh).first->id)) {
+            assert(routers.contains(neigh));
+            if (!router->neighbors.contains(routers[neigh].first->id)) {
                 assert(router->connect(routers[neigh].first));
             }
         }
@@ -590,5 +626,35 @@ int main()
     assert( nn_e.front()->reachable( mm_e.front() ) ||
             nn_e.back()->reachable( mm_e.front() ) );
 
+    network disc_san1;
+    auto b1 = disc_san1.add_bridge(2, "A");
+    e1 = disc_san1.add_endpoint();
+    e2 = disc_san1.add_endpoint();
+    network disc_san2;
+    auto b2 = disc_san2.add_bridge(2, "A");
+    r1 = disc_san2.add_router(2, "A");
+    e3 = disc_san2.add_endpoint();
+
+    assert(b1->connect(e1));
+    assert(b1->connect(e2));
+    assert(b2->connect(r1));
+    assert(b2->connect(e3));
+
+    str = serialize({disc_san1, disc_san2});
+    assert(b1->disconnect(e1));
+    assert(e1->connect(b1));
+    assert(str == serialize({disc_san1, disc_san2}));
+
+    assert(b1->disconnect(e2));
+    assert(e2->connect(b1));
+    assert(str == serialize({disc_san1, disc_san2}));
+    
+    assert(b2->disconnect(e3));
+    assert(e3->connect(b2));
+    assert(str == serialize({disc_san1, disc_san2}));
+
+    assert(b2->disconnect(r1));
+    assert(r1->connect(b2));
+    assert(str == serialize({disc_san1, disc_san2}));
     return 0;
 }
