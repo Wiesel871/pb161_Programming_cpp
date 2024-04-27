@@ -288,6 +288,9 @@ class network {
         return res;
     }
 
+    friend std::list<network> deserialize(std::string_view);
+    friend std::size_t reachable_for(std::vector<node*>, const network &);
+
     public:
     std::size_t id;
     network() : id{ids++} {}
@@ -383,9 +386,12 @@ class network {
 
     std::string serialize(std::map<std::size_t, std::size_t> ids) const {
         std::ostringstream res;
-        res << "#" << ids[id] << " " << endpoints().size() << "\n";
+        res << "#" << ids[id] << "\n";
+        for (const auto &e: endpoints()) {
+            res << "&" << e->id << " " << (e->neighbors.empty() ? "%" : e->neighbors.begin()->second->id) << "\n" ;
+        }
         for (const auto &b: bridges()) {
-            res << "\t" << b->id << " " << b->lim << " ";
+            res << "*" << b->id << " " << b->lim << " ";
             std::ostringstream neighbors;
             for (const auto &[_, n]: b->neighbors) {
                 neighbors << n->id;
@@ -394,7 +400,7 @@ class network {
             res << neighbors.str() << "\n";
         }
         for (const auto &r: routers()) {
-            res << "\v" << r->id << " " << r->lim << " ";
+            res << "@" << r->id << " " << r->lim << " ";
             std::ostringstream neighbors = {};
             std::string in_net = "%";
             for (const auto &[_, n]: r->neighbors) {
@@ -488,17 +494,11 @@ std::list< network > deserialize( std::string_view s) {
         switch (mark) {
             case '#': {
                           if (subres.contains(net_id)) {
-                              for (const auto &b: subres[net_id].bridges()) {
-                                  for (const auto &neigh: inner_nodes[b->id].second) {
-                                      b->connect(inner_nodes[neigh].first);
+                              for (auto &n: subres[net_id].nodes) {
+                                  for (auto &neigh: inner_nodes[n->id].second) {
+                                      n->connect(inner_nodes[neigh].first);
                                   }
                               }
-                              for (const auto &e: subres[net_id].endpoints()) {
-                                  for (const auto &neigh: inner_nodes[e->id].second) {
-                                      e->connect(inner_nodes[neigh].first);
-                                  }
-                              }
-
                           }
                           line >> net_id;
                           line >> endc;
@@ -512,7 +512,16 @@ std::list< network > deserialize( std::string_view s) {
                           break;
                       }
 
-            case '\t': {
+            case '&': {
+                          line >> id;
+                          inner_nodes[id] = {subres[net_id].add_endpoint(), {}};
+                          line >> aux;
+                          if (aux != "%")
+                              inner_nodes[id].second.push_back(aux);
+                          break;
+                      }
+
+            case '*': {
                            line >> id;
                            assert(!id.empty());
                            line >> lim;
@@ -526,7 +535,7 @@ std::list< network > deserialize( std::string_view s) {
                            }
                            break;
                        }
-            case '\v': {
+            case '@': {
                            std::string in_net;
                            line >> id;
                            assert(!id.empty());
@@ -582,6 +591,17 @@ std::list< network > deserialize( std::string_view s) {
 /* ¹ Samozřejmě záleží na pořadí, ve kterém jsou sítě předány
  *   serializační funkci – serializace sítí ‹a, b› se může obecně
  *   lišit od serializace ‹b, a›. */
+
+std::size_t reachable_for(std::vector<node *> ns, const network &net) {
+    std::size_t res = 0;
+    for (auto n: ns) {
+        for (const auto &aux: net.nodes) {
+            if (n->reachable(aux.get()))
+                res++;
+        }
+    }
+    return res;
+}
 
 int main()
 {
@@ -656,5 +676,32 @@ int main()
     assert(b2->disconnect(r1));
     assert(r1->connect(b2));
     assert(str == serialize({disc_san1, disc_san2}));
+
+    std::list<network> perm1;
+    perm1.push_front(network());
+    perm1.push_front(network());
+    e1 = perm1.back().add_endpoint();
+    e2 = perm1.back().add_endpoint();
+    assert(e1->connect(e2));
+    str = serialize(perm1);
+    std::list<network> h{perm1.size()}; 
+    e3 = h.back().add_endpoint();
+    auto e4 = h.back().add_endpoint();
+    assert(e4->connect(e3));
+
+    /*
+     *   node  1 bridge 0
+  node  2 endpoint 0
+  node  3 router 0
+  node  4 endpoint 1
+  node  5 endpoint 1
+  connect  1 2
+  connect  1 3
+  connect  4 5*/
+    std::list<network> reach;
+    reach.emplace_front();
+    reach.emplace_front();
+    reach.front().add_endpoint();
+
     return 0;
 }
