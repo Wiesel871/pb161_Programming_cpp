@@ -1,6 +1,9 @@
 #include <cassert>
 #include <string>
+#include <utility>
 #include <vector>
+#include <map>
+#include <iostream>
 
 /* Regulární gramatika má pravidla tvaru ⟦A → xB⟧ nebo ⟦A → x⟧ kde
  * ⟦A⟧, ⟦B⟧ jsou neterminály a ⟦x⟧ je terminál. */
@@ -18,7 +21,39 @@
  *    výsledkem bude seznam (‹std::vector›) všech řetězců (slov),
  *    které lze takto vygenerovat, a to v lexikografickém pořadí. */
 
-class grammar;
+class grammar {
+    std::map<char, std::vector<std::pair<char, char>>> rules;
+    
+    public:
+    void add_rule(char nonterm, char term, char opterm = '\0') {
+        auto it = rules.find(nonterm);
+        if (it != rules.end()) {
+            it->second.emplace_back(std::make_pair(term, opterm));
+        } else {
+            std::vector<std::pair<char, char>> aux;
+            aux.emplace_back(std::make_pair(term, opterm));
+            rules[nonterm] = std::move(aux);
+        }
+    }
+
+    std::vector<std::string> generate(char nonterm, std::size_t depth) const {
+        if (depth == 0 || !rules.contains(nonterm))
+            return {};
+        std::vector<std::string> res = {};
+        for (const auto &[term, opterm]: rules.at(nonterm)) {
+            res.emplace_back("");
+            res.back().push_back(term);
+            if (opterm) {
+                auto sub = res.back();
+                res.pop_back();
+                for (const auto &s: generate(opterm, depth - 1)) {
+                    res.push_back(sub + s);
+                }
+            } 
+        }
+        return res;
+    }
+};
 
 int main()
 {
