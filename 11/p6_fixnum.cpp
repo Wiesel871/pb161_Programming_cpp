@@ -32,10 +32,10 @@ concept I32Compatible = requires(T t) {
 struct fixnum {
     std::int32_t inner;
 
-    fixnum() : inner(0) {}
+    consteval fixnum() : inner(0) {}
 
     template<I32Compatible I32>
-    fixnum(I32 num) : inner(num * 100) {
+    constexpr fixnum(I32 num) : inner(num * 100) {
         //std::cout << "num: " << num << " " << inner << std::endl;
     }
 
@@ -80,27 +80,27 @@ struct fixnum {
 //        std::cout << "string: " << str << " " << inner << std::endl;
     }
 
-    fixnum operator+(const fixnum &r) const {
+    constexpr fixnum operator+(const fixnum &r) const {
         fixnum res;
         res.inner = inner + r.inner;
         return res;
     }
 
-    fixnum operator-(const fixnum &r) const {
+    constexpr fixnum operator-(const fixnum &r) const {
         fixnum res;
         res.inner = inner - r.inner;
         return res;
     }
 
-    fixnum operator*(const fixnum &r) const {
+    constexpr fixnum operator*(const fixnum &r) const {
         fixnum res;
         res.inner = (inner * r.inner) / 100;
         return res;
     }
 
-    bool operator==(const fixnum &r) const = default;
+    constexpr bool operator==(const fixnum &r) const = default;
 
-    auto operator<=>(const fixnum &r) const = default;
+    constexpr auto operator<=>(const fixnum &r) const = default;
 };
 
 int main()
