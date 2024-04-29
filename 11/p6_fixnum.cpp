@@ -1,4 +1,8 @@
 #include <cassert>
+#include <cstdint>
+#include <ostream>
+#include <string_view>
+#include <iostream>
 
 /* V tomto cvičení implementujeme čísla s pevnou desetinnou čárkou,
  * konkrétně se 6 desítkovými číslicemi před a dvěma za desetinnou
@@ -7,7 +11,7 @@
 /* Typ ‹bad_format› budeme používat jako výjimku, která indikuje, že
  * pokus o načtení čísla z řetězce selhalo. */
 
-struct bad_format;
+struct bad_format {};
 
 /* Typ ‹fixnum› nechť poskytuje tyto operace:
  *
@@ -20,8 +24,84 @@ struct bad_format;
  *
  * Všechny aritmetické operace nechť zaokrouhlují směrem k nule na
  * nejbližší reprezentovatelné číslo. */
+template<typename T>
+concept I32Compatible = requires(T t) {
+    static_cast<std::int32_t>(t);
+};
 
-struct fixnum;
+struct fixnum {
+    std::int32_t inner;
+
+    fixnum() : inner(0) {}
+
+    template<I32Compatible I32>
+    fixnum(I32 num) : inner(num * 100) {
+        //std::cout << "num: " << num << " " << inner << std::endl;
+    }
+
+    fixnum(std::string_view str) {
+        if (str.empty())
+            throw bad_format{};
+        inner = 0;
+        struct minus {
+            bool val;
+            int32_t &in;
+
+            minus(bool b, int32_t &in) : val(b), in(in) {}
+
+            operator bool() const {
+                return val;
+            }
+
+            ~minus() {
+                if (val)
+                    in *= -1;
+            }
+        };
+        auto dot = str.find('.');
+        minus m(str[0] == '-', inner);
+        for (std::size_t i = 0 + m; i < dot && i < str.size(); ++i) {
+            if (str[i] < '0' || str[i] > '9')
+                throw bad_format{};
+            inner *= 10;
+            inner += str[i] - '0';
+        }
+        inner *= 100;
+        if (dot == str.npos)
+            return;
+        if (str[dot + 1] < '0' || str[dot + 1] > '9')
+            throw bad_format{};
+        inner += 10 * (str[dot + 1] - '0');
+        if (dot + 2 == str.size())
+            return;
+        if (str[dot + 2] < '0' || str[dot + 2] > '9')
+            throw bad_format{};
+        inner += str[dot + 2] - '0';
+//        std::cout << "string: " << str << " " << inner << std::endl;
+    }
+
+    fixnum operator+(const fixnum &r) const {
+        fixnum res;
+        res.inner = inner + r.inner;
+        return res;
+    }
+
+    fixnum operator-(const fixnum &r) const {
+        fixnum res;
+        res.inner = inner - r.inner;
+        return res;
+    }
+
+    fixnum operator*(const fixnum &r) const {
+        fixnum res;
+        res.inner = (inner * r.inner) / 100;
+        return res;
+    }
+
+    bool operator==(const fixnum &r) const = default;
+
+    auto operator<=>(const fixnum &r) const = default;
+};
 
 int main()
 {
