@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <cstring>
 #include <map>
+#include <set>
 
 class network;
 
@@ -29,7 +30,7 @@ class node {
     public:
     bool is_router = false;
     std::string id;
-    std::map<std::string, node *> neighbors;
+    std::set<node *> neighbors;
     network *parent = nullptr;
 
     friend class network;
@@ -37,36 +38,36 @@ class node {
     node(network *p, size_t len) : lim(len), parent{p}  {}
 
     virtual void one_way_dc(node *r) {
-        neighbors.erase(r->id);
+        neighbors.erase(r);
     }
 
 
     virtual bool one_way_con(node *r) {
         if (!has_free_port())
             return false;
-        neighbors[r->id] = r;
+        neighbors.insert(r);
         return true;
     }
 
     virtual bool connect(node *r) {
         if (r == this)
             return false;
-        if (neighbors.contains(r->id))
+        if (neighbors.contains(r))
             return false;
         if (!has_free_port())
             return false;
         if (!r->one_way_con(this))
             return false;
-        neighbors[r->id] = r;
+        neighbors.insert(r);
         return true;
     }
 
     [[nodiscard]] virtual bool disconnect(node *r) {
-        if (!neighbors.contains(r->id))
+        if (!neighbors.contains(r))
             return false;
         r->one_way_dc(this);
         if (this != r)
-            neighbors.erase(r->id);
+            neighbors.erase(r);
         return true;
     }
 
@@ -84,7 +85,7 @@ class node {
             assert(t != nullptr);
             if (!visited.contains(t))
                 visited.insert(t);
-            for (const auto &[_, x]: t->neighbors) {
+            for (const auto &x: t->neighbors) {
                 assert(x);
                 if (!visited.contains(x))
                     st.push(x);
@@ -94,9 +95,9 @@ class node {
     }
 
     virtual ~node() {
-        for (auto &[_, n]: neighbors) {
-            assert(n->neighbors.contains(id));
-            n->neighbors.erase(id);
+        for (auto &n: neighbors) {
+            assert(n->neighbors.contains(this));
+            n->neighbors.erase(this);
         }
     }
 };
@@ -156,7 +157,7 @@ class router : public node {
 
         if (!r->is_router)
             return false;
-        for (const auto &[_, n]: neighbors)
+        for (const auto &n: neighbors)
             if (n->parent == r->parent)
                 return false;
         return node::one_way_con(r);
@@ -191,7 +192,7 @@ class router : public node {
         if (!r->is_router)
             return false;
 
-        for (const auto &[_, n] : neighbors) {
+        for (const auto &n : neighbors) {
             if (r->parent == n->parent)
                 return false;
         }
@@ -228,7 +229,7 @@ class network {
         if (visited.contains(cur))
             return true;
         visited.insert(cur);
-        for (const auto &[_, n]: cur->neighbors) {
+        for (const auto &n: cur->neighbors) {
             if (n == cur)
                 return true;
             if (n == source)
@@ -248,13 +249,10 @@ class network {
         if (cur->is_router)
             return;
 
-        if (cur->neighbors.contains(cur->id))
-            cur->neighbors.erase(cur->id);
-
         visited.insert(cur);
         std::stack<node *> eraser;
 
-        for (const auto &[_, n]: cur->neighbors)
+        for (const auto &n: cur->neighbors)
             if (n != source && visited.contains(n))
                 eraser.push(n);
 
@@ -263,7 +261,7 @@ class network {
             eraser.pop();
         }
 
-        for (const auto &[_, n]: cur->neighbors) {
+        for (const auto &n: cur->neighbors) {
             if (n != source)
                 df_fix(cur, n, visited);
         }
@@ -392,12 +390,12 @@ class network {
     std::ostream &serialize(std::ostream &os, std::map<std::size_t, std::size_t> ids) const {
         os << "#" << ids[id] << "\n";
         for (const auto &e: endpoints()) {
-            os << "&" << e->id << " " << (e->neighbors.empty() ? "%" : e->neighbors.begin()->second->id) << "\n" ;
+            os << "&" << e->id << " " << (e->neighbors.empty() ? "%" : (*e->neighbors.begin())->id) << "\n" ;
         }
         for (const auto &b: bridges()) {
             os << "*" << b->id << " " << b->lim << " ";
             std::ostringstream neighbors;
-            for (const auto &[_, n]: b->neighbors) {
+            for (const auto &n: b->neighbors) {
                 neighbors << n->id;
                 neighbors << " ";
             }
@@ -407,7 +405,7 @@ class network {
             os << "@" << r->id << " " << r->lim << " ";
             std::ostringstream neighbors = {};
             std::string in_net = "%";
-            for (const auto &[_, n]: r->neighbors) {
+            for (const auto &n: r->neighbors) {
                 [[unlikely]] if (!n->is_router) {
                     in_net = n->id;
                     continue;
@@ -567,7 +565,7 @@ std::list< network > deserialize( std::string_view s) {
         auto &[router, neighs] = n;
         for (const auto &neigh: neighs) {
             assert(routers.contains(neigh));
-            if (!router->neighbors.contains(routers[neigh].first->id)) {
+            if (!router->neighbors.contains(routers[neigh].first)) {
                 assert(router->connect(routers[neigh].first));
             }
         }
@@ -758,7 +756,17 @@ int main()
     assert(reach.back().endpoints()[0]->reachable(reach.back().endpoints()[1]));
     assert(counts2 == counts1);
 
+    network ver_disc;
+    b1 = ver_disc.add_bridge(2, "A");
+    b2 = ver_disc.add_bridge(2, "B");
+    r1 = ver_disc.add_router(3, "A");
+    e1 = ver_disc.add_endpoint();
+    assert(b1->connect(b2));
+    assert(b1->connect(e1));
+    assert(!b2->connect(b1));
+    assert(b2->connect(r1));
     
+    /**/
 
     return 0;
 }
