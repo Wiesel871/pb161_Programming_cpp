@@ -16,7 +16,47 @@
 #include <cstring>
 #include <map>
 
+
 class network;
+
+const char br = '*';
+const char en = '&';
+const char ro = '@';
+
+class type {
+    public:
+    char inner;
+
+    type() : inner(br) {};
+
+    type(char e) : inner(e) {};
+
+    bool operator==(const char e) const {
+        return inner == e;
+    }
+
+    bool operator==(const type t) const {
+        return inner == t.inner;
+    }
+
+    std::string str() const {
+        return {inner};
+    }
+
+    operator char&() {
+        return inner;
+    }
+
+    auto operator<=>(const char c) const {
+        return inner <=> c;
+    }
+
+    auto operator<=>(const type t) const {
+        return inner <=> t.inner;
+    }
+};
+
+using identifier = std::pair<type, std::string>;
 
 class node {
     size_t lim = 0;
@@ -27,9 +67,8 @@ class node {
     }
 
     public:
-    bool is_router = false;
-    std::string id;
-    std::map<std::string, node *> neighbors;
+    identifier id;
+    std::map<identifier, node *> neighbors;
     network *parent = nullptr;
 
     friend class network;
@@ -104,11 +143,9 @@ class node {
 class endpoint : public node {
     public:
     endpoint(network *p, std::size_t i) : node(p, 1) {
-        is_router = false;
         std::ostringstream aux;
         aux << i;
-        aux << "$";
-        id = aux.str();
+        id = {en, aux.str()};
     }
 
     bool connect(node *r) override {
@@ -125,8 +162,7 @@ class endpoint : public node {
 class bridge : public node {
     public:
     bridge(network *p, size_t len, std::string_view s) : node(p, len) {
-        is_router = false;
-        id = s;
+        id = {br, s.data()};
     }
 
     bool connect(node *r) override {
@@ -154,7 +190,7 @@ class router : public node {
             return false;
         }
 
-        if (!r->is_router)
+        if (r->id.first != ro)
             return false;
         for (const auto &[_, n]: neighbors)
             if (n->parent == r->parent)
@@ -170,8 +206,7 @@ class router : public node {
 
     public:
     router(network *p, size_t len, std::string_view s) : node(p, len) {
-        is_router = true;
-        id = s;
+        id = {ro, s.data()};
     }
 
     bool connect(node *r) override {
@@ -188,7 +223,7 @@ class router : public node {
             return false;
         }
 
-        if (!r->is_router)
+        if (r->id.first != ro)
             return false;
 
         for (const auto &[_, n] : neighbors) {
@@ -210,7 +245,7 @@ class router : public node {
     ~router() override = default;
 };
 
-using connections = std::map<std::string, std::pair<node *, std::vector<std::string>>>;
+using connections = std::map<identifier, std::pair<node *, std::vector<identifier>>>;
 
 class network {
     std::vector<std::unique_ptr<node>> nodes;
@@ -222,7 +257,7 @@ class network {
             const node *cur, 
             std::unordered_set<const node *> &visited
         ) const {
-        if (cur->is_router)
+        if (cur->id.first == ro)
             return false;
 
         if (visited.contains(cur))
@@ -245,7 +280,7 @@ class network {
             std::unordered_set<node *> &visited
             ) {
         std::unordered_set<node *> copy = {};
-        if (cur->is_router)
+        if (cur->id.first == ro)
             return;
 
         if (cur->neighbors.contains(cur->id))
@@ -309,12 +344,12 @@ class network {
 
     network(const network &n) : id{ids++} {
         for (auto &n: n.nodes) {
-            if (n->is_router) {
-                add_router(n->lim, n->id);
-            } else if (n->id.back() == '$') {
+            if (n->id.first == ro) {
+                add_router(n->lim, n->id.second);
+            } else if (n->id.first == en) {
                 add_endpoint();
             } else {
-                add_bridge(n->lim, n->id);
+                add_bridge(n->lim, n->id.second);
             }
         }
     }
@@ -392,29 +427,31 @@ class network {
     std::ostream &serialize(std::ostream &os, std::map<std::size_t, std::size_t> ids) const {
         os << "#" << ids[id] << "\n";
         for (const auto &e: endpoints()) {
-            os << "&" << e->id << " " << (e->neighbors.empty() ? "%" : e->neighbors.begin()->second->id) << "\n" ;
+            const auto &[key, _] = *e->neighbors.begin();
+            const auto &[t, str] = key;
+            os << "&" << e->id.second << " " << (e->neighbors.empty() ? "%" : (str + t.str())) << "\n" ;
         }
         for (const auto &b: bridges()) {
-            os << "*" << b->id << " " << b->lim << " ";
+            os << "*" << b->id.second << " " << b->lim << " ";
             std::ostringstream neighbors;
             for (const auto &[_, n]: b->neighbors) {
-                neighbors << n->id;
+                neighbors << n->id.second  + n->id.first.str();
                 neighbors << " ";
             }
             os << neighbors.str() << "\n";
         }
         for (const auto &r: routers()) {
-            os << "@" << r->id << " " << r->lim << " ";
+            os << "@" << r->id.second << " " << r->lim << " ";
             std::ostringstream neighbors = {};
             std::string in_net = "%";
             for (const auto &[_, n]: r->neighbors) {
-                [[unlikely]] if (!n->is_router) {
-                    in_net = n->id;
+                [[unlikely]] if (n->id.first != ro) {
+                    in_net = n->id.second + n->id.first.str();
                     continue;
                 }
                 assert(n->parent);
                 neighbors << ids[n->parent->id] << " ";
-                neighbors << n->id << " ";
+                neighbors << n->id.second << " ";
             }
             os << in_net << " " << neighbors.str() << "\n";
         }
@@ -470,6 +507,7 @@ std::string serialize( const std::list< network > & l) {
     for (const auto &n: l) {
         n.serialize(res, ids);
     }
+    //std::cout << res.str();
     return res.str();
 };
 
@@ -485,7 +523,6 @@ void connect_all(network &net, connections &cons) {
 std::list< network > deserialize( std::string_view s) {
     std::istringstream in(s.data());
     std::map<std::size_t, network> subres;
-    std::map<std::string, endpoint *> ends;
     connections net_connections;
     std::map<
         std::pair<std::string, std::size_t>, 
@@ -494,13 +531,14 @@ std::list< network > deserialize( std::string_view s) {
     std::size_t endc = 0;
     std::size_t lim = 0;
     std::size_t net_id = 0;
-    std::string id;
+    identifier id;
+    type t;
     while (!in.eof()) {
         std::string aux;
         std::getline(in, aux);
         std::istringstream line(aux);
-        char mark = line.get();
-        switch (mark) {
+        id.first = line.get();
+        switch (id.first) {
             case '#': {
                           connect_all(subres[net_id], net_connections);
                           line >> net_id;
@@ -514,42 +552,49 @@ std::list< network > deserialize( std::string_view s) {
                           break;
                       }
 
-            case '&': {
-                          line >> id;
+            case en: {
+                          line >> id.second;
                           net_connections[id] = {subres[net_id].add_endpoint(), {}};
                           line >> aux;
                           if (aux != "%") {
-                              net_connections[id].second.push_back(aux);
+                              t = aux.back();
+                              aux.pop_back();
+                              net_connections[id].second.emplace_back(t, aux);
                           }
                           break;
                       }
 
-            case '*': {
-                           line >> id;
-                           assert(!id.empty());
-                           line >> lim;
-                           net_connections[id] = {subres[net_id].add_bridge(lim, id), {}};
-                           while (!line.eof()) {
-                               std::string neigh_id;
-                               line >> neigh_id;
-                               if (neigh_id.empty())
-                                   continue;
-                               net_connections[id].second.emplace_back(neigh_id);
-                           }
-                           break;
+            case br: {
+                          line >> id.second;
+                          assert(!id.second.empty());
+                          line >> lim;
+                          net_connections[id] = {subres[net_id].add_bridge(lim, id.second), {}};
+                          while (!line.eof()) {
+                              std::string neigh_id;
+                              line >> neigh_id;
+                              if (neigh_id.empty())
+                                  continue;
+                              t = neigh_id.back();
+                              neigh_id.pop_back();
+                              net_connections[id].second.emplace_back(t, neigh_id);
+                          }
+                          break;
                        }
-            case '@': {
+            case ro: {
                            std::string in_net;
-                           line >> id;
-                           assert(!id.empty());
+                           line >> id.second;
+                           assert(!id.second.empty());
                            line >> lim;
                            line >> in_net;
-                           const std::pair<std::string &, std::size_t> key = {id, net_id};
-                           routers[key] = {dynamic_cast<router *>(subres[net_id].add_router(lim, id)), {}};
+                           const std::pair<std::string &, std::size_t> key = {id.second, net_id};
+                           routers[key] = {dynamic_cast<router *>(subres[net_id].add_router(lim, id.second)), {}};
                            auto rout = routers[key].first;
                            auto neighs = &routers[key].second;
-                           if (in_net != "%")
-                               rout->connect(net_connections[in_net].first);
+                           if (in_net != "%") {
+                               t = in_net.back();
+                               in_net.pop_back();
+                               rout->connect(net_connections[{t, in_net}].first);
+                           }
                            while (!line.eof()) {
                                std::string neigh_id;
                                std::size_t par;
@@ -757,6 +802,16 @@ int main()
     out = {};
     assert(reach.back().endpoints()[0]->reachable(reach.back().endpoints()[1]));
     assert(counts2 == counts1);
+
+        network ver_disc;
+    b1 = ver_disc.add_bridge(2, "A");
+    b2 = ver_disc.add_bridge(2, "B");
+    r1 = ver_disc.add_router(3, "A");
+    e1 = ver_disc.add_endpoint();
+    assert(b1->connect(b2));
+    assert(b1->connect(e1));
+    assert(!b2->connect(b1));
+    assert(b2->connect(r1));
 
     
 
