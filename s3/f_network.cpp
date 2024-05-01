@@ -29,7 +29,7 @@ class node {
     public:
     bool is_router = false;
     std::string id;
-    std::map<std::string, node *> neighbors = {};
+    std::map<std::string, node *> neighbors;
     network *parent = nullptr;
 
     friend class network;
@@ -213,7 +213,7 @@ class router : public node {
 using connections = std::map<std::string, std::pair<node *, std::vector<std::string>>>;
 
 class network {
-    std::vector<std::unique_ptr<node>> nodes = {};
+    std::vector<std::unique_ptr<node>> nodes;
     static std::size_t ids;
     std::size_t endc = 0;
 
@@ -252,9 +252,9 @@ class network {
             cur->neighbors.erase(cur->id);
 
         visited.insert(cur);
-        std::stack<node *> eraser = {};
+        std::stack<node *> eraser;
 
-        for (auto [_, n]: cur->neighbors)
+        for (const auto &[_, n]: cur->neighbors)
             if (n != source && visited.contains(n))
                 eraser.push(n);
 
@@ -263,7 +263,7 @@ class network {
             eraser.pop();
         }
 
-        for (auto [_, n]: cur->neighbors) {
+        for (const auto &[_, n]: cur->neighbors) {
             if (n != source)
                 df_fix(cur, n, visited);
         }
@@ -300,7 +300,6 @@ class network {
     public:
     std::size_t id;
     network() : id{ids++} {}
-    network(std::size_t id) : id{id} {}
     network(network &&n) : id{n.id} {
         nodes = std::move(n.nodes);
         for (auto &n: nodes) {
@@ -507,7 +506,7 @@ std::list< network > deserialize( std::string_view s) {
                           line >> net_id;
                           line >> endc;
                           net_connections = {};
-                          subres[net_id] = network(net_id);
+                          subres[net_id] = network();
                           for (std::size_t i = 0; i < endc; ++i) {
                               auto aux = subres[net_id].add_endpoint();
                               net_connections[aux->id] = {aux, {}};
@@ -566,7 +565,6 @@ std::list< network > deserialize( std::string_view s) {
     connect_all(subres[net_id], net_connections);
     for (auto &[rid, n]: routers) {
         auto &[router, neighs] = n;
-        assert(rid.second == router->parent->id);
         for (const auto &neigh: neighs) {
             assert(routers.contains(neigh));
             if (!router->neighbors.contains(routers[neigh].first->id)) {
@@ -699,8 +697,8 @@ int main()
     assert(str == serialize({disc_san1, disc_san2}));
 
     std::list<network> perm1;
-    perm1.push_front(network());
-    perm1.push_front(network());
+    perm1.emplace_front();
+    perm1.emplace_front();
     e1 = perm1.back().add_endpoint();
     e2 = perm1.back().add_endpoint();
     assert(e1->connect(e2));
