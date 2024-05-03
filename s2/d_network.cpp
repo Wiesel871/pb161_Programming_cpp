@@ -69,8 +69,7 @@ class node {
 
     public:
     bool is_router = false;
-    //std::size_t nid = 0;
-    std::unordered_multiset<node *> neighbors = {};
+    std::unordered_multiset<node *> neighbors;
     network *parent = nullptr;
 
     node(network *p, size_t len) : lim(len), parent{p}  {}
@@ -226,7 +225,7 @@ class router : public node {
 };
 
 class network {
-    std::vector<std::unique_ptr<node>> nodes = {};
+    std::vector<std::unique_ptr<node>> nodes;
 
     bool df_search(
             const node *source, 
@@ -236,8 +235,6 @@ class network {
         if (cur->is_router)
             return false;
 
-        if (visited.contains(cur))
-            return true;
         visited.insert(cur);
         for (const node *n: cur->neighbors) {
             if (n == cur)
@@ -250,19 +247,10 @@ class network {
         return false;
     }
 
-    void df_fix(
-            node *source, 
+    void find_erase_cycles(
             node *cur, 
-            std::unordered_set<node *> &visited
-            ) {
-        std::unordered_set<node *> copy = {};
-        if (cur->is_router)
-            return;
-
-        if (cur->neighbors.contains(cur))
-            cur->neighbors.erase(cur);
-
-        visited.insert(cur);
+            node *source, 
+            std::unordered_set<node *> &visited) {
         std::stack<node *> eraser = {};
 
         for (auto n: cur->neighbors)
@@ -273,7 +261,21 @@ class network {
             assert(cur->disconnect(eraser.top()));
             eraser.pop();
         }
+    }
 
+
+    void df_fix(
+            node *source, 
+            node *cur, 
+            std::unordered_set<node *> &visited
+            ) {
+        std::unordered_set<node *> copy = {};
+        if (cur->is_router)
+            return;
+        
+        find_erase_cycles(cur, source, visited);
+
+        visited.insert(cur);
         for (auto n: cur->neighbors) {
             if (n != source)
                 df_fix(cur, n, visited);
