@@ -274,19 +274,11 @@ class network {
         return false;
     }
 
-    void df_fix(
-            node *source, 
-            node *cur, 
+    void find_erace_cycles(
+            node *cur,
+            node *source,
             std::unordered_set<node *> &visited
             ) {
-        std::unordered_set<node *> copy = {};
-        if (cur->id.first == ro)
-            return;
-
-        if (cur->neighbors.contains(cur->id))
-            cur->neighbors.erase(cur->id);
-
-        visited.insert(cur);
         std::stack<node *> eraser;
 
         for (const auto &[_, n]: cur->neighbors)
@@ -297,7 +289,18 @@ class network {
             assert(cur->disconnect(eraser.top()));
             eraser.pop();
         }
+    }
 
+    void df_fix(
+            node *source, 
+            node *cur, 
+            std::unordered_set<node *> &visited
+            ) {
+        std::unordered_set<node *> copy = {};
+        if (cur->id.first == ro)
+            return;
+
+        visited.insert(cur);
         for (const auto &[_, n]: cur->neighbors) {
             if (n != source)
                 df_fix(cur, n, visited);
