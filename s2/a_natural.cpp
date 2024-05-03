@@ -236,24 +236,16 @@ struct natural {
 
 // bool operators #BO
 // ----------------------------------------------------------------------------
-    constexpr friend bool operator==(const natural &l, const natural &r) {
-        if (l.len() != r.len())
+    constexpr bool operator==(const natural &r) {
+        if (len() != r.len())
             return false;
-        for (size_t i = 0; i < l.len(); ++i) {
-            if (l[i] != r[i])
-                return false;
-        }
-        return true;
+        return std::equal(n.rbegin(), n.rend(), r.n.rbegin(), r.n.rend());
     }
 
-    constexpr friend auto operator<=>(const natural &l, const natural &r) {
-        if (auto cmp = l.len() <=> r.len(); cmp != 0)
+    constexpr auto operator<=>(const natural &r) {
+        if (auto cmp = len() <=> r.len(); cmp != 0)
             return cmp;
-        for (size_t i = l.len() - 1; i > 0; --i) {
-            if (auto cmp = l[i] <=> r[i]; cmp != 0)            
-                return cmp;
-        }
-        return l[0] <=> r[0]; 
+        return std::lexicographical_compare_three_way(n.rbegin(), n.rend(), r.n.rbegin(), r.n.rend());
     }
 
 // arithmetic operators #AO
