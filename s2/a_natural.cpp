@@ -204,10 +204,12 @@ struct natural {
     }
 
     constexpr uint64_t &operator[](size_t i) {
+        assert(i >= 0 && i < len());
         return n[i];
     }
 
     constexpr uint64_t operator[](size_t i) const {
+        assert(i >= 0 && i < len());
         return n[i];
     }
 
@@ -236,6 +238,9 @@ struct natural {
 
 // bool operators #BO
 // ----------------------------------------------------------------------------
+// beruc do uvahy ze algorithmy boli az tyzden po ukonceni tejto kapitoly
+// si nemyslim ze to bolo najferovejsia kritika ale opravene
+
     constexpr bool operator==(const natural &r) {
         if (len() != r.len())
             return false;
