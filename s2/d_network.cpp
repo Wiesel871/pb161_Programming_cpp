@@ -69,7 +69,7 @@ class node {
 
     public:
     bool is_router = false;
-    std::unordered_multiset<node *> neighbors;
+    std::unordered_set<node *> neighbors;
     network *parent = nullptr;
 
     node(network *p, size_t len) : lim(len), parent{p}  {}
@@ -234,6 +234,8 @@ class network {
         ) const {
         if (cur->is_router)
             return false;
+        if (visited.contains(cur))
+            return true;
 
         visited.insert(cur);
         for (const node *n: cur->neighbors) {
