@@ -143,10 +143,8 @@ class node {
 
 class endpoint : public node {
     public:
-    endpoint(network *p, std::size_t i) : node(p, 1) {
-        std::ostringstream aux;
-        aux << i;
-        id = {en, aux.str()};
+    endpoint(network *p) : node(p, 1) {
+        id = {en, ""};
     }
 
     bool connect(node *r) override {
@@ -370,7 +368,7 @@ class network {
     }
 
     node *add_endpoint() {
-        nodes.emplace_back(new endpoint(this, endc++));
+        nodes.emplace_back(new endpoint(this));
         return nodes.back().get();
     }
 
@@ -434,11 +432,14 @@ class network {
     }
 
     std::ostream &serialize_ends(std::ostream &os) const {
-        for (const auto &e: endpoints()) {
-            const auto &[key, _] = *e->neighbors.begin();
-            const auto &[t, str] = key;
-            os << "&" << e->id.second << " " << (e->neighbors.empty() ? "%" : (str + t.str())) << "\n" ;
+        auto ends = endpoints();
+        os << en << " " << ends.size() << " ";
+        std::size_t in_en_count = 0;
+        for (const auto &e: ends) {
+            if (e->id.first == en)
+                ++in_en_count;
         }
+        os << in_en_count << std::endl;
         return os;
     }
 
@@ -446,11 +447,16 @@ class network {
         for (const auto &b: bridges()) {
             os << "*" << b->id.second << " " << b->lim << " ";
             std::ostringstream neighbors;
+            std::size_t endc = 0;
             for (const auto &[_, n]: b->neighbors) {
+                if (n->id.first == en) {
+                    ++endc;
+                    continue;
+                }
                 neighbors << n->id.second  + n->id.first.str();
                 neighbors << " ";
             }
-            os << neighbors.str() << "\n";
+            os << endc << " " << neighbors.str() << "\n";
         }
         return os;
     }
@@ -542,49 +548,57 @@ void deserialize_net(
         std::size_t &net_id,
         std::map<std::size_t, network> &subres
         ) {
-    std::size_t endc;
     line >> net_id;
-    line >> endc;
     net_connections = {};
     subres[net_id] = network();
-    for (std::size_t i = 0; i < endc; ++i) {
-        auto aux = subres[net_id].add_endpoint();
-        net_connections[aux->id] = {aux, {}};
-    }
 }
 
 void deserialize_end(
         std::istringstream &line, 
-        connections &net_connections,
-        identifier &id,
         std::map<std::size_t, network> &subres,
-        std::size_t net_id
+        std::size_t net_id,
+        std::size_t &endi
         ) {
-    std::string aux;
-    type t;
-    line >> id.second;
-    net_connections[id] = {subres[net_id].add_endpoint(), {}};
-    line >> aux;
-    if (aux != "%") {
-        t = aux.back();
-        aux.pop_back();
-        net_connections[id].second.emplace_back(t, aux);
+    std::size_t endc = 0;
+    line >> endc;
+    line >> endi;
+    assert(endi % 2 == 0);
+    node *cur = nullptr, *prev = nullptr;
+    for (std::size_t i = 0; i < endi; ++i) {
+        if (i % 2) {
+            cur = subres[net_id].add_endpoint();
+            assert(cur->connect(prev));
+        } else {
+            prev = subres[net_id].add_endpoint();
+        }
     }
+
+    for (std::size_t i = endi; i < endc; ++i)
+        subres[net_id].add_endpoint();
 }
 
 void deserialize_bridge(
         std::istringstream &line, 
         connections &net_connections,
         identifier &id,
-        std::map<std::size_t, network> &subres,
-        std::size_t net_id
+        network &net,
+        std::size_t &endi
         ) {
     std::size_t lim;
     type t;
     line >> id.second;
     assert(!id.second.empty());
     line >> lim;
-    net_connections[id] = {subres[net_id].add_bridge(lim, id.second), {}};
+    std::size_t endc = 0;
+    line >> endc;
+    std::vector<endpoint *> ends;
+    if (endc) {
+        ends = net.endpoints();
+    }
+    node *br = net.add_bridge(lim, id.second);
+    net_connections[id] = {br, {}};
+    for (std::size_t i = 0; i < endc; ++i)
+        assert(br->connect(ends[endi++]));
     while (!line.eof()) {
         std::string neigh_id;
         line >> neigh_id;
@@ -599,9 +613,9 @@ void deserialize_bridge(
 void deserialize_rout(
         std::istringstream &line, 
         connections &net_connections,
-        std::map<std::size_t, network> &subres,
-        std::size_t net_id,
-        router_connections &routers
+        network &net,
+        router_connections &routers,
+        std::size_t &endi
         ) {
     std::size_t lim;
     type t;
@@ -612,13 +626,17 @@ void deserialize_rout(
     line >> lim;
     line >> in_net;
     const std::pair<std::string &, std::size_t> key = {id, net_id};
-    routers[key] = {dynamic_cast<router *>(subres[net_id].add_router(lim, id)), {}};
-    auto rout = routers[key].first;
+    auto rout = dynamic_cast<router *>(net.add_router(lim, id));
+    routers[key] = {, {}};
     auto neighs = &routers[key].second;
     if (in_net != "%") {
         t = in_net.back();
         in_net.pop_back();
-        rout->connect(net_connections[{t, in_net}].first);
+        if (t == en) {
+            rout->connect(subres[net_id].endpoints()[endi++]);
+        } else {
+            rout->connect(net_connections[{t, in_net}].first);
+        }
     }
     while (!line.eof()) {
         std::string neigh_id;
@@ -651,6 +669,7 @@ std::list< network > deserialize( std::string_view s) {
     router_connections routers;
     std::size_t net_id = 0;
     identifier id;
+    std::size_t endi = 0;
     while (!in.eof()) {
         std::string aux;
         std::getline(in, aux);
@@ -660,9 +679,9 @@ std::list< network > deserialize( std::string_view s) {
             case '#':   connect_in_net(subres[net_id], net_connections);
                         deserialize_net(line, net_connections, net_id, subres);
                         break;
-            case en:    deserialize_end(line, net_connections, id, subres, net_id); break;
-            case br:    deserialize_bridge(line, net_connections, id, subres, net_id); break;
-            case ro:    deserialize_rout(line, net_connections, subres, net_id, routers); break;
+            case br:    deserialize_bridge(line, net_connections, id, subres, net_id, endi); break;
+            case ro:    deserialize_rout(line, net_connections, subres, net_id, routers, endi); break;
+            default:    deserialize_end(line, subres, net_id, endi);
         }
     }
     connect_in_net(subres[net_id], net_connections);
