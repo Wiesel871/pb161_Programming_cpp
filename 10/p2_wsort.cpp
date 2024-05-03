@@ -2,9 +2,6 @@
 #include <utility>
 #include <vector>
 #include <cassert>
-#include <ranges>
-#include <numeric>
-#include <functional>
 #include <algorithm>
 #include <concepts>
 #include <iterator>
