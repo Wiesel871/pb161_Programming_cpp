@@ -67,7 +67,7 @@ struct fixnum {
             inner += str[i] - '0';
         }
         inner *= 100;
-        if (dot == str.npos)
+        if (dot == str.npos || dot + 1 == str.size())
             return;
         if (str[dot + 1] < '0' || str[dot + 1] > '9')
             throw bad_format{};
@@ -77,7 +77,6 @@ struct fixnum {
         if (str[dot + 2] < '0' || str[dot + 2] > '9')
             throw bad_format{};
         inner += str[dot + 2] - '0';
-//        std::cout << "string: " << str << " " << inner << std::endl;
     }
 
     constexpr fixnum operator+(const fixnum &r) const {
