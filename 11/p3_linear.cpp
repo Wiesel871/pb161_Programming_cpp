@@ -44,24 +44,20 @@ struct row {
 
     row(std::string_view word, char one, char two) {
         double *target = nullptr;
-        std::cout << "input: " << word << " " << one << " " << two << std::endl;
         if (*(word.end() - 1) == one) {
             word.remove_suffix(1);
             target = &x;
             y = 0;
             d = 0;
-            std::cout << "x: ";
         } else if (*(word.end() - 1) == two) {
             word.remove_suffix(1);
             target = &y;
             x = 0;
             d = 0;
-            std::cout << "y: ";
         } else {
             target = &d;
             x = 0;
             y = 0;
-            std::cout << "d: ";
         }
         if (word.empty()) {
             *target = 1;
@@ -70,7 +66,6 @@ struct row {
             std::istringstream i(aux);
             i >> (*target);
         }
-        std::cout << (*target) << std::endl;
     }
 
     row operator+(const row &r) const {
@@ -102,9 +97,6 @@ struct row {
     }
 
     row operator-(const row &r) const {
-        std::cout << "-" << std::endl;
-        print();
-        r.print();
         return {x - r.x, y - r.y, d - r.d};    
     }
 
@@ -152,9 +144,6 @@ inline void check(const row &r) {
 std::pair<double, double> solve(const row &r1, const row &r2) {
     check(r1);
     check(r2);
-    std::cout << "solve:" << std::endl;
-    r1.print();
-    r2.print();
     std::pair<double, double> res;
     double det_a = (r1.x * r2.y - r1.y * r2.x);
     if (eq(det_a, 0))
@@ -163,16 +152,25 @@ std::pair<double, double> solve(const row &r1, const row &r2) {
     double det_a2 = (r1.x * r2.d - r1.d * r2.x);
     res.first = det_a1 / det_a;
     res.second = det_a2 / det_a;
-    std::cout << "pre: " << res.first << " " << res.second << std::endl;
-    if (res.first < 0 && res.second > 0) {
+    if (det_a < 0) {
+        if (eq(det_a1, 0) && eq(det_a2, 0)) {
+            res.first = 0;
+            res.second = 0;
+        } else if (eq(det_a1, 0)) {
+            res.first = 0;
+            res.second = -res.second;
+        } else if (eq(det_a2, 0)) {
+            res.first = -res.first;
+            res.second = 0;
+        } else if (det_a1 > 0) {
+            res.first = -res.first;
+            res.second = -res.second;
+        }
+    } else if (det_a1 <= 0) {
         res.first = -res.first;
         res.second = -res.second;
     }
-    if (eq(res.first, 0))
-        res.first = std::abs(res.first);
-    if (eq(res.second, 0))
-        res.second = std::abs(res.second);
-    std::cout << "res: " << res.first << " " << res.second << std::endl;
+
     return res;
 }
 
@@ -212,7 +210,7 @@ row parse_wrs(std::vector<std::string_view> wrs, char one, char two) {
             s = sign::p;
         } else if (w[0] == '-') {
             if (w.size() > 1) {
-                res = res - row(w, one, two);
+                res = res + row(w, one, two);
             } else {
                 s = sign::m;
             }
@@ -233,13 +231,11 @@ row parse_line(std::string_view str) {
         var,
         op,
     };
-    std::cout << "line: " << str << std::endl;
     last ls = last::op;
     char one = '\0', two = '\0';
     bool after_eq = false;
     std::vector<std::string_view> l = {}, r = {};
     for (const auto &w: wrs) {
-        std::cout << "word: " << w << std::endl;
         if (ls == last::op) {
             ls = last::var;
             auto var = std::find_if(w.begin(), w.end(), [](int c) {return isalpha(c);});
@@ -305,6 +301,11 @@ int main()
                std::abs( v - y ) < 1e-6;
     };
 
+    assert( solve(     x + y == 1,  x     - y ==  1 ) == a );
+    assert( solve(     x + y == -1, x     - y == -1 ) == b );
+    assert( solve(     x + y == x,  x     + y ==  1 ) == a );
+    assert( solve( 2 * x + y == 1,  x - 2 * y ==  1 ) == c );
+    assert( solve(     x + y - 1,   x     - y - 1   ) == a );
     assert( check( " x + y     =  1\n x -  y     =  1\n", a ) );
     assert( check( " x + y     = -1\n x -  y     = -1\n", b ) );
     assert( check( " x + y     =  x\n x +  y     =  1\n", a ) );
