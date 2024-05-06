@@ -742,6 +742,24 @@ struct real {
 
     real(int i) : n(i), d(1) {}
 
+    real(real &&r) = default;
+    real(const real &r) = default;
+
+    real &operator=(std::size_t i) {
+        d = 1;
+        n = i;
+        return *this;
+    }
+
+    real &operator=(int i) {
+        d = 1;
+        n = i;
+        return *this;
+    }
+
+    real &operator=(real &&r) = default;
+    real &operator=(const real &r) = default;
+
     static natural gcd(natural a, natural b) {
         natural aux;
         while (a != 0) {
@@ -765,10 +783,11 @@ struct real {
         double fractional, whole;
         fractional = 10 * std::modf(i, &whole);
         whole = 0;
+        natural ten = 10;
         while (fractional != 0.0) {
             fractional = std::modf(fractional, &whole);
-            d = d * natural(10);
-            n = n * natural(10);
+            d = d * ten;
+            n = n * ten;
             n += whole;
             fractional *= 10;
         }
@@ -816,6 +835,7 @@ struct real {
         real res;
         res.n = n * r.d - r.n * d;
         res.d = d * r.d;
+        res.normalise();
         return res;
     } 
 
@@ -927,6 +947,38 @@ struct real {
         d.printd();
         std::cout << "--------------------" << std::endl;
     }
+
+    friend real operator*(int i, const real &r) {
+        return r * real(i);
+    }
+
+    friend real operator/(int i, const real &r) {
+        return real(i) / r;
+    }
+
+    friend real operator+(int i, const real &r) {
+        return r + real(i);
+    }
+
+    friend real operator-(int i, const real &r) {
+        return real(i) - r;
+    }
+
+    friend real operator*(double i, const real &r) {
+        return r * real(i);
+    }
+
+    friend real operator/(double i, const real &r) {
+        return real(i) / r;
+    }
+
+    friend real operator+(double i, const real &r) {
+        return r + real(i);
+    }
+    
+    friend real operator-(double i, const real &r) {
+        return real(i) - r;
+    }
 };
 
 int main()
@@ -985,5 +1037,7 @@ int main()
     (half.log1p(eps) - l_half).abs().print();
     assert( ( half.log1p( eps ) - l_half ).abs() < eps );
 
+    real two(2.0);
+    assert( ( ( one / two ).exp( eps ) - e.sqrt( eps ) ).abs() < 2 * eps );
     return 0;
 }
