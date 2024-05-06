@@ -93,6 +93,7 @@ struct machine
 
     std::map<int32_t, int32_t> ram;
     std::map<int32_t, int32_t> registers;
+    bool stop = false;
     int32_t cur_addr = 0;
     /* Čtení a zápis paměti po jednotlivých slovech. */
 
@@ -109,7 +110,7 @@ struct machine
 
     std::int32_t run() {
         int32_t reg1 = 1;
-        while (cur_addr >= 0) {
+        while (!stop) {
             int32_t opcode = ram[cur_addr];
             int32_t im = ram[cur_addr + 4];
             reg1 = ram[cur_addr + 8];
@@ -165,7 +166,7 @@ void hlt_i::operator()(machine &m, int32_t im, int32_t reg1, int32_t reg2) const
     (void) im;
     (void) reg1;
     if (!reg2 || m.registers[reg2]) 
-        m.cur_addr = -1;
+        m.stop = true;
 };
 
 
