@@ -271,6 +271,14 @@ class network {
     static std::size_t ids;
     std::size_t endc = 0;
 
+    std::map<identifier, const node *> to_id_map(const std::vector<const node *> &vec) const {
+        std::map<identifier, const node *> res;
+        for (const auto &n: vec) {
+            res[n->id] = n;
+        }
+        return res;
+    }
+
     bool df_search(
             const node *source, 
             const node *cur, 
@@ -326,24 +334,20 @@ class network {
         }
     }
     
-    template<class T>
-    std::vector<T> nodes_vec() {
-        std::vector<T> res = {};
+    std::vector<node *> nodes_vec(type t) {
+        std::vector<node *> res = {};
         for (auto &n: nodes) {
-            if (auto p = dynamic_cast<T>(n.get()); p != nullptr) {
-                res.push_back(p);
-            }
+            if (n->id.first == t)
+                res.push_back(n.get());
         }
         return res;
     }
 
-    template<class T>
-    std::vector<T> nodes_vec() const {
-        std::vector<T> res = {};
+    std::vector<const node *> nodes_vec(type t) const {
+        std::vector<const node *> res = {};
         for (auto &n: nodes) {
-            if (auto p = dynamic_cast<T>(n.get()); p != nullptr) {
-                res.push_back(p);
-            }
+            if (n->id.first == t)
+                res.push_back(n.get());
         }
         return res;
     }
@@ -418,28 +422,28 @@ class network {
     }
 
 
-    std::vector<endpoint *> endpoints() {
-        return nodes_vec<endpoint *>();
+    std::vector<node *> endpoints() {
+        return nodes_vec(en);
     }
 
-    std::vector<bridge *> bridges() {
-        return nodes_vec<bridge *>();
+    std::vector<node *> bridges() {
+        return nodes_vec(br);
     }
 
-    std::vector<router *> routers() {
-        return nodes_vec<router *>();
+    std::vector<node *> routers() {
+        return nodes_vec(ro);
     }
 
-    std::vector<const endpoint *> endpoints() const {
-        return nodes_vec<const endpoint *>();
+    std::vector<const node *> endpoints() const {
+        return nodes_vec(en);
     }
 
-    std::vector<const bridge *> bridges() const {
-        return nodes_vec<const bridge *>();
+    std::vector<const node *> bridges() const {
+        return nodes_vec(br);
     }
 
-    std::vector<const router *> routers() const {
-        return nodes_vec<const router *>();
+    std::vector<const node *> routers() const {
+        return nodes_vec(ro);
     }
 
     int size() const {
@@ -459,16 +463,16 @@ class network {
     }
 
     std::ostream &serialize_bridges(std::ostream &os) const {
-        for (const auto &b: bridges()) {
-            os << "*" << b->id.second << " " << b->lim << " ";
+        for (const auto &[id, b]: to_id_map(bridges())) {
+            os << "*" << id.second << " " << b->lim << " ";
             std::ostringstream neighbors;
             std::size_t endc = 0;
-            for (const auto &[_, n]: b->neighbors) {
-                if (n->id.first == en) {
+            for (const auto &[nid, n]: b->neighbors) {
+                if (nid.first == en) {
                     ++endc;
                     continue;
                 }
-                neighbors << n->id.second  + n->id.first.str();
+                neighbors << nid.second  + nid.first.str();
                 neighbors << " ";
             }
             os << endc << " " << neighbors.str() << "\n";
@@ -477,21 +481,21 @@ class network {
     }
 
     std::ostream &serialize_routers(std::ostream &os, const std::map<std::size_t, std::size_t> &ids) const {
-        for (const auto &r: routers()) {
+        for (const auto &[id, r]: to_id_map(routers())) {
             os << "@" << r->id.second << " " << r->lim << " ";
             std::ostringstream neighbors = {};
             std::string in_net = "%";
-            for (const auto &[_, n]: r->neighbors) {
-                [[unlikely]] if (n->id.first != ro) {
+            for (const auto &[nid, n]: r->neighbors) {
+                [[unlikely]] if (nid.first != ro) {
                     in_net = "";
-                    if (n->id.first == br)
-                        in_net += n->id.second;
-                    in_net += n->id.first.str();
+                    if (nid.first == br)
+                        in_net += nid.second;
+                    in_net += nid.first.str();
                     continue;
                 }
                 assert(n->parent);
                 neighbors << ids.at(n->parent->id) << " ";
-                neighbors << n->id.second << " ";
+                neighbors << nid.second << " ";
             }
             os << in_net << " " << neighbors.str() << "\n";
         }
@@ -615,7 +619,7 @@ void deserialize_bridge(
     line >> lim;
     std::size_t endc = 0;
     line >> endc;
-    std::vector<endpoint *> ends;
+    std::vector<node *> ends;
     if (endc) {
         ends = net.endpoints();
     }
@@ -949,6 +953,42 @@ int main()
     str_1 = "#0\n#1\n&0 2&\n&1 A@\n&2 0&\n@A 3 1& \n"
     str_2 = "#0\n#1\n&0 A@\n&1 2&\n&2 1&\n@A 3 0& \n"*/
     
+    std::list<network> ver2_perm1{2};
+    b1 = ver2_perm1.back().add_bridge(2, "A");
+    b2 = ver2_perm1.back().add_bridge(2, "B");
+    auto b3 = ver2_perm1.back().add_bridge(2, "C");
+    b1->connect(b2);
+    b1->connect(b3);
+    b2->connect(b3);
+    str = serialize(ver2_perm1);
+
+    std::list<network> ver2_perm2{2};
+    b2 = ver2_perm2.back().add_bridge(2, "B");
+    b1 = ver2_perm2.back().add_bridge(2, "A");
+    b1->connect(b2);
+    b3 = ver2_perm2.back().add_bridge(2, "C");
+    b3->connect(b1);
+    b3->connect(b2);
+    assert(serialize(ver2_perm2) == str);
+    /*
+     *
+  std::list< _student_::network > h { }
+  h.resize( g.networks.size() ) ; 
+  net_id → 1, node_id → 2, capacity → 2
+  node = net->add_bridge( capacity, ni.idstr ) ; 
+  net_id → 1, node_id → 1, capacity → 2
+  node = net->add_bridge( capacity, ni.idstr ) ; 
+  ni.connect( g.at( other_id ) ) ;  1 2
+  net_id → 1, node_id → 3, capacity → 2
+  node = net->add_bridge( capacity, ni.idstr ) ; 
+  ni.connect( g.at( other_id ) ) ;  3 1
+  ni.connect( g.at( other_id ) ) ;  3 2
+  auto str_2 { _student_::serialize( h ) → "#0\n& 0 0\n#1\n& 0 0\n*B 2 0 A* C* \
+  \n*A 2 0 B* C* \n*C 2 0 A* B* \n" }
+  assert str_1 == str_2
+  eval/f_permute.t.cpp:75: str_1 == str_2
+    str_1 = "#0\n& 0 0\n#1\n& 0 0\n*A 2 0 B* C* \n*B 2 0 A* C* \n*C 2 0 A* B* \n"
+    str_2 = "#0\n& 0 0\n#1\n& 0 0\n*B 2 0 A* C* \n*A 2 0 B* C* \n*C 2 0 A* B* \n"*/
 
     return 0;
 }
