@@ -108,15 +108,16 @@ struct machine
      * ukončila. */
 
     std::int32_t run() {
+        int32_t reg1 = 1;
         while (cur_addr >= 0) {
             int32_t opcode = ram[cur_addr];
             int32_t im = ram[cur_addr + 4];
-            int32_t reg1 = ram[cur_addr + 8];
+            reg1 = ram[cur_addr + 8];
             int32_t reg2 = ram[cur_addr + 12];
             cur_addr += 16;
             (*insts.at(opcode))(*this, im, reg1, reg2);
         }
-        return registers[1];
+        return registers[reg1];
     };
 };
 
