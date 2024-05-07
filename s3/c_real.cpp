@@ -97,13 +97,13 @@ struct natural;
 template <typename T>
 concept WholeView = requires(T t) {
     { t.is_neg() } -> std::same_as<bool>;
-    //{ t.get_p() } -> std::convertible_to<const natural &>;
+    { t.get_p() } -> std::convertible_to<const natural &>;
 };
 
 
 template <typename  T>
 concept RealView = WholeView<T> && requires(T t) {
-    //{ t.get_q() } -> std::convertible_to<const natural &>;
+    { t.get_q() } -> std::convertible_to<const natural &>;
     true;
 };
 
