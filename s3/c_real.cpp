@@ -104,7 +104,6 @@ concept WholeView = requires(T t) {
 template <typename  T>
 concept RealView = WholeView<T> && requires(T t) {
     { t.get_q() } -> std::convertible_to<const natural &>;
-    true;
 };
 
 template <WholeView W>
@@ -965,14 +964,6 @@ struct real {
         return *this;
     }
 
-    const abs_rview<real> to_abs_view() const {
-        return abs_rview<const real>(this);
-    };
-
-    const neg_rview<real> to_neg_view() const {
-        return neg_rview<const real>(this);
-    };
-
     real &operator=(real &&r) = default;
 
     real &operator=(const real &r) = default;
@@ -1130,46 +1121,14 @@ struct real {
     }
 
     template<RealView R>
-    real sqrt(const R &p) const {
-        real res = *this;
-
-        while ((res * res - *this).to_abs_view() > p) {
-            res = (res + *this / res) / 2; 
-        }
-        res.normalise();
-        return res;
-    }
+    real sqrt(const R &) const;
 
     template<RealView R>
-    real exp(const R &p) const {
-        real res(1.0);
-
-        real term(1.0);
-        real n = 1;
-        while (term.to_abs_view() > p) {
-            term *= *this / n;
-            res += term;
-            n += 1;
-        }
-        res.normalise();
-        return res;
-    }
+    real exp(const R &p) const;
 
     template<RealView R>
-    real log1p(const R &p) const {
-        real res = *this; 
-        auto negative = to_neg_view();
-        real term = *this;
-        real n = 2;
-        while (term.to_abs_view() > p) {
-            term *= negative * (n - 1) / n;
-            res += term;
-            n += 1;
-        }
+    real log1p(const R &p) const;
 
-        res.normalise();
-        return res;
-    }
 
     void print() const {
         std::cout << p.is_neg() << std::endl;
@@ -1284,6 +1243,59 @@ struct real {
         return real(l) <=> r;
     }
 };
+
+abs_rview<const real> to_abs_view(const real *r) {
+    return {r};
+};
+
+abs_rview<const real> to_neg_view(const real *r) {
+    return {r};
+};
+
+template<RealView R>
+real real::sqrt(const R &p) const {
+    real res = *this;
+
+    real aux = res * res - *this;
+    while (to_abs_view(&aux) > p) {
+        res = (res + *this / res) / 2; 
+        aux = res * res - *this;
+    }
+    res.normalise();
+    return res;
+}
+
+template<RealView R>
+real real::exp(const R &p) const {
+    real res(1.0);
+
+    real term(1.0);
+    real n = 1;
+    while (to_abs_view(&term) > p) {
+        term *= *this / n;
+        res += term;
+        n += 1;
+    }
+    res.normalise();
+    return res;
+}
+
+template<RealView R>
+real real::log1p(const R &p) const {
+    real res = *this; 
+    auto negative = to_neg_view(this);
+    real term = *this;
+    real n = 2;
+    while (to_abs_view(&term) > p) {
+        term *= negative * (n - 1) / n;
+        res += term;
+        n += 1;
+    }
+
+    res.normalise();
+    return res;
+}
+
 
 int main()
 {
