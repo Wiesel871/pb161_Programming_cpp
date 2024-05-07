@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <memory>
 #include <functional>
+#include <iostream>
 
 /* V této úloze budete programovat jednoduchý registrový stroj
  * (model počítače). Stroj bude mít libovolný počet celočíselných
@@ -52,6 +53,11 @@
 struct machine;
 enum class opcode { mov, add, mul, jmp, load, stor, hlt };
 
+const int32_t UP = 0xff000000;
+const int32_t MU = 0x00ff0000;
+const int32_t MD = 0x0000ff00;
+const int32_t DO = 0x000000ff;
+
 struct instruction {
     virtual void operator()(machine &, int32_t, int32_t, int32_t) const = 0;
 };
@@ -98,10 +104,30 @@ struct machine
     /* Čtení a zápis paměti po jednotlivých slovech. */
 
     std::int32_t get( std::int32_t addr ) const {
-        return ram.at(addr);
+        int32_t res = 0;
+        if (ram.contains(addr))
+            res += ram.at(addr) << 24;
+        if (ram.contains(addr + 1))
+            res += ram.at(addr + 1) << 16;
+        if (ram.contains(addr + 2))
+            res += ram.at(addr + 2) << 8;
+        if (ram.contains(addr + 3))
+            res += ram.at(addr + 3);
+        return res;
+    }
+
+    std::int32_t get( std::int32_t addr ) {
+        return 
+              (ram[addr    ] << 24)
+            + (ram[addr + 1] << 16) 
+            + (ram[addr + 2] << 8) 
+            +  ram[addr + 3];
     }
     void set( std::int32_t addr, std::int32_t v ) {
-        ram[addr] = v;
+        ram[addr    ] = (v & UP) >> 24;
+        ram[addr + 1] = (v & MU) >> 16;
+        ram[addr + 2] = (v & MD) >>  8;
+        ram[addr + 3] = v & DO;
     }
 
     /* Spuštění programu, počínaje adresou nula. Vrátí hodnotu
@@ -111,15 +137,29 @@ struct machine
     std::int32_t run() {
         int32_t reg1 = 1;
         while (!stop) {
-            int32_t opcode = ram[cur_addr];
-            int32_t im = ram[cur_addr + 4];
-            reg1 = ram[cur_addr + 8];
-            int32_t reg2 = ram[cur_addr + 12];
+            int32_t opcode = get(cur_addr);
+            int32_t im = get(cur_addr + 4);
+            reg1 = get(cur_addr + 8);
+            int32_t reg2 = get(cur_addr + 12);
             cur_addr += 16;
             (*insts.at(opcode))(*this, im, reg1, reg2);
         }
         return registers[reg1];
     };
+
+    void reset() {
+        ram.clear();
+        registers.clear();
+        stop = false;
+        cur_addr = 0;
+    }
+
+    void print() const {
+        std::clog << cur_addr - 16;
+        for (const auto &[k, v]: registers)
+            std::clog << " [" << k << ", " << v << "]";
+        std::clog << std::endl;
+    }
 };
 
 void mov_i::operator()(machine &m, int32_t im, int32_t reg1, int32_t reg2) const {
@@ -139,8 +179,10 @@ void add_i::operator()(machine &m, int32_t im, int32_t reg1, int32_t reg2) const
 
 void jmp_i::operator()(machine &m, int32_t im, int32_t reg1, int32_t reg2) const {
     (void) im;
-    if (!reg2 || m.registers[reg2]) 
+    if (!reg2) 
         m.cur_addr = m.registers[reg1];
+    if (m.registers[reg2])
+        m.cur_addr = reg1;
 };
 
 void mul_i::operator()(machine &m, int32_t im, int32_t reg1, int32_t reg2) const {
@@ -153,12 +195,12 @@ void mul_i::operator()(machine &m, int32_t im, int32_t reg1, int32_t reg2) const
 
 void load_i::operator()(machine &m, int32_t im, int32_t reg1, int32_t reg2) const {
     (void) im;
-    m.registers[reg1] = m.ram[m.registers[reg2]];
+    m.registers[reg1] = m.get(m.registers[reg2]);
 };
 
 void stor_i::operator()(machine &m, int32_t im, int32_t reg1, int32_t reg2) const {
     (void) im;
-    m.ram[m.registers[reg2]] = m.registers[reg1];
+    m.set(m.registers[reg2], m.registers[reg1]);
 
 };
 
@@ -179,5 +221,15 @@ int main()
     m.set( 0x10, static_cast< std::int32_t >( opcode::hlt ) );
     m.set( 0x18, 1 );
     assert( m.run() == 7 );
+
+    m.reset();
+
+    m.set(0, 0); m.set(4, 73); m.set(8, 1); m.set(12, 0);
+    m.set(16, 0); m.set(20, 5); m.set(24, 2); m.set(28, 0);
+    m.set(32, 3); m.set(36, 0); m.set(40, 1); m.set(44, 0);
+
+    m.set(73, 4); m.set(77, 0); m.set(81, 1); m.set(85, 2);
+    m.set(89, 6); m.set(93, 0); m.set(97, 1); m.set(101, 0);
+    assert(m.run() == 73 << 8);
     return 0;
 }
