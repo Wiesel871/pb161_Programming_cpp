@@ -73,7 +73,7 @@ struct carry {
     carry() = default;
     constexpr carry(uint64_t val) : val{val} {}
 
-    constexpr void eval(uint64_t x, uint64_t &subres, std::vector<uint64_t> &t) {
+    void eval(uint64_t x, uint64_t &subres, std::vector<uint64_t> &t) {
         subres = x + val;
         t.push_back(subres & DOWN);
         val = utd(subres);
@@ -177,7 +177,7 @@ struct natural {
         }
     }
 
-    constexpr void purgeZeroes() {
+    void purgeZeroes() {
         while (!n.back() && len() > 1)
             pop();
     }
@@ -216,29 +216,29 @@ struct natural {
         printf("\n");
     }
 
-    constexpr void push(uint64_t x) {
+    void push(uint64_t x) {
         n.push_back(x);
     }
 
-    constexpr void pop() {
+    void pop() {
         n.pop_back();
     }
 
-    constexpr uint64_t len() const {
+    uint64_t len() const {
         return n.size();
     }
 
-    constexpr uint64_t &operator[](size_t i) {
+    uint64_t &operator[](size_t i) {
         assert(i < len());
         return n[i];
     }
 
-    constexpr uint64_t operator[](size_t i) const {
+    uint64_t operator[](size_t i) const {
         assert(i < len());
         return n[i];
     }
 
-    constexpr uint64_t to_ulong() const {
+    uint64_t to_ulong() const {
         uint64_t res = n[0];
         if (len() > 1)
             res += n[1] << 32;
@@ -253,12 +253,12 @@ struct natural {
         return *this;
     }
 
-    constexpr natural &operator=(natural &&r) {
+    natural &operator=(natural &&r) {
         n = std::move(r.n);
         return *this;
     }
 
-    constexpr natural &operator=(whole &&);
+    natural &operator=(whole &&);
 
     natural &operator=(const natural &r) = default;
 
@@ -268,13 +268,13 @@ struct natural {
 // beruc do uvahy ze algorithmy boli az tyzden po ukonceni tejto kapitoly
 // si nemyslim ze to bolo najferovejsia kritika ale opravene
 
-    constexpr bool operator==(const natural &r) const {
+    bool operator==(const natural &r) const {
         if (len() != r.len())
             return false;
         return std::equal(n.rbegin(), n.rend(), r.n.rbegin(), r.n.rend());
     }
 
-    constexpr auto operator<=>(const natural &r) const {
+    auto operator<=>(const natural &r) const {
         if (auto cmp = len() <=> r.len(); cmp != 0)
             return cmp;
         return std::lexicographical_compare_three_way(n.rbegin(), n.rend(), r.n.rbegin(), r.n.rend());
@@ -442,7 +442,7 @@ struct natural {
 
     }
 
-    constexpr natural &operator-=(const natural &r) {
+    natural &operator-=(const natural &r) {
         uint64_t carry = 0, subres = 0;
         for (size_t i = 0; i < len(); ++i) {
             uint64_t ri = i < r.len() ? r[i] : 0;
@@ -454,7 +454,7 @@ struct natural {
         return *this;
     }
 
-    constexpr natural &operator++() {
+    natural &operator++() {
         uint64_t carry = 1;
         std::size_t i = 0;
         while (carry && i < len()) {
@@ -532,25 +532,25 @@ struct natural {
 
 struct whole {
     bool neg = false;
-    natural n;
+    natural p;
 
-    whole() : n(0) {}
-    whole(int i) : neg(i < 0), n(i) {}
-    whole(std::size_t i) : n(i) {}
-    whole(double i) : neg(i < 0), n(i) {}
-    whole(natural &&n) : n(n) {};
+    whole() : p(0) {}
+    whole(int i) : neg(i < 0), p(i) {}
+    whole(std::size_t i) : p(i) {}
+    whole(double i) : neg(i < 0), p(i) {}
+    whole(natural &&n) : p(n) {};
 
     whole &operator=(const natural &r) {
-        n = r;
+        p = r;
         return *this;
     }
     whole &operator=(natural &&r) {
-        n = r;
+        p = r;
         neg = false;
         return *this;
     }
     whole &operator=(int i) {
-        n = i;
+        p = i;
         neg = i < 0;
         return *this;
     }
@@ -579,26 +579,26 @@ struct whole {
     whole operator*(const whole &r) const {
         whole res;
         res.neg = neg != r.neg;
-        res.n = n * r.n;
+        res.p = p * r.p;
         return res;
     }
 
     whole &operator*=(const whole &r) {
         neg = neg != r.neg;
-        n = n * r.n;
+        p = p * r.p;
         return *this;
     }
 
     whole operator/(const whole &r) const {
         whole res;
         res.neg = neg != r.neg;
-        res.n = n / r.n;
+        res.p = p / r.p;
         return res;
     }
 
     whole &operator/=(const whole &r) {
         neg = neg != r.neg;
-        n = n / r.n;
+        p = p / r.p;
         return *this;
     }
 
@@ -606,31 +606,31 @@ struct whole {
     whole operator*(const natural &r) const {
         whole res;
         res.neg = neg;
-        res.n = n * r;
+        res.p = p * r;
         return res;
     }
 
     whole &operator*=(const natural &r) {
-        n = n * r;
+        p = p * r;
         return *this;
     }
 
     whole operator/(const natural &r) const {
         whole res;
         res.neg = neg;
-        res.n = n / r;
+        res.p = p / r;
         return res;
     }
 
     whole &operator/=(const natural &r) {
-        n = n / r;
+        p = p / r;
         return *this;
     }
 
 //---------------------------------------------------------------------------
 
     bool operator==(const whole &r) const {
-        return neg == r.neg && n == r.n;
+        return neg == r.neg && p == r.p;
     }
 
     auto operator<=>(const whole &r) const {
@@ -638,7 +638,7 @@ struct whole {
             return std::strong_ordering::less;
         if (!neg && r.neg)
             return std::strong_ordering::greater;
-        return n <=> r.n;
+        return p <=> r.p;
     }
 
 //---------------------------------------------------------------------------
@@ -646,21 +646,21 @@ struct whole {
     whole plus(const whole &r) const {
         whole res;
         res.neg = neg;
-        res.n = n + r.n;
+        res.p = p + r.p;
         return res;
     }
 
     whole minus(const whole &r) const {
         whole res;
         res.neg = neg;
-        res.n = n - r.n;
+        res.p = p - r.p;
         return res;
     }
 
     whole operator+(const whole &r) const {
         if (neg == r.neg)
             return plus(r);
-        auto eq = n <=> r.n;
+        auto eq = p <=> r.p;
         if (eq == 0)
             return 0;
         if (eq < 0)
@@ -671,7 +671,7 @@ struct whole {
     whole operator-(const whole &r) const {
         if (neg != r.neg)
             return plus(r);
-        auto eq = n <=> r.n;
+        auto eq = p <=> r.p;
         if (eq == 0)
             return 0;
         if (eq < 0)
@@ -680,19 +680,19 @@ struct whole {
     }
 
     whole &pluseq(const whole &r) {
-        n += r.n;
+        p += r.p;
         return *this;
     }
 
     whole &minuseq(const whole &r) {
-        n -= r.n;
+        p -= r.p;
         return *this;
     }
 
     whole &operator+=(const whole &r) {
         if (neg == r.neg)
             return pluseq(r);
-        auto eq = n <=> r.n;
+        auto eq = p <=> r.p;
         if (eq == 0)
             return (*this = 0);
         if (eq < 0)
@@ -704,7 +704,7 @@ struct whole {
     whole &operator-=(const whole &r) {
         if (neg != r.neg)
             return pluseq(r);
-        auto eq = n <=> r.n;
+        auto eq = p <=> r.p;
         if (eq == 0)
             return (*this = 0);
         if (eq < 0)
@@ -716,44 +716,44 @@ struct whole {
 
     whole power(int k) const {
         whole res;
-        res.n = n.power(k);
+        res.p = p.power(k);
         return res;
     }
 
     void print() const {
         std::cout << neg << std::endl;
-        n.printd();
+        p.printd();
     }
 };
 
 
-constexpr natural &natural::operator=(whole &&r) {
-    n = std::move(r.n.n);
+natural &natural::operator=(whole &&r) {
+    n = std::move(r.p.n);
     return *this;
 }
 
 struct real {
-    whole n;
-    natural d;
+    whole p;
+    natural q;
 
-    real() : n(0), d(1) {}
+    real() : p(0), q(1) {}
 
-    real(std::size_t i) : n(i), d(1) {}
+    real(std::size_t i) : p(i), q(1) {}
 
-    real(int i) : n(i), d(1) {}
+    real(int i) : p(i), q(1) {}
 
     real(real &&r) = default;
     real(const real &r) = default;
 
     real &operator=(std::size_t i) {
-        d = 1;
-        n = i;
+        q = 1;
+        p = i;
         return *this;
     }
 
     real &operator=(int i) {
-        d = 1;
-        n = i;
+        q = 1;
+        p = i;
         return *this;
     }
 
@@ -771,24 +771,24 @@ struct real {
     }
 
     void normalise() {
-        natural g = gcd(n.n, d);
+        natural g = gcd(p.p, q);
         while (g > 1) {
-            n = n / g;
-            d = d / g;
-            g = gcd(n.n, d);
+            p = p / g;
+            q = q / g;
+            g = gcd(p.p, q);
         }
     }
 
-    real(double i) : n(i), d(1) {
+    real(double i) : p(i), q(1) {
         double fractional, whole;
         fractional = 10 * std::modf(i, &whole);
         whole = 0;
         natural ten = 10;
         while (fractional != 0.0) {
             fractional = std::modf(fractional, &whole);
-            d = d * ten;
-            n = n * ten;
-            n += whole;
+            q = q * ten;
+            p = p * ten;
+            p += whole;
             fractional *= 10;
         }
         normalise();
@@ -796,94 +796,94 @@ struct real {
 
     real operator-() const {
         real res = *this;
-        res.n.neg = !n.neg;
+        res.p.neg = !p.neg;
         return res;
     }
 
     real abs() const {
         real res;
-        res.n = n.abs();
-        res.d = d;
+        res.p = p.abs();
+        res.q = q;
         return res;
     }
 
     real reciprocal() const {
         real res;
-        res.n = d;
-        res.n.neg = n.neg;
-        res.d = n.n;
+        res.p = q;
+        res.p.neg = p.neg;
+        res.q = p.p;
         return res;
     }
 
     real operator+(const real &r) const {
         real res;
-        res.n = n * r.d + r.n * d;
-        res.d = d * r.d;
+        res.p = p * r.q + r.p * q;
+        res.q = q * r.q;
         res.normalise();
         return res;
     } 
 
     real &operator+=(const real &r) {
-        n = n * r.d;
-        n += r.n * d;
-        d = d * r.d;
+        p = p * r.q;
+        p += r.p * q;
+        q = q * r.q;
         normalise();
         return *this;
     }
 
     real operator-(const real &r) const {
         real res;
-        res.n = n * r.d - r.n * d;
-        res.d = d * r.d;
+        res.p = p * r.q - r.p * q;
+        res.q = q * r.q;
         res.normalise();
         return res;
     } 
 
     real &operator-=(const real &r) {
-        n = n * r.d;
-        n -= r.n * d;
-        d = d * r.d;
+        p = p * r.q;
+        p -= r.p * q;
+        q = q * r.q;
         normalise();
         return *this;
     }
 
     real operator*(const real &r) const {
         real res;
-        res.n = n * r.n;
-        res.d = d * r.d;
+        res.p = p * r.p;
+        res.q = q * r.q;
         res.normalise();
         return res;
     }
 
     real &operator*=(const real &r) {
-        n = n * r.n;
-        d = d * r.d;
+        p = p * r.p;
+        q = q * r.q;
         normalise();
         return *this;
     }
 
     real operator/(const real &r) const {
         real res;
-        res.n = n * r.d;
-        res.d = r.n * d;
+        res.p = p * r.q;
+        res.q = r.p * q;
         res.normalise();
         return res;
     }
 
     real &operator/=(const real &r) {
-        n = n * r.d;
-        d = r.n * d;
+        p = p * r.q;
+        q = r.p * q;
         normalise();
         return *this;
     }
 
     bool operator==(const real &r) const {
-        return n == r.n && d == r.d;
+        return p == r.p && q == r.q;
     }
 
     auto operator<=>(const real &r) const {
-        whole ln = n * r.d;
-        whole rn = r.n * d;
+        whole ln = p * r.q;
+        whole rn = r.p * q;
         return ln <=> rn;
     }
 
@@ -891,50 +891,59 @@ struct real {
         if (!k)
             return 1;
         real res;
-        res.n = n.power(std::abs(k));
-        res.d = d.power(std::abs(k));
+        res.p = p.power(std::abs(k));
+        res.q = q.power(std::abs(k));
         if (k < 0) {
-            whole aux = std::move(res.n);
-            res.n = std::move(res.d);
-            res.d = std::move(aux);
+            whole aux = std::move(res.p);
+            res.p = std::move(res.q);
+            res.q = std::move(aux);
         }
         res.normalise();
         return res;
     }
 
-    real sqrt(const real &p) const {
+    real sqrt(const real &r) const {
         real res = *this;
 
-        while ((res * res - *this).abs() > p) {
+        while (mov_abs((res * res - *this)) > r) {
             res = (res + *this / res) / 2; 
         }
         res.normalise();
         return res;
     }
 
-    real exp(const real &p) const {
+    real exp(const real &r) const {
         real res(1.0);
 
         real term(1.0);
         int n = 1;
-        while (term.abs() > p) {
+        bool t_neg = false;
+        while (term > r) {
+            term.p.neg = t_neg;
             term *= *this / n;
             res += term;
             n++;
+            t_neg = term.p.neg;
+            term.p.neg = false;
         }
         res.normalise();
         return res;
     }
 
-    real log1p(const real &p) const {
+    real log1p(const real &r) const {
         real res = *this; 
 
         real term = *this;
         int n = 2;
-        while (term.abs() > p) {
+        bool t_neg = p.neg;
+        term.p.neg = false;
+        while (term.abs() > r) {
+            term.p.neg = t_neg;
             term *= -*this * (n - 1) / n;
             res += term;
             n++;
+            t_neg = term.p.neg;
+            term.p.neg = false;
         }
 
         res.normalise();
@@ -942,10 +951,15 @@ struct real {
     }
 
     void print() const {
-        std::cout << n.neg << std::endl;
-        n.print();
-        d.printd();
+        std::cout << p.neg << std::endl;
+        p.print();
+        q.printd();
         std::cout << "--------------------" << std::endl;
+    }
+
+    friend real mov_abs(real &&r) {
+        r.p.neg = false;
+        return r;
     }
 
     friend real operator*(int i, const real &r) {
