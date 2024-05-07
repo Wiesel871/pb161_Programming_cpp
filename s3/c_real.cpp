@@ -11,7 +11,6 @@
 #include <cmath>
 #include <numeric>
 #include <queue>
-#include <concepts>
 
 
 /* Předmětem této úlohy je naprogramovat typ ‹real›, který
@@ -74,7 +73,7 @@ struct carry {
     carry() = default;
     constexpr carry(uint64_t val) : val{val} {}
 
-    void eval(uint64_t x, uint64_t &subres, std::vector<uint64_t> &t) {
+    constexpr void eval(uint64_t x, uint64_t &subres, std::vector<uint64_t> &t) {
         subres = x + val;
         t.push_back(subres & DOWN);
         val = utd(subres);
@@ -92,104 +91,12 @@ std::vector<std::size_t> createRange(int start, int end) {
 }
 
 struct whole;
-struct natural;
-
-template <typename T>
-concept WholeView = requires(T t) {
-    { t.is_neg() } -> std::same_as<bool>;
-    //{ t.get_p() } -> std::convertible_to<const natural &>;
-};
-
-
-template <typename  T>
-concept RealView = WholeView<T> && requires(T t) {
-    //{ t.get_q() } -> std::convertible_to<const natural &>;
-    true;
-};
-
-template <WholeView W>
-struct abs_wview {
-    W *r;
-
-    abs_wview(W *r) : r{r} {};
-
-    bool is_neg() const {
-        return !r->is_neg();
-    }
-
-    const natural &get_p() const {
-        return r->get_p();
-    }
-
-    whole &operator*() {
-        return *r;
-    }
-};
-
-
-template <RealView R>
-struct abs_rview :  abs_wview<R> {
-    abs_rview(R *r) : abs_wview<R>{r} {};
-
-    const natural &get_q() const {
-        return abs_wview<R>::r->get_q();
-    }
-};
-
-template <WholeView W>
-struct neg_wview {
-    const W *r;
-
-    neg_wview(W *r) : r{r} {};
-
-    bool is_neg() const {
-        return !r->is_neg();
-    }
-
-    const natural &get_p() const {
-        return r->get_p();
-    }
-};
-
-template <RealView R>
-struct neg_rview :  neg_wview<R> {
-    neg_rview(R *r) : neg_wview<R>{r} {};
-
-    const natural &get_q() const {
-        return neg_wview<R>::r->get_q();
-    }
-};
-
-template <RealView R>
-struct reci_view {
-    const R *r;
-    reci_view(R *r) : r{r} {}
-
-    bool is_neg() const {
-        return r->is_neg();
-    }
-
-    const natural &get_q() const {
-        return r->get_p();
-    }
-
-    const natural &get_p() const {
-        return r->get_q();
-    }
-};
 
 struct natural {
     private:
     std::vector<uint64_t> n;
 
     public:
-    bool is_neg() const {
-        return false;
-    }
-
-    const natural &get_p() const {
-        return *this;
-    }
 
 // constructors #CC (the #XX is for jumping around the file)
 //-----------------------------------------------------------------------------
@@ -270,7 +177,7 @@ struct natural {
         }
     }
 
-    void purgeZeroes() {
+    constexpr void purgeZeroes() {
         while (!n.back() && len() > 1)
             pop();
     }
@@ -309,29 +216,29 @@ struct natural {
         printf("\n");
     }
 
-    void push(uint64_t x) {
+    constexpr void push(uint64_t x) {
         n.push_back(x);
     }
 
-    void pop() {
+    constexpr void pop() {
         n.pop_back();
     }
 
-    uint64_t len() const {
+    constexpr uint64_t len() const {
         return n.size();
     }
 
-    uint64_t &operator[](size_t i) {
+    constexpr uint64_t &operator[](size_t i) {
         assert(i < len());
         return n[i];
     }
 
-    uint64_t operator[](size_t i) const {
+    constexpr uint64_t operator[](size_t i) const {
         assert(i < len());
         return n[i];
     }
 
-    uint64_t to_ulong() const {
+    constexpr uint64_t to_ulong() const {
         uint64_t res = n[0];
         if (len() > 1)
             res += n[1] << 32;
@@ -346,14 +253,14 @@ struct natural {
         return *this;
     }
 
-    natural &operator=(natural &&r) {
+    constexpr natural &operator=(natural &&r) {
         n = std::move(r.n);
         return *this;
     }
 
-    natural &operator=(const natural &r) = default;
+    constexpr natural &operator=(whole &&);
 
-    natural &operator=(whole &&);
+    natural &operator=(const natural &r) = default;
 
 
 // bool operators #BO
@@ -361,13 +268,13 @@ struct natural {
 // beruc do uvahy ze algorithmy boli az tyzden po ukonceni tejto kapitoly
 // si nemyslim ze to bolo najferovejsia kritika ale opravene
 
-    bool operator==(const natural &r) const {
+    constexpr bool operator==(const natural &r) const {
         if (len() != r.len())
             return false;
         return std::equal(n.rbegin(), n.rend(), r.n.rbegin(), r.n.rend());
     }
 
-    auto operator<=>(const natural &r) const {
+    constexpr auto operator<=>(const natural &r) const {
         if (auto cmp = len() <=> r.len(); cmp != 0)
             return cmp;
         return std::lexicographical_compare_three_way(n.rbegin(), n.rend(), r.n.rbegin(), r.n.rend());
@@ -391,10 +298,6 @@ struct natural {
         return res;
     }
 
-    natural plus(const natural &r) const {
-        return *this + r;
-    }
-
     natural operator-(const natural &r) const {
         uint64_t carry = 0, subres = 0;
         natural res = 0;
@@ -407,10 +310,6 @@ struct natural {
         }
         res.purgeZeroes();
         return res;
-    }
-
-    natural minus(const natural &r) const {
-        return *this - r;
     }
 
     natural karatsuba_simple(const natural &r) const {
@@ -543,7 +442,7 @@ struct natural {
 
     }
 
-    natural &operator-=(const natural &r) {
+    constexpr natural &operator-=(const natural &r) {
         uint64_t carry = 0, subres = 0;
         for (size_t i = 0; i < len(); ++i) {
             uint64_t ri = i < r.len() ? r[i] : 0;
@@ -555,7 +454,7 @@ struct natural {
         return *this;
     }
 
-    natural &operator++() {
+    constexpr natural &operator++() {
         uint64_t carry = 1;
         std::size_t i = 0;
         while (carry && i < len()) {
@@ -572,6 +471,7 @@ struct natural {
 // other #OT
 // ----------------------------------------------------------------------------
 
+    // n 3
     natural power(int n) const {
         natural x = *this;
         natural res(1);
@@ -629,49 +529,38 @@ struct natural {
     }
 };
 
-struct real;
 
 struct whole {
-    private:
     bool neg = false;
-    natural p;
-    friend real;
+    natural n;
 
-    public:
-    const natural &get_p() const {
-        return p;
-    }
-    natural &get_p() {
-        return p;
-    }
-
-    bool is_neg() const {
-        return neg;
-    }
-
-
-    whole() : p(0) {};
-    whole(int i) : neg(i < 0), p(i) {};
-    whole(double i) : neg(i < 0), p(i) {};
-
-    whole(const natural &n) : p(n) {};
-    whole(natural &&n) : p(n) {};
+    whole() : n(0) {}
+    whole(int i) : neg(i < 0), n(i) {}
+    whole(std::size_t i) : n(i) {}
+    whole(double i) : neg(i < 0), n(i) {}
+    whole(natural &&n) : n(n) {};
 
     whole &operator=(const natural &r) {
-        p = r;
+        n = r;
         return *this;
     }
     whole &operator=(natural &&r) {
-        p = r;
+        n = r;
         neg = false;
         return *this;
     }
-
     whole &operator=(int i) {
-        p = i;
+        n = i;
         neg = i < 0;
         return *this;
     }
+
+    void swap(whole &r) {
+        whole aux(std::move(*this));
+        *this = std::move(r);
+        r = std::move(aux);
+    }
+
 
     whole operator-() const {
         whole res = *this;
@@ -687,29 +576,29 @@ struct whole {
 
 //---------------------------------------------------------------------------
 
-    whole operator*(const auto &r) const {
+    whole operator*(const whole &r) const {
         whole res;
-        res.neg = neg != r.is_neg();
-        res.p = p * r.p;
+        res.neg = neg != r.neg;
+        res.n = n * r.n;
         return res;
     }
 
     whole &operator*=(const whole &r) {
-        neg = neg != r.is_neg();
-        p = p * r.p;
+        neg = neg != r.neg;
+        n = n * r.n;
         return *this;
     }
 
     whole operator/(const whole &r) const {
         whole res;
         res.neg = neg != r.neg;
-        res.p = p / r.p;
+        res.n = n / r.n;
         return res;
     }
 
     whole &operator/=(const whole &r) {
         neg = neg != r.neg;
-        p = p / r.p;
+        n = n / r.n;
         return *this;
     }
 
@@ -717,66 +606,61 @@ struct whole {
     whole operator*(const natural &r) const {
         whole res;
         res.neg = neg;
-        res.p = p * r;
+        res.n = n * r;
         return res;
     }
 
     whole &operator*=(const natural &r) {
-        p = p * r;
+        n = n * r;
         return *this;
     }
 
     whole operator/(const natural &r) const {
         whole res;
         res.neg = neg;
-        res.p = p / r;
+        res.n = n / r;
         return res;
     }
 
     whole &operator/=(const natural &r) {
-        p = p / r;
+        n = n / r;
         return *this;
     }
 
 //---------------------------------------------------------------------------
 
-    template <WholeView W>
-    bool operator==(const W &r) const {
-        return neg == r.is_neg() && p == r.get_p();
+    bool operator==(const whole &r) const {
+        return neg == r.neg && n == r.n;
     }
 
-    template <WholeView W>
-    auto operator<=>(const W &r) const {
-        if (neg && !r.is_neg())
+    auto operator<=>(const whole &r) const {
+        if (neg && !r.neg)
             return std::strong_ordering::less;
-        if (!neg && r.is_neg())
+        if (!neg && r.neg)
             return std::strong_ordering::greater;
-        return p <=> r.get_p();
+        return n <=> r.n;
     }
 
 //---------------------------------------------------------------------------
 
-    template <WholeView W>
-    whole plus(const W &r) const {
+    whole plus(const whole &r) const {
         whole res;
         res.neg = neg;
-        res.p = p + r.get_p();
+        res.n = n + r.n;
         return res;
     }
 
-    template <WholeView W>
-    whole minus(const W &r) const {
+    whole minus(const whole &r) const {
         whole res;
         res.neg = neg;
-        res.p = p - r.get_p();
+        res.n = n - r.n;
         return res;
     }
 
-    template <WholeView W>
-    whole operator+(const W &r) const {
-        if (neg == r.is_neg())
+    whole operator+(const whole &r) const {
+        if (neg == r.neg)
             return plus(r);
-        auto eq = p <=> r.get_p();
+        auto eq = n <=> r.n;
         if (eq == 0)
             return 0;
         if (eq < 0)
@@ -784,11 +668,10 @@ struct whole {
         return minus(r);
     }
 
-    template <WholeView W>
-    whole operator-(const W &r) const {
-        if (neg != r.is_neg())
+    whole operator-(const whole &r) const {
+        if (neg != r.neg)
             return plus(r);
-        auto eq = p <=> r.get_p();
+        auto eq = n <=> r.n;
         if (eq == 0)
             return 0;
         if (eq < 0)
@@ -796,40 +679,36 @@ struct whole {
         return minus(r);
     }
 
-    template <WholeView W>
-    whole &pluseq(const W &r) {
-        p += r.get_p();
+    whole &pluseq(const whole &r) {
+        n += r.n;
         return *this;
     }
 
-    template <WholeView W>
-    whole &minuseq(const W &r) {
-        p -= r.get_p();
+    whole &minuseq(const whole &r) {
+        n -= r.n;
         return *this;
     }
 
-    template <WholeView W>
-    whole &operator+=(const W &r) {
-        if (neg == r.is_neg())
+    whole &operator+=(const whole &r) {
+        if (neg == r.neg)
             return pluseq(r);
-        auto eq = p <=> r.get_p();
+        auto eq = n <=> r.n;
         if (eq == 0)
             return (*this = 0);
         if (eq < 0)
-            return (*this = r.minus(get_p()));
+            return (*this = r.minus(*this));
         return minuseq(r);
 
     }
 
-    template <WholeView W>
-    whole &operator-=(const W &r) {
-        if (neg != r.is_neg())
+    whole &operator-=(const whole &r) {
+        if (neg != r.neg)
             return pluseq(r);
-        auto eq = p <=> r.get_p();
+        auto eq = n <=> r.n;
         if (eq == 0)
             return (*this = 0);
         if (eq < 0)
-            return (*this = r.minus(get_p()));
+            return (*this = r.minus(*this));
         return minuseq(r);
 
     }
@@ -837,144 +716,48 @@ struct whole {
 
     whole power(int k) const {
         whole res;
-        res.p = p.power(k);
+        res.n = n.power(k);
         return res;
     }
 
     void print() const {
         std::cout << neg << std::endl;
-        p.printd();
-    }
-
-    friend whole operator*(int i, const whole &r) {
-        return whole(i) * r;
-    }
-    friend whole operator*(const whole &l, int i) {
-        return l * whole(i);
-    }
-
-    friend whole operator/(int l, const whole &r) {
-        return whole(l) / r;
-    }
-
-    friend whole operator/(const whole &l, int r) {
-        return l / whole(r);
-    }
-
-    friend whole operator+(int l, const whole &r) {
-        return whole(l) + r;
-    }
-    friend whole operator+(const whole &l, int r) {
-        return l + whole(r);
-    }
-
-    friend whole operator-(int l, const whole &r) {
-        return whole(l) - r;
-    }
-    friend whole operator-(const whole &l, int r) {
-        return l - whole(r);
-    }
-
-    friend whole operator*(double i, const whole &r) {
-        return whole(i) * r;
-    }
-    friend whole operator*(const whole &l, double i) {
-        return l * whole(i);
-    }
-
-    friend whole operator/(double l, const whole &r) {
-        return whole(l) / r;
-    }
-
-    friend whole operator/(const whole &l, double r) {
-        return l / whole(r);
-    }
-
-    friend whole operator+(double l, const whole &r) {
-        return whole(l) + r;
-    }
-    friend whole operator+(const whole &l, double r) {
-        return l + whole(r);
-    }
-
-    friend whole operator-(double l, const whole &r) {
-        return whole(l) - r;
-    }
-    friend whole operator-(const whole &l, double r) {
-        return l - whole(r);
-    }
-    friend whole &operator+=(whole &l, int r) {
-        return l += whole(r);
-    }
-    friend whole &operator-=(whole &l, int r) {
-        return l -= whole(r);
-    }
-    friend whole &operator*=(whole &l, int r) {
-        return l *= whole(r);
-    }
-    friend whole &operator/=(whole &l, int r) {
-        return l += whole(r);
-    }
-    friend whole &operator+=(whole &l, double r) {
-        return l += whole(r);
-    }
-    friend whole &operator-=(whole &l, double r) {
-        return l -= whole(r);
-    }
-    friend whole &operator*=(whole &l, double r) {
-        return l *= whole(r);
-    }
-    friend whole &operator/=(whole &l, double r) {
-        return l += whole(r);
+        n.printd();
     }
 };
 
-natural &natural::operator=(whole &&w) {
-    n = std::move(w.get_p().n);
+
+constexpr natural &natural::operator=(whole &&r) {
+    n = std::move(r.n.n);
     return *this;
 }
 
 struct real {
-    private:
-    whole p;
-    natural q;
+    whole n;
+    natural d;
 
-    public:
-    const natural &get_p() const {
-        return p.get_p();
-    }
+    real() : n(0), d(1) {}
 
-    const natural &get_q() const {
-        return q;
-    }
+    real(std::size_t i) : n(i), d(1) {}
 
-    bool is_neg() const {
-        return p.is_neg();
-    }
-
-    real() : p(0), q(1) {}
-
-    real(int i) : p(i), q(1) {}
+    real(int i) : n(i), d(1) {}
 
     real(real &&r) = default;
     real(const real &r) = default;
 
-    real &operator=(int i) {
-        q = 1;
-        p = i;
+    real &operator=(std::size_t i) {
+        d = 1;
+        n = i;
         return *this;
     }
 
-    const abs_rview<real> to_abs_view() const {
-        return abs_rview<const real>(this);
-    };
-
-    const neg_rview<real> to_neg_view() const {
-        return neg_rview<const real>(this);
-    };
+    real &operator=(int i) {
+        d = 1;
+        n = i;
+        return *this;
+    }
 
     real &operator=(real &&r) = default;
-
     real &operator=(const real &r) = default;
 
     static natural gcd(natural a, natural b) {
@@ -988,24 +771,24 @@ struct real {
     }
 
     void normalise() {
-        natural g = gcd(p.get_p(), q);
+        natural g = gcd(n.n, d);
         while (g > 1) {
-            p = p / g;
-            q = q / g;
-            g = gcd(p.get_p(), q);
+            n = n / g;
+            d = d / g;
+            g = gcd(n.n, d);
         }
     }
 
-    real(double i) : p(i), q(1) {
+    real(double i) : n(i), d(1) {
         double fractional, whole;
         fractional = 10 * std::modf(i, &whole);
         whole = 0;
         natural ten = 10;
         while (fractional != 0.0) {
             fractional = std::modf(fractional, &whole);
-            q = q * ten;
-            p = p * ten;
-            p += whole;
+            d = d * ten;
+            n = n * ten;
+            n += whole;
             fractional *= 10;
         }
         normalise();
@@ -1013,104 +796,94 @@ struct real {
 
     real operator-() const {
         real res = *this;
-        res.p.neg = !p.is_neg();
+        res.n.neg = !n.neg;
         return res;
     }
 
     real abs() const {
         real res;
-        res.p = p.abs();
-        res.q = q;
+        res.n = n.abs();
+        res.d = d;
         return res;
     }
 
     real reciprocal() const {
         real res;
-        res.p = q;
-        res.p.neg = p.is_neg();
-        res.q = p.get_p();
+        res.n = d;
+        res.n.neg = n.neg;
+        res.d = n.n;
         return res;
     }
 
-    template <RealView L, RealView R>
-    friend real operator+(const L &l, const R &r) {
+    real operator+(const real &r) const {
         real res;
-        res.p = l.get_p() * r.get_q() + r.get_p() * l.get_q();
-        res.q = l.get_q() * r.get_q();
+        res.n = n * r.d + r.n * d;
+        res.d = d * r.d;
         res.normalise();
         return res;
     } 
 
-    template<RealView R>
-    real &operator+=(const R &r) {
-        p = p * r.get_q();
-        p += r.get_p() * q;
-        q = q * r.get_q();
+    real &operator+=(const real &r) {
+        n = n * r.d;
+        n += r.n * d;
+        d = d * r.d;
         normalise();
         return *this;
     }
 
-    template <RealView L, RealView R>
-    friend real operator-(const L &l, const R &r) {
+    real operator-(const real &r) const {
         real res;
-        res.p = l.get_p() * r.get_q() - r.get_p() * l.get_q();
-        res.q = l.get_q() * r.get_q();
+        res.n = n * r.d - r.n * d;
+        res.d = d * r.d;
         res.normalise();
         return res;
     } 
 
-    template<RealView R>
-    real &operator-=(const R &r) {
-        p = p * r.get_q();
-        p -= r.get_p() * q;
-        q = q * r.get_q();
+    real &operator-=(const real &r) {
+        n = n * r.d;
+        n -= r.n * d;
+        d = d * r.d;
         normalise();
         return *this;
     }
 
-    template <RealView L, RealView R>
-    friend real operator*(const L &l, const R &r) {
+    real operator*(const real &r) const {
         real res;
-        res.p = l.get_p() * r.get_p();
-        res.q = l.get_q() * r.get_q();
+        res.n = n * r.n;
+        res.d = d * r.d;
         res.normalise();
         return res;
     }
 
-    template<RealView R>
-    real &operator*=(const R &r) {
-        p = p * r.get_p();
-        q = q * r.get_q();
+    real &operator*=(const real &r) {
+        n = n * r.n;
+        d = d * r.d;
         normalise();
         return *this;
     }
 
-    template <RealView L, RealView R>
-    friend real operator/(const L &l, const R &r) {
+    real operator/(const real &r) const {
         real res;
-        res.p = l.get_p() * r.get_q();
-        res.q = r.get_p() * l.get_q();
+        res.n = n * r.d;
+        res.d = r.n * d;
         res.normalise();
         return res;
     }
 
-    template<RealView R>
-    real &operator/=(const R &r) {
-        p = p * r.get_q();
-        q = r.get_p() * q;
+    real &operator/=(const real &r) {
+        n = n * r.d;
+        d = r.n * d;
         normalise();
         return *this;
     }
 
-    template<RealView R>
-    bool operator==(const R &r) const {
-        return p == r.get_p() && q == r.get_q();
+    bool operator==(const real &r) const {
+        return n == r.n && d == r.d;
     }
 
-    template<RealView R>
-    auto operator<=>(const R &r) const {
-        whole ln = p * r.get_q();
-        whole rn = r.get_p() * q;
+    auto operator<=>(const real &r) const {
+        whole ln = n * r.d;
+        whole rn = r.n * d;
         return ln <=> rn;
     }
 
@@ -1118,53 +891,50 @@ struct real {
         if (!k)
             return 1;
         real res;
-        res.p = p.power(std::abs(k));
-        res.q = q.power(std::abs(k));
+        res.n = n.power(std::abs(k));
+        res.d = d.power(std::abs(k));
         if (k < 0) {
-            whole aux = std::move(res.p);
-            res.p = std::move(res.q);
-            res.q = std::move(aux);
+            whole aux = std::move(res.n);
+            res.n = std::move(res.d);
+            res.d = std::move(aux);
         }
         res.normalise();
         return res;
     }
 
-    template<RealView R>
-    real sqrt(const R &p) const {
+    real sqrt(const real &p) const {
         real res = *this;
 
-        while ((res * res - *this).to_abs_view() > p) {
+        while ((res * res - *this).abs() > p) {
             res = (res + *this / res) / 2; 
         }
         res.normalise();
         return res;
     }
 
-    template<RealView R>
-    real exp(const R &p) const {
+    real exp(const real &p) const {
         real res(1.0);
 
         real term(1.0);
-        real n = 1;
-        while (term.to_abs_view() > p) {
+        int n = 1;
+        while (term.abs() > p) {
             term *= *this / n;
             res += term;
-            n += 1;
+            n++;
         }
         res.normalise();
         return res;
     }
 
-    template<RealView R>
-    real log1p(const R &p) const {
+    real log1p(const real &p) const {
         real res = *this; 
-        auto negative = to_neg_view();
+
         real term = *this;
-        real n = 2;
-        while (term.to_abs_view() > p) {
-            term *= negative * (n - 1) / n;
+        int n = 2;
+        while (term.abs() > p) {
+            term *= -*this * (n - 1) / n;
             res += term;
-            n += 1;
+            n++;
         }
 
         res.normalise();
@@ -1172,116 +942,42 @@ struct real {
     }
 
     void print() const {
-        std::cout << p.is_neg() << std::endl;
-        p.print();
-        q.printd();
+        std::cout << n.neg << std::endl;
+        n.print();
+        d.printd();
         std::cout << "--------------------" << std::endl;
     }
 
     friend real operator*(int i, const real &r) {
-        return real(i) * r;
-    }
-    friend real operator*(const real &l, int i) {
-        return l * real(i);
+        return r * real(i);
     }
 
-    friend real operator/(int l, const real &r) {
-        return real(l) / r;
+    friend real operator/(int i, const real &r) {
+        return real(i) / r;
     }
 
-    friend real operator/(const real &l, int r) {
-        return l / real(r);
+    friend real operator+(int i, const real &r) {
+        return r + real(i);
     }
 
-    friend real operator+(int l, const real &r) {
-        return real(l) + r;
-    }
-    friend real operator+(const real &l, int r) {
-        return l + real(r);
-    }
-
-    friend real operator-(int l, const real &r) {
-        return real(l) - r;
-    }
-    friend real operator-(const real &l, int r) {
-        return l - real(r);
+    friend real operator-(int i, const real &r) {
+        return real(i) - r;
     }
 
     friend real operator*(double i, const real &r) {
-        return real(i) * r;
-    }
-    friend real operator*(const real &l, double i) {
-        return l * real(i);
+        return r * real(i);
     }
 
-    friend real operator/(double l, const real &r) {
-        return real(l) / r;
+    friend real operator/(double i, const real &r) {
+        return real(i) / r;
     }
 
-    friend real operator/(const real &l, double r) {
-        return l / real(r);
+    friend real operator+(double i, const real &r) {
+        return r + real(i);
     }
-
-    friend real operator+(double l, const real &r) {
-        return real(l) + r;
-    }
-    friend real operator+(const real &l, double r) {
-        return l + real(r);
-    }
-
-    friend real operator-(double l, const real &r) {
-        return real(l) - r;
-    }
-    friend real operator-(const real &l, double r) {
-        return l - real(r);
-    }
-    friend real &operator+=(real &l, int r) {
-        return l += real(r);
-    }
-    friend real &operator-=(real &l, int r) {
-        return l -= real(r);
-    }
-    friend real &operator*=(real &l, int r) {
-        return l *= real(r);
-    }
-    friend real &operator/=(real &l, int r) {
-        return l += real(r);
-    }
-    friend real &operator+=(real &l, double r) {
-        return l += real(r);
-    }
-    friend real &operator-=(real &l, double r) {
-        return l -= real(r);
-    }
-    friend real &operator*=(real &l, double r) {
-        return l *= real(r);
-    }
-    friend real &operator/=(real &l, double r) {
-        return l += real(r);
-    }
-    friend bool operator==(const real &l, int r) {
-        return l == real(r);
-    }
-    friend bool operator==(int l, const real &r) {
-        return real(l) == r;
-    }
-    friend auto operator<=>(const real &l, int i) {
-        return l <=> real(i);
-    }
-    friend auto operator<=>(int l, const real &r) {
-        return real(l) <=> r;
-    }
-    friend bool operator==(const real &l, double r) {
-        return l == real(r);
-    }
-    friend bool operator==(double l, const real &r) {
-        return real(l) == r;
-    }
-    friend auto operator<=>(const real &l, double i) {
-        return l <=> real(i);
-    }
-    friend auto operator<=>(double l, const real &r) {
-        return real(l) <=> r;
+    
+    friend real operator-(double i, const real &r) {
+        return real(i) - r;
     }
 };
 
@@ -1299,8 +995,6 @@ int main()
     real half = one / 2;
     std::cout << "half" << std::endl;
     half.print();
-    real three = one + 2;
-    three -= 1;
 
     real eps = ten.power( -3 );
     std::cout << "eps" << std::endl;
