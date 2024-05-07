@@ -686,7 +686,7 @@ struct whole {
 
 //---------------------------------------------------------------------------
 
-    whole operator*(const auto &r) const {
+    whole operator*(const whole &r) const {
         whole res;
         res.neg = neg != r.is_neg();
         res.p = p * r.p;
@@ -773,6 +773,8 @@ struct whole {
 
     template <WholeView W>
     whole operator+(const W &r) const {
+        print();
+        r.print();
         if (neg == r.is_neg())
             return plus(r);
         auto eq = p <=> r.get_p();
@@ -1003,8 +1005,9 @@ struct real {
     }
 
     real operator-() const {
-        real res = *this;
-        res.p.neg = !p.is_neg();
+        real res;
+        res.p = -p;
+        res.p = q;
         return res;
     }
 
@@ -1131,7 +1134,6 @@ struct real {
 
 
     void print() const {
-        std::cout << p.is_neg() << std::endl;
         p.print();
         q.printd();
         std::cout << "--------------------" << std::endl;
@@ -1336,7 +1338,7 @@ int main()
     assert( static_cast< real >( 1.0 ) == one );
 
     std::cout << "1 + -1" << std::endl;
-    (one + -one).print();
+    //(one + -one).print();
     assert( one + -one == zero );
 
     std::cout << "1 * 10" << std::endl;
