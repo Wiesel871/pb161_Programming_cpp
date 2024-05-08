@@ -1,6 +1,11 @@
+#include <cctype>
+#include <cstdlib>
+#include <sstream>
 #include <vector>
 #include <string>
 #include <cassert>
+#include <algorithm>
+#include <iostream>
 
 /* Write a simple parser for an assembly-like language with one
  * instruction per line (each taking 2 operands, separated by
@@ -38,7 +43,89 @@ struct no_parse
     error type;
 };
 
-std::vector< instruction > parse( const std::string & );
+void parse_op(instruction &in, std::string &str, int size) {
+    if (str == "add") {
+        in.op = opcode::add;
+        return;
+    }
+    if (str == "mul") {
+        in.op = opcode::mul;
+        return;
+    }
+    if (str == "jnz") {
+        in.op = opcode::jnz;
+        return;
+    }
+    throw no_parse {size, error::bad_opcode};
+
+}
+
+void parse_reg1(instruction &in, std::string &str, int size) {
+    if (str == "rax") {
+        in.r_1 = reg::rax;
+        return;
+    }
+    if (str == "rbx") {
+        in.r_1 = reg::rbx;
+        return;
+    }
+    if (str == "rcx") {
+        in.r_1 = reg::rcx;
+        return;
+    }
+    throw no_parse {size, error::bad_register};
+}
+
+void parse_reg2(instruction &in, std::string &str, int size) {
+    if (str == "rax") {
+        in.r_2 = reg::rax;
+        return;
+    }
+    if (str == "rbx") {
+        in.r_2 = reg::rbx;
+        return;
+    }
+    if (str == "rcx") {
+        in.r_2 = reg::rcx;
+        return;
+    }
+    if (std::find_if(str.begin(), str.end(), [](int c) {return !isdigit(c) && c != '\0';}) != str.end())
+        throw no_parse {size, str[0] == 'r' ? error::bad_register : error::bad_immediate};
+    in.r_2 = reg::immediate;
+
+}
+
+std::vector< instruction > parse( const std::string &str ) {
+    std::stringstream in(str);
+    std::vector<instruction> res;
+    int size = 1;
+    bool empty = false;
+    while (!in.eof()) {
+        instruction inst;
+        std::string line;
+        std::getline(in, line);
+        if (line.empty()) {
+            if (empty) {
+                throw no_parse {size, error::bad_structure};
+            }
+            empty = true;
+            continue;
+        }
+        std::istringstream line_in(std::move(line));
+        std::string word;
+        line_in >> word;
+        parse_op(inst, word, size);
+        line_in >> word;
+        parse_reg1(inst, word, size);
+        line_in >> word;
+        parse_reg2(inst, word, size);
+        if (!line_in.eof())
+            throw no_parse {size, error::bad_structure};
+        res.push_back(inst);
+        ++size;
+    }
+    return res;
+};
 
 #include <iostream>
 
