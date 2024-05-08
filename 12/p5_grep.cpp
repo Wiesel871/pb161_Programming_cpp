@@ -1,6 +1,9 @@
+#include <algorithm>
 #include <cassert>
 #include <sstream>
 #include <string>
+#include <regex>
+#include <iostream>
 
 /* To practice working with IO streams a little, we will write a two
  * simple functions which reads lines from an input stream, process
@@ -11,8 +14,18 @@
  * it matches a given ‹pattern› (i.e. the pattern is a substring of
  * the line) and if it does (and only if it does) copies the line to
  * the output stream. */
+struct line : std::string { 
+    friend std::istream & operator>>(std::istream &is, line &line) {   
+        return std::getline(is, line);
+    }
+};
 
-void grep( std::string pattern, std::istream &, std::ostream & );
+void grep( std::string pattern, std::istream &is, std::ostream &os) {
+    line line;
+    while (is >> line)
+        if (line.find(pattern) != line.npos)
+            os << line << '\n';
+};
 
 /* The other function to add is called ‹cut› and it will process the
  * lines differently: it splits each line into fields separated by
@@ -20,7 +33,25 @@ void grep( std::string pattern, std::istream &, std::ostream & );
  * Unlike the ‹cut› program, index columns starting at 0. If there
  * are not enough columns on a given line, print an empty line. */
 
-void cut( char delim, int col, std::istream &, std::ostream & );
+void cut( char delim, int col, std::istream &is, std::ostream &os) {
+    line line;
+    while (is >> line) {
+        int cur_col = 0;
+        auto st = line.begin();
+        auto prev = st;
+        while ((st = std::find(st, line.end(), delim)) != line.end()) {
+            if (cur_col == col)
+                break;
+            ++st;
+            prev = st;
+            ++cur_col;
+        }
+        if (cur_col == col) {
+            os << std::string(prev, st);
+        }
+        os << '\n';
+    }
+};
 
 int main()
 {
