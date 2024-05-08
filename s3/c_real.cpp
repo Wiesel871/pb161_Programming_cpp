@@ -637,7 +637,9 @@ struct whole {
         if (neg && !r.neg)
             return std::strong_ordering::less;
         if (!neg && r.neg)
-            return std::strong_ordering::greater;
+            return std::strong_ordering::greater;   
+        if (neg && r.neg)
+            return 0 <=> (p <=> r.p);
         return p <=> r.p;
     }
 
@@ -1016,6 +1018,7 @@ int main()
 
     assert(ten > one);
 
+    /*
     real pi( 3.14159265 );
     std::cout << "pi" << std::endl;
     pi.print();
@@ -1051,7 +1054,13 @@ int main()
     (half.log1p(eps) - l_half).abs().print();
     assert( ( half.log1p( eps ) - l_half ).abs() < eps );
 
-    real two(2.0);
     assert( ( ( one / two ).exp( eps ) - e.sqrt( eps ) ).abs() < 2 * eps );
+    */
+
+    real two(2.0);
+    real three {3};
+    assert(two > one);
+    assert(two >= one);
+    assert(-two < -one);
     return 0;
 }
