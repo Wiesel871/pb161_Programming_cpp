@@ -1,7 +1,10 @@
 #include <fstream>  /* fstream */
 #include <cstdio>   /* remove */
+#include <sstream>
+#include <string>
 #include <unistd.h> /* access */
 #include <cassert>
+#include <iostream>
 
 /* We will implement a simple wrapper around ‹std::fstream› that
  * will act as a temporary file. When the object is destroyed, use
@@ -23,7 +26,59 @@
  * file, including data written to ‹stream()› that was not yet
  * flushed by the user. */
 
-class tmp_file;
+class tmp_file {
+    std::fstream file;
+    std::string name;
+
+    std::string consume() {
+        auto pos = file.tellg();
+        file.seekg(file.beg);
+        std::string str(std::istreambuf_iterator<char>(file),{});
+        file.seekg(pos);
+        return str;
+    }
+
+    public:
+    tmp_file(const std::string &str) : name(str) {
+        file.open(str, std::fstream::out);
+        file.close();
+    }
+
+    tmp_file(std::string &&str) : name(str) {
+        file.open(str, std::fstream::out);
+        file.close();
+    }
+
+    std::string read() {
+        if (!file.is_open()) {
+            std::string res;
+            file.open(name, std::fstream::in);
+            res = consume();
+            file.close();
+            return res;
+        }
+        return consume();
+    }
+
+    void write(const std::string &str) {
+        file.open(name, std::fstream::out);
+        file << str;
+        file.close();
+    }
+
+    std::fstream &stream() {
+        if (!file.is_open())
+            file.open(name, std::fstream::in | std::fstream::out);
+        return file;
+    }
+
+    ~tmp_file() {
+        if (file.is_open())
+            file.close();
+        std::remove(name.data());
+    }
+
+};
 
 int main()
 {
