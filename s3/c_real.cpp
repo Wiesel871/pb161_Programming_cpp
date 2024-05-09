@@ -682,7 +682,7 @@ struct whole {
         if (eq == 0)
             return 0;
         if (eq < 0)
-            return r.minus(*this);
+            return -r.minus(*this);
         return minus(r);
     }
 
