@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <vector>
 #include <iostream>
-#include <charconv>
 
 /* Ve cvičení ‹07/p6_linear› jsme napsali jednoduchý program, který
  * řeší systémy lineárních rovnic o dvou neznámých. Tento program

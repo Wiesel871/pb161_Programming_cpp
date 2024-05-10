@@ -1,4 +1,5 @@
 #include <cassert>
+#include <cctype>
 #include <cstdint>
 #include <ostream>
 #include <string_view>
@@ -30,7 +31,7 @@ concept I32Compatible = requires(T t) {
 };
 
 struct fixnum {
-    std::int32_t inner;
+    std::int64_t inner;
 
     consteval fixnum() : inner(0) {}
 
@@ -42,41 +43,35 @@ struct fixnum {
     fixnum(std::string_view str) {
         if (str.empty())
             throw bad_format{};
-        inner = 0;
-        struct minus {
-            bool val;
-            int32_t &in;
-
-            minus(bool b, int32_t &in) : val(b), in(in) {}
-
-            operator bool() const {
-                return val;
-            }
-
-            ~minus() {
-                if (val)
-                    in *= -1;
-            }
-        };
-        auto dot = str.find('.');
-        minus m(str[0] == '-', inner);
-        for (std::size_t i = 0 + m; i < dot && i < str.size(); ++i) {
-            if (str[i] < '0' || str[i] > '9')
-                throw bad_format{};
-            inner *= 10;
-            inner += str[i] - '0';
+        int64_t sign = 1;
+        if (str.front() == '-') {
+            sign = -1;
+            str.remove_prefix(1);
         }
-        inner *= 100;
-        if (dot == str.npos || dot + 1 == str.size())
-            return;
-        if (str[dot + 1] < '0' || str[dot + 1] > '9')
+        int i;
+        for (i = 0; i < 6 && std::isdigit(str.front()); ++i) {
+            inner *= 10;
+            inner += str.front() - '0';
+            str.remove_prefix(1);
+        }
+
+        if (std::isdigit(str.front()) && i >= 6)
             throw bad_format{};
-        inner += 10 * (str[dot + 1] - '0');
-        if (dot + 2 == str.size())
-            return;
-        if (str[dot + 2] < '0' || str[dot + 2] > '9')
+
+        if (!std::isdigit(str.front()) && str.front() != '.')
             throw bad_format{};
-        inner += str[dot + 2] - '0';
+
+        for (i = 0; i < 2 && std::isdigit(str.front()); ++i) {
+            inner *= 10;
+            inner += str.front() - '0';
+            str.remove_prefix(1);
+        }
+
+        for (; i < 2; ++i) {
+            inner *= 10;
+        }
+
+        inner *= sign;
     }
 
     constexpr fixnum operator+(const fixnum &r) const {
