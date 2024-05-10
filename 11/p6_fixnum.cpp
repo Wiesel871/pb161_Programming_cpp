@@ -1,9 +1,7 @@
 #include <cassert>
 #include <cctype>
 #include <cstdint>
-#include <ostream>
 #include <string_view>
-#include <iostream>
 
 /* V tomto cvičení implementujeme čísla s pevnou desetinnou čárkou,
  * konkrétně se 6 desítkovými číslicemi před a dvěma za desetinnou
@@ -12,7 +10,9 @@
 /* Typ ‹bad_format› budeme používat jako výjimku, která indikuje, že
  * pokus o načtení čísla z řetězce selhalo. */
 
-struct bad_format {};
+struct bad_format {
+    
+};
 
 /* Typ ‹fixnum› nechť poskytuje tyto operace:
  *
@@ -26,8 +26,8 @@ struct bad_format {};
  * Všechny aritmetické operace nechť zaokrouhlují směrem k nule na
  * nejbližší reprezentovatelné číslo. */
 template<typename T>
-concept I32Compatible = requires(T t) {
-    static_cast<std::int32_t>(t);
+concept I64Compatible = requires(T t) {
+    static_cast<std::int64_t>(t);
 };
 
 struct fixnum {
@@ -35,12 +35,13 @@ struct fixnum {
 
     consteval fixnum() : inner(0) {}
 
-    template<I32Compatible I32>
-    constexpr fixnum(I32 num) : inner(num * 100) {
+    template<I64Compatible I64>
+    constexpr fixnum(I64 num) : inner(num * 100) {
         //std::cout << "num: " << num << " " << inner << std::endl;
     }
 
     fixnum(std::string_view str) {
+        inner = 0;
         if (str.empty())
             throw bad_format{};
         int64_t sign = 1;
@@ -55,18 +56,33 @@ struct fixnum {
             str.remove_prefix(1);
         }
 
+        if (str.empty()) {
+            i = 0;
+            goto end;
+        }
         if (std::isdigit(str.front()) && i >= 6)
             throw bad_format{};
 
         if (!std::isdigit(str.front()) && str.front() != '.')
             throw bad_format{};
 
+        str.remove_prefix(1);
         for (i = 0; i < 2 && std::isdigit(str.front()); ++i) {
             inner *= 10;
             inner += str.front() - '0';
             str.remove_prefix(1);
         }
 
+        if (str.empty())
+            goto end;
+
+        if (std::isdigit(str.front()) && i >= 2)
+            throw bad_format{};
+
+        if (!std::isdigit(str.front()) && str.front() != '\0')
+            throw bad_format{};
+
+end:
         for (; i < 2; ++i) {
             inner *= 10;
         }
