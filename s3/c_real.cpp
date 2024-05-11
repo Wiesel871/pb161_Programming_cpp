@@ -11,6 +11,7 @@
 #include <cmath>
 #include <numeric>
 #include <queue>
+#include <concepts>
 
 
 /* Předmětem této úlohy je naprogramovat typ ‹real›, který
@@ -62,6 +63,11 @@ const uint64_t UP   = 0xffffffff00000000;
 const uint64_t DOWN = 0x00000000ffffffff;
 const uint64_t BASE = 0x0000000100000000;
 
+template <typename T>
+concept I64 = requires (T t) {
+    { t } -> std::convertible_to<int64_t>;
+};
+
 // stands for up_to_down
 constexpr inline uint64_t utd(uint64_t x) {
     return (x & UP) >> 32;
@@ -101,7 +107,8 @@ struct natural {
 // constructors #CC (the #XX is for jumping around the file)
 //-----------------------------------------------------------------------------
 
-    natural(int x = 0) {
+    template<I64 I>
+    natural(I x) {
         auto ux = static_cast<uint64_t>(x);
         n = {ux & DOWN};
         if (ux > DOWN)
@@ -265,8 +272,10 @@ struct natural {
 
 // bool operators #BO
 // ----------------------------------------------------------------------------
-// beruc do uvahy ze algorithmy boli az tyzden po ukonceni tejto kapitoly
-// si nemyslim ze to bolo najferovejsia kritika ale opravene
+    
+    bool is_zero() const {
+        return len() == 1 && n[0] == 0;
+    }
 
     bool operator==(const natural &r) const {
         if (len() != r.len())
@@ -360,6 +369,36 @@ struct natural {
         return karatsuba(r);
     }
 
+    template <I64 I>
+    friend natural operator*(I i, const natural &r) {
+        carry carry(0);
+        natural res(0);
+        res.n.clear();
+        uint64_t subres = 0;
+        for (size_t j = 0; j < r.len(); ++j) {
+            carry.eval(i * r[j], subres, res.n);
+        }
+        if (carry)
+            res.push(carry);
+        return res;
+
+    }
+
+    template <I64 I>
+    natural operator*=(I i) {
+        uint64_t carry = 0;
+        uint64_t subres = 0;
+        for (size_t j = 0; j < len(); ++j) {
+            subres = n[j] * i + carry;
+            n[j] = subres & DOWN;
+            carry = utd(subres);
+            
+        }
+        if (carry)
+            push(carry);
+        return *this;
+    }
+
     natural operator<<(std::size_t r) const {
         if (!r)
             return *this;
@@ -442,6 +481,27 @@ struct natural {
 
     }
 
+    template <I64 I>
+    natural &operator+=(I r) {
+        uint64_t carry = 0;
+        natural res = 0;
+        res.n.clear();
+        uint64_t subres = n[0] + r;
+        n[0] = subres & DOWN;
+        carry = subres > DOWN;
+        for (size_t i = 1; i < len(); ++i) {
+            subres = n[i] + carry;
+            n[i] = subres & DOWN;
+            carry = subres > DOWN;
+            
+        }
+        if (carry)
+            push(carry);
+
+        return *this;
+
+    }
+
     natural &operator-=(const natural &r) {
         uint64_t carry = 0, subres = 0;
         for (size_t i = 0; i < len(); ++i) {
@@ -471,7 +531,6 @@ struct natural {
 // other #OT
 // ----------------------------------------------------------------------------
 
-    // n 3
     natural power(int n) const {
         natural x = *this;
         natural res(1);
@@ -534,11 +593,22 @@ struct whole {
     bool neg = false;
     natural p;
 
-    whole() : p(0) {}
-    whole(int i) : neg(i < 0), p(i) {}
+    whole(int i = 0) : neg(i < 0), p(i) {}
+    whole(int64_t i) : neg(i < 0), p(i) {}
     whole(std::size_t i) : p(i) {}
     whole(double i) : neg(i < 0), p(i) {}
+
+    whole(const whole &w) = default;
+    whole(whole &&w) : neg(w.neg), p(std::move(w.p)) {}
+
     whole(natural &&n) : p(n) {};
+
+    whole &operator=(const whole &w) = default;
+    whole &operator=(whole &&w) {
+        neg = w.neg;
+        p = std::move(w.p);
+        return *this;
+    }
 
     whole &operator=(const natural &r) {
         p = r;
@@ -612,6 +682,12 @@ struct whole {
 
     whole &operator*=(const natural &r) {
         p = p * r;
+        return *this;
+    }
+
+    whole &operator*=(int i) {
+        p *= i;
+        neg = neg != (i < 0);
         return *this;
     }
 
@@ -742,6 +818,7 @@ struct real {
 
     real(std::size_t i) : p(i), q(1) {}
 
+    real(int64_t i) : p(i), q(1) {}
     real(int i) : p(i), q(1) {}
 
     real(real &&r) = default;
@@ -759,11 +836,17 @@ struct real {
         return *this;
     }
 
-    real &operator=(real &&r) = default;
+    real &operator=(real &&r) {
+        r.print();
+        p = std::move(r.p);
+        q = std::move(r.q);
+        return *this;
+    };
+
     real &operator=(const real &r) = default;
 
     static natural gcd(natural a, natural b) {
-        natural aux;
+        natural aux = 0;
         while (a != 0) {
             aux = std::move(a);
             a = b % aux;
@@ -773,15 +856,16 @@ struct real {
     }
 
     void normalise() {
-        natural g = gcd(p.p, q);
-        while (g > 1) {
-            p = p / g;
-            q = q / g;
-            g = gcd(p.p, q);
+        if (p.p.is_zero()) {
+            q = 1;
+            return;
         }
+        natural g = gcd(p.p, q);
+        p /= g;
+        q = q / g;
     }
 
-    real(double i) : p(i), q(1) {
+    explicit real(double i) : p(i), q(1) {
         double fractional, whole;
         fractional = 10 * std::modf(i, &whole);
         whole = 0;
@@ -964,41 +1048,139 @@ struct real {
         return r;
     }
 
-    friend real operator*(int i, const real &r) {
-        return r * real(i);
+    // vsetky if-i su len na prevenciu nadbytocnej alokacie
+
+    template<I64 I>
+    friend real operator*(I i, const real &r) {
+        if (!i || r.p.p.is_zero()) {
+            return 0;
+        }
+        if (i == 1) 
+            return r;
+        if (i == -1) 
+            return -r;
+        real res = r;
+        res.p *= i;
+        res.normalise();
+        return res;
     }
 
-    friend real operator/(int i, const real &r) {
-        return real(i) / r;
+    template<I64 I>
+    friend real operator*(const real &r, I i) {
+        if (!i || r.p.p.is_zero()) {
+            return 0;
+        }
+        if (i == 1) 
+            return r;
+        if (i == -1) 
+            return -r;
+        real res = r;
+        res.p *= i;
+        res.normalise();
+        return res;
     }
 
-    friend real operator+(int i, const real &r) {
-        return r + real(i);
+    template<I64 I>
+    friend real operator/(I i, const real &r) {
+        if (!i) {
+            return 0;
+        }
+        real res = r;
+        res.q *= i;
+        res.normalise();
+        return res;
     }
 
-    friend real operator-(int i, const real &r) {
-        return real(i) - r;
+    template<I64 I>
+    friend real operator/(const real &r, I i) {
+        if (r.p.p.is_zero()) {
+            return 0;
+        }
+        if (i == 1) 
+            return r;
+        if (i == -1) 
+            return -r;
+
+        real res = r;
+        res.q *= i;
+        res.normalise();
+        return res;
+    }
+
+    template<I64 I>
+    friend real operator+(I i, const real &r) {
+        if (!i) {
+            return r;
+        }
+        real res = r;
+        res.p += i * r.q;
+        res.normalise();
+        return res;
+    }
+
+    template<I64 I>
+    friend real operator+(const real &r, I i) {
+        if (!i) {
+            return r;
+        }
+        real res = r;
+        res.p += i * r.q;
+        res.normalise();
+        return res;
+    }
+
+    template<I64 I>
+    friend real operator-(I i, const real &r) {
+        if (!i) {
+            return r;
+        }
+        real res = r;
+        res.p -= i * r.q;
+        res.normalise();
+        return res;
+    }
+
+    template<I64 I>
+    friend real operator-(const real &r, I i) {
+        if (!i) {
+            return r;
+        }
+        real res = r;
+        res.p -= i * r.q;
+        res.normalise();
+        return res;
     }
 
     friend real operator*(double i, const real &r) {
+        if (!i || r.p.p.is_zero()) {
+            return 0;
+        }
         return r * real(i);
     }
 
     friend real operator/(double i, const real &r) {
+        if (!i || r.p.p.is_zero()) {
+            return 0;
+        }
         return real(i) / r;
     }
 
     friend real operator+(double i, const real &r) {
+        if (!i)
+            return r;
         return r + real(i);
     }
     
     friend real operator-(double i, const real &r) {
+        if (!i)
+            return r;
         return real(i) - r;
     }
 };
 
 int main()
 {
+    real two(2.0);
     real zero = 0;
     std::cout << "zero" << std::endl;
     zero.print();
@@ -1017,8 +1199,8 @@ int main()
     eps.print();
 
     assert(ten > one);
+    ten * -3;
 
-    /*
     real pi( 3.14159265 );
     std::cout << "pi" << std::endl;
     pi.print();
@@ -1055,9 +1237,7 @@ int main()
     assert( ( half.log1p( eps ) - l_half ).abs() < eps );
 
     assert( ( ( one / two ).exp( eps ) - e.sqrt( eps ) ).abs() < 2 * eps );
-    */
 
-    real two(2.0);
     real three {3};
     assert(two > one);
     assert(two >= one);
