@@ -722,16 +722,32 @@ struct whole {
 //---------------------------------------------------------------------------
 
     whole plus(const whole &r) const {
+        /*
+        std::clog << "--------------------------------\n";
+        print();
+        std::clog << "plus\n";
+        r.print();
+        std::clog << "res\n";
+        */
         whole res;
         res.neg = neg;
         res.p = p + r.p;
+        //res.print();
         return res;
     }
 
     whole minus(const whole &r) const {
+        /*
+        std::clog << "--------------------------------\n";
+        print();
+        std::clog << "minus\n";
+        r.print();
+        std::clog << "res\n";
+        */
         whole res;
         res.neg = neg;
         res.p = p - r.p;
+        //res.print();
         return res;
     }
 
@@ -742,7 +758,7 @@ struct whole {
         if (eq == 0)
             return 0;
         if (eq < 0)
-            return r.minus(*this);
+            return -r.minus(*this);
         return minus(r);
     }
 
@@ -753,7 +769,7 @@ struct whole {
         if (eq == 0)
             return 0;
         if (eq < 0)
-            return r.minus(*this);
+            return -r.minus(*this);
         return minus(r);
     }
 
@@ -813,6 +829,7 @@ natural &natural::operator=(whole &&r) {
 struct real {
     whole p;
     natural q;
+    static bool final;
 
     real() : p(0), q(1) {}
 
@@ -902,10 +919,18 @@ struct real {
     }
 
     real operator+(const real &r) const {
+        /*
+        std::clog << "----------------------------------" << "\n";
+        print();
+        std::clog << "+\n";
+        r.print();
+        std::clog << "res\n";
+        */
         real res;
         res.p = p * r.q + r.p * q;
         res.q = q * r.q;
         res.normalise();
+        //res.print();
         return res;
     } 
 
@@ -918,15 +943,23 @@ struct real {
     }
 
     real operator-(const real &r) const {
+        /*
+        std::clog << "----------------------------------" << "\n";
+        print();
+        std::clog << "-\n";
+        r.print();
+        std::clog << "res\n";
+        */
         real res;
         res.p = p * r.q - r.p * q;
         res.q = q * r.q;
         res.normalise();
+        //res.print();
         return res;
     } 
 
     real &operator-=(const real &r) {
-        p = p * r.q;
+        p *= r.q;
         p -= r.p * q;
         q = q * r.q;
         normalise();
@@ -934,10 +967,18 @@ struct real {
     }
 
     real operator*(const real &r) const {
+        /*
+        std::clog << "----------------------------------" << "\n";
+        print();
+        std::clog << "*\n";
+        r.print();
+        std::clog << "res\n";
+        */
         real res;
         res.p = p * r.p;
         res.q = q * r.q;
         res.normalise();
+        //res.print();
         return res;
     }
 
@@ -949,10 +990,18 @@ struct real {
     }
 
     real operator/(const real &r) const {
+        /*
+        std::clog << "----------------------------------" << "\n";
+        print();
+        std::clog << "/\n";
+        r.print();
+        std::clog << "res\n";
+        */
         real res;
         res.p = p * r.q;
         res.q = r.p * q;
         res.normalise();
+        //res.print();
         return res;
     }
 
@@ -990,17 +1039,18 @@ struct real {
 
     real sqrt(const real &r) const {
         real res = *this;
-
+        final = false;
         while (mov_abs((res * res - *this)) > r) {
             res = (res + *this / res) / 2; 
         }
+        final = true;
         res.normalise();
         return res;
     }
 
     real exp(const real &r) const {
         real res(1.0);
-
+        final = false;
         real term(1.0);
         int n = 1;
         bool t_neg = false;
@@ -1012,13 +1062,14 @@ struct real {
             t_neg = term.p.neg;
             term.p.neg = false;
         }
+        final = true;
         res.normalise();
         return res;
     }
 
     real log1p(const real &r) const {
         real res = *this; 
-
+        final = false;
         real term = *this;
         int n = 2;
         bool t_neg = p.neg;
@@ -1031,13 +1082,12 @@ struct real {
             t_neg = term.p.neg;
             term.p.neg = false;
         }
-
+        final = true;
         res.normalise();
         return res;
     }
 
     void print() const {
-        std::cout << p.neg << std::endl;
         p.print();
         q.printd();
         std::cout << "--------------------" << std::endl;
@@ -1178,6 +1228,8 @@ struct real {
     }
 };
 
+bool real::final = true;
+
 int main()
 {
     real two(2.0);
@@ -1242,5 +1294,39 @@ int main()
     assert(two > one);
     assert(two >= one);
     assert(-two < -one);
+
+    real a { real(13) / real(3) };
+    a.print();
+    real b { real(9) / real(4)};
+    b.print();
+    real iter{1};
+    b = b * b + a + iter;
+    a = a * a + b;
+    assert(b < a);
+    assert(b <= a);
+    assert(a > b);
+    assert(a >= b);
+    assert(a != b);
+    assert(b != a);
+    assert(b == b);
+    assert(b <= b);
+    assert(b >= b);
+    assert(!(a < b));
+    assert(!(a <= b));
+    assert(!(b > a));
+    assert(!(b >= a));
+    assert(!(a == b));
+    assert(!(a != a));
+    assert(!(a < a));
+    assert(!(a > a));
+    assert(a < a + iter);
+    assert(a > a - iter);
+    assert(-a < iter - a);
+    assert(a - iter < a);
+    assert(a + iter > a);
+    assert(a + iter > a - iter);
+    assert(a + a > a);
+    assert(a - b > b);
+    assert(b - a < b);
     return 0;
 }

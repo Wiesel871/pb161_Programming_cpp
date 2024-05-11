@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cassert>
+#include <iterator>
 #include <map>
 #include <unordered_map>
 #include <memory>
@@ -142,6 +143,7 @@ struct machine
             reg1 = get(cur_addr + 8);
             int32_t reg2 = get(cur_addr + 12);
             cur_addr += 16;
+            std::clog << "op:" << opcode << "\n";
             (*insts.at(opcode))(*this, im, reg1, reg2);
         }
         return registers[reg1];
@@ -179,10 +181,8 @@ void add_i::operator()(machine &m, int32_t im, int32_t reg1, int32_t reg2) const
 
 void jmp_i::operator()(machine &m, int32_t im, int32_t reg1, int32_t reg2) const {
     (void) im;
-    if (!reg2) 
+    if (!reg2 || m.registers[reg2]) 
         m.cur_addr = m.registers[reg1];
-    if (m.registers[reg2])
-        m.cur_addr = reg1;
 };
 
 void mul_i::operator()(machine &m, int32_t im, int32_t reg1, int32_t reg2) const {
@@ -231,5 +231,23 @@ int main()
     m.set(73, 4); m.set(77, 0); m.set(81, 1); m.set(85, 2);
     m.set(89, 6); m.set(93, 0); m.set(97, 1); m.set(101, 0);
     assert(m.run() == 73 << 8);
+
+    std::clog << std::endl;
+    m.reset();
+    std::vector<int32_t> ram = {
+        0, 48, 1, 0, 
+        0, 12, 2, 0, 
+        0, 268, 4, 0,
+        1, -1, 2, 0,
+        1, 1, 3, 0,
+        1, -1, 4, 0,
+        5, 0, 3, 4,
+        3, 0, 1, 2,
+        6, 0, 4, 0
+    };
+    for (std::size_t i = 0; i < ram.size(); ++i) {
+        m.set(i * 4, ram[i]);
+    }
+    assert(m.run() == 256);
     return 0;
 }
