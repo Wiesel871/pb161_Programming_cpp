@@ -277,6 +277,10 @@ struct natural {
         return len() == 1 && n[0] == 0;
     }
 
+    bool operator==(uint64_t i) const {
+        return len() == 1 && n[0] == i;
+    }
+
     bool operator==(const natural &r) const {
         if (len() != r.len())
             return false;
@@ -873,7 +877,7 @@ struct real {
     }
 
     void normalise() {
-        if (p.p.is_zero()) {
+        if (p.p == 0) {
             q = 1;
             return;
         }
@@ -1012,6 +1016,10 @@ struct real {
         return *this;
     }
 
+    bool operator==(int64_t i) const {
+        return q == 1 && p == i;
+    }
+
     bool operator==(const real &r) const {
         return p == r.p && q == r.q;
     }
@@ -1102,7 +1110,7 @@ struct real {
 
     template<I64 I>
     friend real operator*(I i, const real &r) {
-        if (!i || r.p.p.is_zero()) {
+        if (!i || r.p.p == 0) {
             return 0;
         }
         if (i == 1) 
@@ -1117,7 +1125,7 @@ struct real {
 
     template<I64 I>
     friend real operator*(const real &r, I i) {
-        if (!i || r.p.p.is_zero()) {
+        if (!i || r.p.p == 0) {
             return 0;
         }
         if (i == 1) 
@@ -1143,7 +1151,7 @@ struct real {
 
     template<I64 I>
     friend real operator/(const real &r, I i) {
-        if (r.p.p.is_zero()) {
+        if (r.p.p == 0) {
             return 0;
         }
         if (i == 1) 
@@ -1202,14 +1210,14 @@ struct real {
     }
 
     friend real operator*(double i, const real &r) {
-        if (!i || r.p.p.is_zero()) {
+        if (!i || r.p.p == 0) {
             return 0;
         }
         return r * real(i);
     }
 
     friend real operator/(double i, const real &r) {
-        if (!i || r.p.p.is_zero()) {
+        if (!i || r.p.p == 0) {
             return 0;
         }
         return real(i) / r;
