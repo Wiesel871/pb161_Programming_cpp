@@ -887,16 +887,29 @@ struct real {
     }
 
     explicit real(double i) : p(i), q(1) {
-        double fractional, whole;
+        double fractional, whole, aux = 0;
         fractional = 10 * std::modf(i, &whole);
         whole = 0;
-        natural ten = 10;
+        std::uint64_t mult = 1;
         while (fractional != 0.0) {
-            fractional = std::modf(fractional, &whole);
-            q = q * ten;
-            p = p * ten;
-            p += whole;
-            fractional *= 10;
+            if (mult > DOWN / 10) {
+                q *= mult;
+                p *= mult;
+                p += aux;
+                mult = 1;
+                aux = 0;
+            } else {
+                fractional = std::modf(fractional, &whole);
+                fractional *= 10;
+                aux *= 10;
+                mult *= 10;
+                aux += whole;
+            }
+        }
+        if (aux) {
+            q *= mult;
+            p *= mult;
+            p += aux;
         }
         normalise();
     }
@@ -1238,8 +1251,10 @@ struct real {
 
 bool real::final = true;
 
-int main()
-{
+int main() {
+    real idk(123456789.0);
+    idk.print();
+
     real two(2.0);
     real zero = 0;
     std::cout << "zero" << std::endl;
