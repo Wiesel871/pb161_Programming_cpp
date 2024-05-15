@@ -858,7 +858,6 @@ struct real {
     }
 
     real &operator=(real &&r) {
-        r.print();
         p = std::move(r.p);
         q = std::move(r.q);
         return *this;
@@ -936,18 +935,10 @@ struct real {
     }
 
     real operator+(const real &r) const {
-        /*
-        std::clog << "----------------------------------" << "\n";
-        print();
-        std::clog << "+\n";
-        r.print();
-        std::clog << "res\n";
-        */
         real res;
         res.p = p * r.q + r.p * q;
         res.q = q * r.q;
         res.normalise();
-        //res.print();
         return res;
     } 
 
@@ -960,18 +951,10 @@ struct real {
     }
 
     real operator-(const real &r) const {
-        /*
-        std::clog << "----------------------------------" << "\n";
-        print();
-        std::clog << "-\n";
-        r.print();
-        std::clog << "res\n";
-        */
         real res;
         res.p = p * r.q - r.p * q;
         res.q = q * r.q;
         res.normalise();
-        //res.print();
         return res;
     } 
 
@@ -984,18 +967,10 @@ struct real {
     }
 
     real operator*(const real &r) const {
-        /*
-        std::clog << "----------------------------------" << "\n";
-        print();
-        std::clog << "*\n";
-        r.print();
-        std::clog << "res\n";
-        */
         real res;
         res.p = p * r.p;
         res.q = q * r.q;
         res.normalise();
-        //res.print();
         return res;
     }
 
@@ -1007,18 +982,10 @@ struct real {
     }
 
     real operator/(const real &r) const {
-        /*
-        std::clog << "----------------------------------" << "\n";
-        print();
-        std::clog << "/\n";
-        r.print();
-        std::clog << "res\n";
-        */
         real res;
         res.p = p * r.q;
         res.q = r.p * q;
         res.normalise();
-        //res.print();
         return res;
     }
 
