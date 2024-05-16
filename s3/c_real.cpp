@@ -123,11 +123,11 @@ struct reci_view {
     }
 
     const natural &get_q() const {
-        return r->get_p();
+        return r->get_n();
     }
 
     const natural &get_n() const {
-        return r->get_n();
+        return r->get_q();
     }
 
     const whole &get_p() const {
@@ -1038,9 +1038,16 @@ struct real {
         return *this;
     };
 
+    real &operator=(const real &r) {
+        p.p = r.get_n();
+        p.neg = r.is_neg();
+        q = r.get_q();
+        return *this;
+    }
+
     template<RealView R>
     real &operator=(const R &r) {
-        p.p = r.get_p();
+        p.p = r.get_n();
         p.neg = r.is_neg();
         q = r.get_q();
         return *this;
@@ -1222,138 +1229,6 @@ struct real {
         return r;
     }
 
-    // vsetky if-i su len na prevenciu nadbytocnej alokacie
-
-    template<I64 I, RealView R>
-    friend real operator*(I i, const R &r) {
-        if (!i || r.get_n() == 0) {
-            return 0;
-        }
-        if (i == 1) 
-            return r;
-        if (i == -1) 
-            return -r;
-        real res = r;
-        res.p *= i;
-        res.normalise();
-        return res;
-    }
-
-    template<I64 I, RealView R>
-    friend real operator*(const R &r, I i) {
-        if (!i || r.get_n() == 0) {
-            return 0;
-        }
-        if (i == 1) 
-            return r;
-        if (i == -1) 
-            return -r;
-        real res = r;
-        res.p *= i;
-        res.normalise();
-        return res;
-    }
-
-    template<I64 I, RealView R>
-    friend real operator/(I i, const R &r) {
-        if (!i) {
-            return 0;
-        }
-        real res = r;
-        res.q *= i;
-        res.normalise();
-        return res;
-    }
-
-    template<I64 I, RealView R>
-    friend real operator/(const R &r, I i) {
-        if (r.get_n() == 0) {
-            return 0;
-        }
-        if (i == 1) 
-            return r;
-        if (i == -1) 
-            return -r;
-
-        real res = r;
-        res.q *= i;
-        res.normalise();
-        return res;
-    }
-
-    template<I64 I, RealView R>
-    friend real operator+(I i, const R &r) {
-        if (!i) {
-            return r;
-        }
-        real res = r;
-        res.p += i * r.get_q();
-        res.normalise();
-        return res;
-    }
-
-    template<I64 I, RealView R>
-    friend real operator+(const R &r, I i) {
-        if (!i) {
-            return r;
-        }
-        real res = r;
-        res.p += i * r.get_q();
-        res.normalise();
-        return res;
-    }
-
-    template<I64 I, RealView R>
-    friend real operator-(I i, const R &r) {
-        if (!i) {
-            return r;
-        }
-        real res = r;
-        res.p -= i * r.get_q();
-        res.normalise();
-        return res;
-    }
-
-    template<I64 I, RealView R>
-    friend real operator-(const R &r, I i) {
-        if (!i) {
-            return r;
-        }
-        real res = r;
-        res.p -= i * r.get_q();
-        res.normalise();
-        return res;
-    }
-
-    template<RealView R>
-    friend real operator*(double i, const R &r) {
-        if (!i || r.get_p() == 0) {
-            return 0;
-        }
-        return r * real(i);
-    }
-
-    template<RealView R>
-    friend real operator/(double i, const R &r) {
-        if (!i || r.get_n() == 0) {
-            return 0;
-        }
-        return real(i) / r;
-    }
-
-    template<RealView R>
-    friend real operator+(double i, const R &r) {
-        if (!i)
-            return r;
-        return r + real(i);
-    }
-    
-    template<RealView R>
-    friend real operator-(double i, const R &r) {
-        if (!i)
-            return r;
-        return real(i) - r;
-    }
 
     template<RealView R>
     real exp(const R &) const;
@@ -1368,27 +1243,178 @@ struct real {
 
     void print() const;
 };
+// vsetky if-i su len na prevenciu nadbytocnej alokacie
+template<I64 I, RealView R>
+bool operator==(I i, const R &r) {
+    return r.get_q() == 1 && r.is_neg() == i < 0 && r.get_n() == i;
+}
 
-/*
-    real exp(const real &r) const {
-        real res(1.0);
-        final = false;
-        real term(1.0);
-        int n = 1;
-        bool t_neg = false;
-        while (term > r) {
-            term.p.neg = t_neg;
-            term *= *this / n;
-            res += term;
-            n++;
-            t_neg = term.p.neg;
-            term.p.neg = false;
-        }
-        final = true;
-        res.normalise();
-        return res;
+template<I64 I, RealView R>
+bool operator==(const R &r, I i) {
+    return r.get_q() == 1 && r.is_neg() == i < 0 && r.get_n() == i;
+}
+
+template<RealView R>
+bool operator==(double d, const R &r) {
+    return r == real(d);
+}
+
+template<RealView R>
+bool operator==(const R &r, double d) {
+    return r == real(d);
+}
+
+template<I64 I, RealView R>
+auto operator<=>(I i, const R &r) {
+    return r <=> real(i);
+}
+
+template<I64 I, RealView R>
+auto operator<=>(const R &r, I i) {
+    return r <=> real(i);
+}
+
+template<RealView R>
+auto operator<=>(double d, const R &r) {
+    return r <=> real(d);
+}
+
+template<RealView R>
+auto operator<=>(const R &r, double d) {
+    return r <=> real(d);
+}
+
+template<I64 I, RealView R>
+real operator*(I i, const R &r) {
+    if (!i || r.get_n() == 0) {
+        return 0;
     }
-    */
+    if (i == 1) 
+        return r;
+    if (i == -1) 
+        return -r;
+    real res = r;
+    res.p *= i;
+    res.normalise();
+    return res;
+}
+
+template<I64 I, RealView R>
+real operator*(const R &r, I i) {
+    if (!i || r.get_n() == 0) {
+        return 0;
+    }
+    if (i == 1) 
+        return r;
+    if (i == -1) 
+        return -r;
+    real res = r;
+    res.p *= i;
+    res.normalise();
+    return res;
+}
+
+template<I64 I, RealView R>
+real operator/(I i, const R &r) {
+    if (!i) {
+        return 0;
+    }
+    real res = r;
+    res.q *= i;
+    res.normalise();
+    return res;
+}
+
+template<I64 I, RealView R>
+real operator/(const R &r, I i) {
+    if (r.get_n() == 0) {
+        return 0;
+    }
+    if (i == 1) 
+        return r;
+    if (i == -1) 
+        return -r;
+
+    real res = r;
+    res.q *= i;
+    res.normalise();
+    return res;
+}
+
+template<I64 I, RealView R>
+real operator+(I i, const R &r) {
+    if (!i) {
+        return r;
+    }
+    real res = r;
+    res.p += i * r.get_q();
+    res.normalise();
+    return res;
+}
+
+template<I64 I, RealView R>
+real operator+(const R &r, I i) {
+    if (!i) {
+        return r;
+    }
+    real res = r;
+    res.p += i * r.get_q();
+    res.normalise();
+    return res;
+}
+
+template<I64 I, RealView R>
+real operator-(I i, const R &r) {
+    if (!i) {
+        return r;
+    }
+    real res = r;
+    res.p -= i * r.get_q();
+    res.normalise();
+    return res;
+}
+
+template<I64 I, RealView R>
+real operator-(const R &r, I i) {
+    if (!i) {
+        return r;
+    }
+    real res = r;
+    res.p -= i * r.get_q();
+    res.normalise();
+    return res;
+}
+
+template<RealView R>
+real operator*(double i, const R &r) {
+    if (!i || r.get_p() == 0) {
+        return 0;
+    }
+    return r * real(i);
+}
+
+template<RealView R>
+real operator/(double i, const R &r) {
+    if (!i || r.get_n() == 0) {
+        return 0;
+    }
+    return real(i) / r;
+}
+
+template<RealView R>
+real operator+(double i, const R &r) {
+    if (!i)
+        return r;
+    return r + real(i);
+}
+
+template<RealView R>
+real operator-(double i, const R &r) {
+    if (!i)
+        return r;
+    return real(i) - r;
+}
+
 template<RealView R, RealView L>
 real gexp(const L &l, const R &r) {
     real res(1.0);
@@ -1426,7 +1452,7 @@ real gpower(const R &r, int k) {
     if (!k)
         return 1;
     real res;
-    res.p = r.get_p().power(std::abs(k));
+    res.p = r.get_n().power(std::abs(k));
     res.q = r.get_q().power(std::abs(k));
     if (k < 0) {
         whole aux = std::move(res.p);
@@ -1628,6 +1654,8 @@ int main() {
     real l_half( 0.40546511 );
     std::cout << "l_half" << std::endl;
     l_half.print();
+    real aux = one.abs();
+    aux = -one;
 
     assert( static_cast< real >( 1.0 ) == one );
 
