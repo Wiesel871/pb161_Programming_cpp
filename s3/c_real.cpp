@@ -97,12 +97,191 @@ std::vector<std::size_t> createRange(int start, int end) {
 }
 
 struct whole;
+struct natural;
+struct real;
+
+template <typename T>
+concept WholeView = requires(T t) {
+    { t.get_n() } -> std::same_as<const natural &>;
+    { t.is_neg() } -> std::same_as<bool>;
+};
+
+
+template <typename  T>
+concept RealView = WholeView<T> && requires(T t) {
+    { t.get_p() } -> std::convertible_to<const whole &>;
+    { t.get_q() } -> std::same_as<const natural &>;
+};
+
+template <RealView R>
+struct reci_view {
+    const R *r;
+    reci_view(const R *r) : r{r} {}
+
+    bool is_neg() const {
+        return r->is_neg();
+    }
+
+    const natural &get_q() const {
+        return r->get_p();
+    }
+
+    const natural &get_n() const {
+        return r->get_n();
+    }
+
+    const whole &get_p() const {
+        return r->get_q();
+    }
+
+    operator real() const;
+};
+
+
+template <WholeView W>
+struct abs_wview {
+    const W *r;
+
+    abs_wview(const W *r) : r{r} {};
+
+    bool is_neg() const {
+        return false;
+    }
+
+    const natural &get_n() const {
+        return r->get_n();
+    }
+
+    operator whole() const;
+};
+
+
+template <RealView R>
+struct abs_rview {
+    const abs_wview<R> in;
+    const R *r;
+
+    abs_rview(const R *r) : in{r}, r{r} {};
+
+    const natural &get_n() const {
+        return in.get_n();
+    }
+
+    bool is_neg() const {
+        return false;
+    }
+
+    const natural &get_q() const {
+        return r->get_q();
+    }
+
+    const abs_wview<R> &get_p() const {
+        return in;
+    }
+
+    operator real() const;
+
+    void print() const;
+
+    abs_rview<R> abs() const {
+        return this;
+    }
+
+    reci_view<R> reciprocal() const {
+        return this;
+    }
+
+    real power(int k) const;
+
+    template <RealView L>
+    real sqrt(const L &p) const;
+
+    template <RealView L>
+    real exp(const L &p) const;
+    
+    template <RealView L>
+    real log1p(const L &p) const;
+};
+
+template <WholeView W>
+struct neg_wview {
+    const W *r;
+
+    neg_wview(const W *r) : r{r} {};
+
+    bool is_neg() const {
+        return !r->is_neg();
+    }
+
+    const natural &get_n() const {
+        return r->get_n();
+    }
+
+    operator whole() const;
+};
+
+template <RealView R>
+struct neg_rview {
+    const neg_wview<R> in;
+    const R *r;
+
+    neg_rview(const R *r) : in{r}, r{r} {};
+
+    const natural &get_n() const {
+        return in.get_n();
+    }
+
+    bool is_neg() const {
+        return in.is_neg();
+    }
+
+    const natural &get_q() const {
+        return r->get_q();
+    }
+
+    const neg_wview<R> &get_p() const {
+        return in;
+    }
+
+    operator real() const;
+
+    void print() const;
+
+    abs_rview<R> abs() const {
+        return *this;
+    }
+
+    reci_view<R> reciprocal() const {
+        return *this;
+    }
+
+    real power(int k) const;
+
+    template <RealView L>
+    real sqrt(const L &p) const;
+
+    template <RealView L>
+    real exp(const L &p) const;
+    
+    template <RealView L>
+    real log1p(const L &p) const;
+};
 
 struct natural {
     private:
     std::vector<uint64_t> n;
 
     public:
+    friend whole;
+    friend real;
+
+    const natural &get_n() const {
+        return *this;
+    }
+
+    bool is_neg() const {
+        return false;
+    }
 
 // constructors #CC (the #XX is for jumping around the file)
 //-----------------------------------------------------------------------------
@@ -597,6 +776,14 @@ struct whole {
     bool neg = false;
     natural p;
 
+    const natural &get_n() const {
+        return p;
+    }
+
+    bool is_neg() const {
+        return neg;
+    }
+
     whole(int i = 0) : neg(i < 0), p(i) {}
     whole(int64_t i) : neg(i < 0), p(i) {}
     whole(std::size_t i) : p(i) {}
@@ -619,7 +806,7 @@ struct whole {
         return *this;
     }
     whole &operator=(natural &&r) {
-        p = r;
+        p = std::move(r);
         neg = false;
         return *this;
     }
@@ -648,44 +835,46 @@ struct whole {
         return res;
     }
 
-//---------------------------------------------------------------------------
-
-    whole operator*(const whole &r) const {
-        whole res;
-        res.neg = neg != r.neg;
-        res.p = p * r.p;
-        return res;
-    }
-
-    whole &operator*=(const whole &r) {
-        neg = neg != r.neg;
-        p = p * r.p;
+    template<WholeView W>
+    whole &operator+=(const W &r) {
+        if (!is_neg() && !r.is_neg())
+            return *this = std::move(merge1(abs_wview<whole>(this), abs_wview<W>(&r)));
+        if (!is_neg() && r.is_neg()) 
+            return *this = std::move(merge2(abs_wview<whole>(this), abs_wview<W>(&r)));
+        if (is_neg() && !r.is_neg())
+            *this = std::move(merge2(abs_wview<whole>(this), abs_wview<W>(&r)));
+        if (is_neg() && r.is_neg()) 
+            *this = std::move(merge1(abs_wview<whole>(this), abs_wview<W>(&r)));
+        neg = !neg;
         return *this;
     }
 
-    whole operator/(const whole &r) const {
-        whole res;
-        res.neg = neg != r.neg;
-        res.p = p / r.p;
-        return res;
-    }
 
-    whole &operator/=(const whole &r) {
-        neg = neg != r.neg;
-        p = p / r.p;
+    template<WholeView W>
+    whole &operator-=(const W &r) {
+        if (!is_neg() && !r.is_neg())
+            return *this = std::move(merge2(abs_wview<whole>(this), abs_wview<W>(&r)));
+        if (!is_neg() && r.is_neg()) 
+            return *this = std::move(merge1(abs_wview<whole>(this), abs_wview<W>(&r)));
+        if (is_neg() && !r.is_neg())
+            *this = std::move(merge1(abs_wview<whole>(this), abs_wview<W>(&r)));
+        if (is_neg() && r.is_neg()) 
+            *this = std::move(merge2(abs_wview<whole>(this), abs_wview<W>(&r)));
+        neg = !neg;
         return *this;
     }
 
-//---------------------------------------------------------------------------
-    whole operator*(const natural &r) const {
-        whole res;
-        res.neg = neg;
-        res.p = p * r;
-        return res;
+    template<WholeView W>
+    whole &operator*=(const W &r) {
+        neg = neg != r.is_neg();
+        p = p * r.get_n();
+        return *this;
     }
 
-    whole &operator*=(const natural &r) {
-        p = p * r;
+    template<WholeView W>
+    whole &operator/=(const W &r) {
+        neg = neg != r.is_neg();
+        p = p / r.get_n();
         return *this;
     }
 
@@ -695,122 +884,6 @@ struct whole {
         return *this;
     }
 
-    whole operator/(const natural &r) const {
-        whole res;
-        res.neg = neg;
-        res.p = p / r;
-        return res;
-    }
-
-    whole &operator/=(const natural &r) {
-        p = p / r;
-        return *this;
-    }
-
-//---------------------------------------------------------------------------
-
-    bool operator==(const whole &r) const {
-        return neg == r.neg && p == r.p;
-    }
-
-    auto operator<=>(const whole &r) const {
-        if (neg && !r.neg)
-            return std::strong_ordering::less;
-        if (!neg && r.neg)
-            return std::strong_ordering::greater;   
-        if (neg && r.neg)
-            return 0 <=> (p <=> r.p);
-        return p <=> r.p;
-    }
-
-//---------------------------------------------------------------------------
-
-    whole plus(const whole &r) const {
-        /*
-        std::clog << "--------------------------------\n";
-        print();
-        std::clog << "plus\n";
-        r.print();
-        std::clog << "res\n";
-        */
-        whole res;
-        res.neg = neg;
-        res.p = p + r.p;
-        //res.print();
-        return res;
-    }
-
-    whole minus(const whole &r) const {
-        /*
-        std::clog << "--------------------------------\n";
-        print();
-        std::clog << "minus\n";
-        r.print();
-        std::clog << "res\n";
-        */
-        whole res;
-        res.neg = neg;
-        res.p = p - r.p;
-        //res.print();
-        return res;
-    }
-
-    whole operator+(const whole &r) const {
-        if (neg == r.neg)
-            return plus(r);
-        auto eq = p <=> r.p;
-        if (eq == 0)
-            return 0;
-        if (eq < 0)
-            return -r.minus(*this);
-        return minus(r);
-    }
-
-    whole operator-(const whole &r) const {
-        if (neg != r.neg)
-            return plus(r);
-        auto eq = p <=> r.p;
-        if (eq == 0)
-            return 0;
-        if (eq < 0)
-            return -r.minus(*this);
-        return minus(r);
-    }
-
-    whole &pluseq(const whole &r) {
-        p += r.p;
-        return *this;
-    }
-
-    whole &minuseq(const whole &r) {
-        p -= r.p;
-        return *this;
-    }
-
-    whole &operator+=(const whole &r) {
-        if (neg == r.neg)
-            return pluseq(r);
-        auto eq = p <=> r.p;
-        if (eq == 0)
-            return (*this = 0);
-        if (eq < 0)
-            return (*this = r.minus(*this));
-        return minuseq(r);
-
-    }
-
-    whole &operator-=(const whole &r) {
-        if (neg != r.neg)
-            return pluseq(r);
-        auto eq = p <=> r.p;
-        if (eq == 0)
-            return (*this = 0);
-        if (eq < 0)
-            return (*this = r.minus(*this));
-        return minuseq(r);
-
-    }
-//---------------------------------------------------------------------------
 
     whole power(int k) const {
         whole res;
@@ -824,16 +897,115 @@ struct whole {
     }
 };
 
-
-natural &natural::operator=(whole &&r) {
-    n = std::move(r.p.n);
+natural &natural::operator=(whole &&w) {
+    n = std::move(w.p.n);
     return *this;
+}
+
+
+template<WholeView W, WholeView V>
+whole multw(const W &l, const V &r) {
+    whole res;
+    res.neg = l.is_neg() != r.is_neg();
+    res.p = l.get_n() * r.get_n();
+    return res;
+}
+
+template<WholeView W, WholeView V>
+whole divw(const W &l, const V &r) {
+    whole res;
+    res.neg = l.is_neg() != r.is_neg();
+    res.p = l.get_n() / r.get_n();
+    return res;
+}
+
+template<WholeView W, WholeView V>
+bool eqw(const W &l, const V &r) {
+    return l.is_neg() == r.is_neg() && l.get_n() == r.get_n();
+}
+
+template<WholeView W, WholeView V>
+auto compw(const W &l, const V &r) {
+    if (l.is_neg() && !r.is_neg())
+        return std::strong_ordering::less;
+    if (!l.is_neg() && r.is_neg())
+        return std::strong_ordering::greater;   
+    if (l.is_neg() && r.is_neg())
+        return 0 <=> (l.get_n() <=> r.get_n());
+    return l.get_n() <=> r.get_n();
+}
+
+
+
+template<WholeView W, WholeView V>
+whole merge1(const W &l, const V &r) {
+    return l.get_n() + r.get_n();
+}
+
+template<WholeView W, WholeView V>
+whole merge2(const W &l, const V &r) {
+    auto eq = l.get_n() <=> r.get_n();
+    if (eq == 0)
+        return 0;
+    if (eq < 0) {
+        whole res;
+        res = r.get_n() - l.get_n();
+        res.neg = true;
+        return res;
+    }
+    return l.get_n() - r.get_n();
+}
+
+template<WholeView W, WholeView V>
+whole addw(const W &l, const V &r) {
+    if (!l.is_neg() && !r.is_neg()) 
+        return merge1(abs_wview<W>(&l), abs_wview<V>(&r));
+    if (!l.is_neg() && r.is_neg()) 
+        return merge2(abs_wview<W>(&l), abs_wview<V>(&r));
+    whole res;
+    if (l.is_neg() && !r.is_neg())
+        res = std::move(merge2(abs_wview<W>(&l), abs_wview<V>(&r)));
+    if (l.is_neg() && r.is_neg()) 
+        res = std::move(merge1(abs_wview<W>(&l), abs_wview<V>(&r)));
+    res.neg = !res.neg;
+    return res;
+}
+
+template<WholeView W, WholeView V>
+whole subw(const W &l, const V &r) {
+    if (!l.is_neg() && !r.is_neg())
+        return merge2(abs_wview<W>(&l), abs_wview<V>(&r));
+    if (!l.is_neg() && r.is_neg()) 
+        return merge1(abs_wview<W>(&l), abs_wview<V>(&r));
+    whole res;
+    if (l.is_neg() && !r.is_neg())
+        res = std::move(merge1(abs_wview<W>(&l), abs_wview<V>(&r)));
+    if (l.is_neg() && r.is_neg()) 
+        res = std::move(merge2(abs_wview<W>(&l), abs_wview<V>(&r)));
+    res.neg = !res.neg;
+    return res;
 }
 
 struct real {
     whole p;
     natural q;
     static bool final;
+
+    const natural &get_n() const {
+        return p.get_n();
+    }
+
+    const whole &get_p() const {
+        return p;
+    }
+
+    const natural &get_q() const {
+        return q;
+    }
+    
+    bool is_neg() const {
+        return p.is_neg();
+    }
 
     real() : p(0), q(1) {}
 
@@ -843,7 +1015,10 @@ struct real {
     real(int i) : p(i), q(1) {}
 
     real(real &&r) = default;
-    real(const real &r) = default;
+    real(const real &) = default;
+
+    template<RealView R>
+    real(const R &r) : p{r.get_p()}, q{r.get_q()} {};
 
     real &operator=(std::size_t i) {
         q = 1;
@@ -863,7 +1038,13 @@ struct real {
         return *this;
     };
 
-    real &operator=(const real &r) = default;
+    template<RealView R>
+    real &operator=(const R &r) {
+        p.p = r.get_p();
+        p.neg = r.is_neg();
+        q = r.get_q();
+        return *this;
+    }
 
     static natural gcd(natural a, natural b) {
         natural aux = 0;
@@ -894,7 +1075,7 @@ struct real {
             if (mult > DOWN / 10) {
                 q *= mult;
                 p *= mult;
-                p += aux;
+                p += real(static_cast<int>(aux));
                 mult = 1;
                 aux = 0;
             } else {
@@ -908,23 +1089,27 @@ struct real {
         if (aux) {
             q *= mult;
             p *= mult;
-            p += aux;
+            p += real(static_cast<int>(aux));
         }
         normalise();
     }
 
-    real operator-() const {
-        real res = *this;
-        res.p.neg = !p.neg;
-        return res;
+    template <RealView R>
+    friend neg_rview<R> operator-(const R &r) {
+        return &r;
     }
 
-    real abs() const {
-        real res;
-        res.p = p.abs();
-        res.q = q;
-        return res;
+    template <RealView R>
+    friend abs_rview<R> abs_view(const R &r) {
+        return &r;
     }
+
+    template <RealView R>
+    friend reci_view<R> rec_view(const R &r) {
+        return &r;
+    }
+
+    auto abs() const;
 
     real reciprocal() const {
         real res;
@@ -934,108 +1119,257 @@ struct real {
         return res;
     }
 
-    real operator+(const real &r) const {
+    template<RealView L, RealView R>
+    friend real operator+(const L &l, const R &r) {
         real res;
-        res.p = p * r.q + r.p * q;
-        res.q = q * r.q;
+        res.p = addw(multw(l.get_p(), r.get_q()), multw(r.get_p(), l.get_q()));
+        res.q = multw(l.get_q(), r.get_q());
         res.normalise();
         return res;
     } 
 
-    real &operator+=(const real &r) {
-        p = p * r.q;
-        p += r.p * q;
-        q = q * r.q;
+    template<RealView R>
+    real &operator+=(const R &r) {
+        p *= r.get_q();
+        p += multw(r.get_p(), q);
+        q = multw(q, r.get_q());
         normalise();
         return *this;
     }
 
-    real operator-(const real &r) const {
+    template<RealView L, RealView R>
+    friend real operator-(const L &l, const R &r) {
         real res;
-        res.p = p * r.q - r.p * q;
-        res.q = q * r.q;
+        res.p = subw(multw(l.get_p(), r.get_q()), multw(r.get_p(), l.get_q()));
+        res.q = multw(l.get_q(), r.get_q());
         res.normalise();
         return res;
     } 
 
-    real &operator-=(const real &r) {
-        p *= r.q;
-        p -= r.p * q;
-        q = q * r.q;
+    template<RealView R>
+    real &operator-=(const R &r) {
+        p *= r.get_q();
+        p -= multw(r.get_p(), q);
+        q = multw(q, r.get_q());
         normalise();
         return *this;
     }
 
-    real operator*(const real &r) const {
+    template<RealView L, RealView R>
+    friend real operator*(const L &l, const R &r) {
         real res;
-        res.p = p * r.p;
-        res.q = q * r.q;
+        res.p = multw(l.get_p(), r.get_p());
+        res.q = multw(l.get_q(), r.get_q());
         res.normalise();
         return res;
     }
 
-    real &operator*=(const real &r) {
-        p = p * r.p;
-        q = q * r.q;
+    template<RealView R>
+    real &operator*=(const R &r) {
+        p = multw(p, r.get_p());
+        q = multw(q, r.get_q());
         normalise();
         return *this;
     }
 
-    real operator/(const real &r) const {
+    template<RealView L, RealView R>
+    friend real operator/(const L &l, const R &r) {
         real res;
-        res.p = p * r.q;
-        res.q = r.p * q;
+        res.p = multw(l.get_p(), r.get_q());
+        res.q = multw(l.get_q(), r.get_p());
         res.normalise();
         return res;
     }
 
-    real &operator/=(const real &r) {
-        p = p * r.q;
-        q = r.p * q;
+    template<RealView R>
+    real &operator/=(const R &r) {
+        p = multw(p, r.get_q());
+        q = multw(q, r.get_p());
         normalise();
         return *this;
     }
 
-    bool operator==(int64_t i) const {
-        return q == 1 && p == i;
+    template<RealView L>
+    friend auto operator==(const L &l, int64_t i) {
+        return l.get_q() == 1 && l.get_p() == i;
     }
 
-    bool operator==(const real &r) const {
-        return p == r.p && q == r.q;
+    template<RealView L>
+    friend bool operator==(int64_t i, const L &l) {
+        return l.get_q() == 1 && l.get_p() == i;
     }
 
-    auto operator<=>(const real &r) const {
-        whole ln = p * r.q;
-        whole rn = r.p * q;
-        return ln <=> rn;
+
+    template<RealView L, RealView R>
+    friend bool operator==(const L &l, const R &r) {
+        return eqw(l.get_p(), r.get_p()) && l.get_q() == r.get_q();
     }
 
-    real power(int k) const {
-        if (!k)
-            return 1;
-        real res;
-        res.p = p.power(std::abs(k));
-        res.q = q.power(std::abs(k));
-        if (k < 0) {
-            whole aux = std::move(res.p);
-            res.p = std::move(res.q);
-            res.q = std::move(aux);
+    template<RealView L, RealView R>
+    friend auto operator<=>(const L &l, const R &r) {
+        if (l.is_neg() != r.is_neg()) {
+            if (l.is_neg())
+                return std::strong_ordering::less;
+            return std::strong_ordering::greater;
         }
-        res.normalise();
-        return res;
+        whole ln = multw(l.get_p(), r.get_q());
+        whole rn = multw(r.get_p(), l.get_q());
+        return compw(ln, rn);
     }
 
-    real sqrt(const real &r) const {
-        real res = *this;
-        final = false;
-        while (mov_abs((res * res - *this)) > r) {
-            res = (res + *this / res) / 2; 
+    friend real mov_abs(real &&r) {
+        r.p.neg = false;
+        return r;
+    }
+
+    // vsetky if-i su len na prevenciu nadbytocnej alokacie
+
+    template<I64 I, RealView R>
+    friend real operator*(I i, const R &r) {
+        if (!i || r.get_n() == 0) {
+            return 0;
         }
-        final = true;
+        if (i == 1) 
+            return r;
+        if (i == -1) 
+            return -r;
+        real res = r;
+        res.p *= i;
         res.normalise();
         return res;
     }
 
+    template<I64 I, RealView R>
+    friend real operator*(const R &r, I i) {
+        if (!i || r.get_n() == 0) {
+            return 0;
+        }
+        if (i == 1) 
+            return r;
+        if (i == -1) 
+            return -r;
+        real res = r;
+        res.p *= i;
+        res.normalise();
+        return res;
+    }
+
+    template<I64 I, RealView R>
+    friend real operator/(I i, const R &r) {
+        if (!i) {
+            return 0;
+        }
+        real res = r;
+        res.q *= i;
+        res.normalise();
+        return res;
+    }
+
+    template<I64 I, RealView R>
+    friend real operator/(const R &r, I i) {
+        if (r.get_n() == 0) {
+            return 0;
+        }
+        if (i == 1) 
+            return r;
+        if (i == -1) 
+            return -r;
+
+        real res = r;
+        res.q *= i;
+        res.normalise();
+        return res;
+    }
+
+    template<I64 I, RealView R>
+    friend real operator+(I i, const R &r) {
+        if (!i) {
+            return r;
+        }
+        real res = r;
+        res.p += i * r.get_q();
+        res.normalise();
+        return res;
+    }
+
+    template<I64 I, RealView R>
+    friend real operator+(const R &r, I i) {
+        if (!i) {
+            return r;
+        }
+        real res = r;
+        res.p += i * r.get_q();
+        res.normalise();
+        return res;
+    }
+
+    template<I64 I, RealView R>
+    friend real operator-(I i, const R &r) {
+        if (!i) {
+            return r;
+        }
+        real res = r;
+        res.p -= i * r.get_q();
+        res.normalise();
+        return res;
+    }
+
+    template<I64 I, RealView R>
+    friend real operator-(const R &r, I i) {
+        if (!i) {
+            return r;
+        }
+        real res = r;
+        res.p -= i * r.get_q();
+        res.normalise();
+        return res;
+    }
+
+    template<RealView R>
+    friend real operator*(double i, const R &r) {
+        if (!i || r.get_p() == 0) {
+            return 0;
+        }
+        return r * real(i);
+    }
+
+    template<RealView R>
+    friend real operator/(double i, const R &r) {
+        if (!i || r.get_n() == 0) {
+            return 0;
+        }
+        return real(i) / r;
+    }
+
+    template<RealView R>
+    friend real operator+(double i, const R &r) {
+        if (!i)
+            return r;
+        return r + real(i);
+    }
+    
+    template<RealView R>
+    friend real operator-(double i, const R &r) {
+        if (!i)
+            return r;
+        return real(i) - r;
+    }
+
+    template<RealView R>
+    real exp(const R &) const;
+
+    real power(int) const;
+
+    template<RealView R>
+    real sqrt(const R &) const;
+
+    template<RealView R>
+    real log1p(const R &) const;
+
+    void print() const;
+};
+
+/*
     real exp(const real &r) const {
         real res(1.0);
         final = false;
@@ -1054,167 +1388,192 @@ struct real {
         res.normalise();
         return res;
     }
-
-    real log1p(const real &r) const {
-        real res = *this; 
-        final = false;
-        real term = *this;
-        int n = 2;
-        bool t_neg = p.neg;
-        term.p.neg = false;
-        while (term.abs() > r) {
-            term.p.neg = t_neg;
-            term *= -*this * (n - 1) / n;
-            res += term;
-            n++;
-            t_neg = term.p.neg;
-            term.p.neg = false;
-        }
-        final = true;
-        res.normalise();
-        return res;
+    */
+template<RealView R, RealView L>
+real gexp(const L &l, const R &r) {
+    real res(1.0);
+    real term(1.0);
+    abs_rview<real> abs_term(&term);
+    int n = 1;
+    while (abs_term > r) {
+        term *= l / n;
+        res += term;
+        n++;
     }
+    res.normalise();
+    return res;
+}
 
-    void print() const {
-        p.print();
-        q.printd();
-        std::cout << "--------------------" << std::endl;
+template<RealView R>
+real real::exp(const R &p) const {
+    return gexp(*this, p);
+}
+
+template<RealView L>
+template<RealView R>
+real abs_rview<L>::exp(const R &p) const {
+    return gexp(*this, p);
+}
+
+template<RealView L>
+template<RealView R>
+real neg_rview<L>::exp(const R &p) const {
+    return gexp(*this, p);
+}
+
+template<RealView R>
+real gpower(const R &r, int k) {
+    if (!k)
+        return 1;
+    real res;
+    res.p = r.get_p().power(std::abs(k));
+    res.q = r.get_q().power(std::abs(k));
+    if (k < 0) {
+        whole aux = std::move(res.p);
+        res.p = std::move(res.q);
+        res.q = std::move(aux);
     }
+    res.normalise();
+    return res;
+}
 
-    friend real mov_abs(real &&r) {
-        r.p.neg = false;
-        return r;
+real real::power(int k) const {
+    return gpower(*this, k);
+}
+
+template<RealView L>
+real abs_rview<L>::power(int k) const {
+    return gpower(*this, k);
+}
+
+template<RealView L>
+real neg_rview<L>::power(int k) const {
+    return gpower(*this, k);
+}
+
+
+template<RealView L, RealView R>
+real gsqrt(const L &l, const R &r) {
+    real res = l;
+    while (mov_abs((res * res - l)) > r) {
+        res = (res + l / res) / 2; 
     }
+    res.normalise();
+    return res;
+}
 
-    // vsetky if-i su len na prevenciu nadbytocnej alokacie
+template<RealView R>
+real real::sqrt(const R &p) const {
+    return gsqrt(*this, p);
+}
 
-    template<I64 I>
-    friend real operator*(I i, const real &r) {
-        if (!i || r.p.p == 0) {
-            return 0;
-        }
-        if (i == 1) 
-            return r;
-        if (i == -1) 
-            return -r;
-        real res = r;
-        res.p *= i;
-        res.normalise();
-        return res;
+template<RealView L>
+template<RealView R>
+real abs_rview<L>::sqrt(const R &p) const {
+    return gsqrt(*this, p);
+}
+
+template<RealView L>
+template<RealView R>
+real neg_rview<L>::sqrt(const R &p) const {
+    return gsqrt(*this, p);
+}
+
+
+template<RealView L, RealView R>
+real glog1p(const L &l, const R &r) {
+    real res = l; 
+    real term = l;
+    abs_rview<real> abs_term(&term);
+    int n = 2;
+    while (abs_term > r) {
+        term *= -l * (n - 1) / n;
+        res += term;
+        n++;
     }
+    res.normalise();
+    return res;
+}
 
-    template<I64 I>
-    friend real operator*(const real &r, I i) {
-        if (!i || r.p.p == 0) {
-            return 0;
-        }
-        if (i == 1) 
-            return r;
-        if (i == -1) 
-            return -r;
-        real res = r;
-        res.p *= i;
-        res.normalise();
-        return res;
-    }
+template<RealView R>
+real real::log1p(const R &p) const {
+    return glog1p(*this, p);
+}
 
-    template<I64 I>
-    friend real operator/(I i, const real &r) {
-        if (!i) {
-            return 0;
-        }
-        real res = r;
-        res.q *= i;
-        res.normalise();
-        return res;
-    }
+template<RealView L>
+template<RealView R>
+real abs_rview<L>::log1p(const R &p) const {
+    return glog1p(*this, p);
+}
 
-    template<I64 I>
-    friend real operator/(const real &r, I i) {
-        if (r.p.p == 0) {
-            return 0;
-        }
-        if (i == 1) 
-            return r;
-        if (i == -1) 
-            return -r;
+template<RealView L>
+template<RealView R>
+real neg_rview<L>::log1p(const R &p) const {
+    return glog1p(*this, p);
+}
 
-        real res = r;
-        res.q *= i;
-        res.normalise();
-        return res;
-    }
+template<RealView R>
+void gprint(const R &r) {
+    std::cout << r.is_neg() << "\n";
+    r.get_n().printd();
+    r.get_q().printd();
+    std::cout << "--------------------" << std::endl;
+}
 
-    template<I64 I>
-    friend real operator+(I i, const real &r) {
-        if (!i) {
-            return r;
-        }
-        real res = r;
-        res.p += i * r.q;
-        res.normalise();
-        return res;
-    }
 
-    template<I64 I>
-    friend real operator+(const real &r, I i) {
-        if (!i) {
-            return r;
-        }
-        real res = r;
-        res.p += i * r.q;
-        res.normalise();
-        return res;
-    }
+void real::print() const {
+    return gprint(*this);
+}
 
-    template<I64 I>
-    friend real operator-(I i, const real &r) {
-        if (!i) {
-            return r;
-        }
-        real res = r;
-        res.p -= i * r.q;
-        res.normalise();
-        return res;
-    }
+template<RealView L>
+void abs_rview<L>::print() const {
+    std::cout << "abs view" << std::endl;
+    return gprint(*this);
+}
 
-    template<I64 I>
-    friend real operator-(const real &r, I i) {
-        if (!i) {
-            return r;
-        }
-        real res = r;
-        res.p -= i * r.q;
-        res.normalise();
-        return res;
-    }
+template<RealView L>
+void neg_rview<L>::print() const {
+    std::cout << "neg view" << std::endl;
+    return gprint(*this);
+}
 
-    friend real operator*(double i, const real &r) {
-        if (!i || r.p.p == 0) {
-            return 0;
-        }
-        return r * real(i);
-    }
+auto real::abs() const {
+    return abs_view(*this);
+}
 
-    friend real operator/(double i, const real &r) {
-        if (!i || r.p.p == 0) {
-            return 0;
-        }
-        return real(i) / r;
-    }
+template <WholeView W>
+abs_wview<W>::operator whole() const {
+    whole res;
+    res.p = get_n();
+    res.neg = false;
+    return res;
+}
 
-    friend real operator+(double i, const real &r) {
-        if (!i)
-            return r;
-        return r + real(i);
-    }
-    
-    friend real operator-(double i, const real &r) {
-        if (!i)
-            return r;
-        return real(i) - r;
-    }
-};
+template <RealView R> 
+abs_rview<R>::operator real() const {
+    real res;
+    res.p.p = this->get_p();
+    res.p.neg = false;
+    res.q = get_q();
+    return res;
+}
+
+template <WholeView W>
+neg_wview<W>::operator whole() const {
+    whole res;
+    res.p = get_n();
+    res.neg = is_neg();
+    return res;
+}
+
+template <RealView R> 
+neg_rview<R>::operator real() const {
+    real res;
+    res.p.p = this->get_n();
+    res.p.neg = this->is_neg();
+    res.q = get_q();
+    return res;
+}
 
 bool real::final = true;
 
@@ -1222,23 +1581,37 @@ int main() {
     real idk(123456789.0);
     idk.print();
 
+    static_assert(WholeView<natural>, "balls");
+
+    static_assert(WholeView<whole>, "balls");
+
+    static_assert(RealView<real>, "balls");
+
+    static_assert(WholeView<abs_wview<whole>>, "balls");
+    static_assert(RealView<abs_rview<real>>, "balls");
+
+    static_assert(WholeView<neg_wview<whole>>, "balls");
+    static_assert(RealView<neg_rview<real>>, "balls");
+
+    static_assert(!RealView<natural>, "balls");
+
     real two(2.0);
     real zero = 0;
-    std::cout << "zero" << std::endl;
-    zero.print();
+    //std::cout << "zero" << std::endl;
+    //zero.print();
     real one = 1;
-    std::cout << "one" << std::endl;
-    one.print();
+    //std::cout << "one" << std::endl;
+    //one.print();
     real ten = 10;
-    std::cout << "ten" << std::endl;
-    ten.print();
+    //std::cout << "ten" << std::endl;
+    //ten.print();
     real half = one / 2;
-    std::cout << "half" << std::endl;
-    half.print();
+    //std::cout << "half" << std::endl;
+    //half.print();
 
     real eps = ten.power( -3 );
-    std::cout << "eps" << std::endl;
-    eps.print();
+    //std::cout << "eps" << std::endl;
+    //eps.print();
 
     assert(ten > one);
     ten * -3;
@@ -1267,7 +1640,7 @@ int main() {
     assert( one * ten == ten );
 
     std::cout << "one exp" << std::endl;
-    (one.exp(eps) - e).abs().print();
+    //(one.exp(eps) - e).abs().print();
     assert( ( one.exp( eps ) - e ).abs() < eps );
 
     std::cout << "log1p" << std::endl;
