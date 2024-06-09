@@ -1101,21 +1101,6 @@ struct real {
         normalise();
     }
 
-    template <RealView R>
-    friend neg_rview<R> operator-(const R &r) {
-        return &r;
-    }
-
-    template <RealView R>
-    friend abs_rview<R> abs_view(const R &r) {
-        return &r;
-    }
-
-    template <RealView R>
-    friend reci_view<R> rec_view(const R &r) {
-        return &r;
-    }
-
     auto abs() const;
 
     real reciprocal() const {
@@ -1126,15 +1111,6 @@ struct real {
         return res;
     }
 
-    template<RealView L, RealView R>
-    friend real operator+(const L &l, const R &r) {
-        real res;
-        res.p = addw(multw(l.get_p(), r.get_q()), multw(r.get_p(), l.get_q()));
-        res.q = multw(l.get_q(), r.get_q());
-        res.normalise();
-        return res;
-    } 
-
     template<RealView R>
     real &operator+=(const R &r) {
         p *= r.get_q();
@@ -1143,15 +1119,6 @@ struct real {
         normalise();
         return *this;
     }
-
-    template<RealView L, RealView R>
-    friend real operator-(const L &l, const R &r) {
-        real res;
-        res.p = subw(multw(l.get_p(), r.get_q()), multw(r.get_p(), l.get_q()));
-        res.q = multw(l.get_q(), r.get_q());
-        res.normalise();
-        return res;
-    } 
 
     template<RealView R>
     real &operator-=(const R &r) {
@@ -1162,30 +1129,12 @@ struct real {
         return *this;
     }
 
-    template<RealView L, RealView R>
-    friend real operator*(const L &l, const R &r) {
-        real res;
-        res.p = multw(l.get_p(), r.get_p());
-        res.q = multw(l.get_q(), r.get_q());
-        res.normalise();
-        return res;
-    }
-
     template<RealView R>
     real &operator*=(const R &r) {
         p = multw(p, r.get_p());
         q = multw(q, r.get_q());
         normalise();
         return *this;
-    }
-
-    template<RealView L, RealView R>
-    friend real operator/(const L &l, const R &r) {
-        real res;
-        res.p = multw(l.get_p(), r.get_q());
-        res.q = multw(l.get_q(), r.get_p());
-        res.normalise();
-        return res;
     }
 
     template<RealView R>
@@ -1195,40 +1144,6 @@ struct real {
         normalise();
         return *this;
     }
-
-    template<RealView L>
-    friend auto operator==(const L &l, int64_t i) {
-        return l.get_q() == 1 && l.get_p() == i;
-    }
-
-    template<RealView L>
-    friend bool operator==(int64_t i, const L &l) {
-        return l.get_q() == 1 && l.get_p() == i;
-    }
-
-
-    template<RealView L, RealView R>
-    friend bool operator==(const L &l, const R &r) {
-        return eqw(l.get_p(), r.get_p()) && l.get_q() == r.get_q();
-    }
-
-    template<RealView L, RealView R>
-    friend auto operator<=>(const L &l, const R &r) {
-        if (l.is_neg() != r.is_neg()) {
-            if (l.is_neg())
-                return std::strong_ordering::less;
-            return std::strong_ordering::greater;
-        }
-        whole ln = multw(l.get_p(), r.get_q());
-        whole rn = multw(r.get_p(), l.get_q());
-        return compw(ln, rn);
-    }
-
-    friend real mov_abs(real &&r) {
-        r.p.neg = false;
-        return r;
-    }
-
 
     template<RealView R>
     real exp(const R &) const;
@@ -1243,6 +1158,85 @@ struct real {
 
     void print() const;
 };
+
+template <RealView R>
+neg_rview<R> operator-(const R &r) {
+    return &r;
+}
+
+template <RealView R>
+abs_rview<R> abs_view(const R &r) {
+    return &r;
+}
+
+template <RealView R>
+reci_view<R> rec_view(const R &r) {
+    return &r;
+}
+
+template<RealView L, RealView R>
+real operator+(const L &l, const R &r) {
+    real res;
+    res.p = addw(multw(l.get_p(), r.get_q()), multw(r.get_p(), l.get_q()));
+    res.q = multw(l.get_q(), r.get_q());
+    res.normalise();
+    return res;
+} 
+
+template<RealView L, RealView R>
+real operator-(const L &l, const R &r) {
+    real res;
+    res.p = subw(multw(l.get_p(), r.get_q()), multw(r.get_p(), l.get_q()));
+    res.q = multw(l.get_q(), r.get_q());
+    res.normalise();
+    return res;
+} 
+
+template<RealView L, RealView R>
+real operator*(const L &l, const R &r) {
+    real res;
+    res.p = multw(l.get_p(), r.get_p());
+    res.q = multw(l.get_q(), r.get_q());
+    res.normalise();
+    return res;
+}
+
+template<RealView L, RealView R>
+real operator/(const L &l, const R &r) {
+    real res;
+    res.p = multw(l.get_p(), r.get_q());
+    res.q = multw(l.get_q(), r.get_p());
+    res.normalise();
+    return res;
+}
+
+template<RealView L>
+auto operator==(const L &l, int64_t i) {
+    return l.get_q() == 1 && l.get_p() == i;
+}
+
+template<RealView L>
+bool operator==(int64_t i, const L &l) {
+    return l.get_q() == 1 && l.get_p() == i;
+}
+
+
+template<RealView L, RealView R>
+bool operator==(const L &l, const R &r) {
+    return eqw(l.get_p(), r.get_p()) && l.get_q() == r.get_q();
+}
+
+template<RealView L, RealView R>
+auto operator<=>(const L &l, const R &r) {
+    if (l.is_neg() != r.is_neg()) {
+        if (l.is_neg())
+            return std::strong_ordering::less;
+        return std::strong_ordering::greater;
+    }
+    whole ln = multw(l.get_p(), r.get_q());
+    whole rn = multw(r.get_p(), l.get_q());
+    return compw(ln, rn);
+}
 // vsetky if-i su len na prevenciu nadbytocnej alokacie
 template<I64 I, RealView R>
 bool operator==(I i, const R &r) {
@@ -1477,11 +1471,10 @@ real neg_rview<L>::power(int k) const {
     return gpower(*this, k);
 }
 
-
 template<RealView L, RealView R>
 real gsqrt(const L &l, const R &r) {
     real res = l;
-    while (mov_abs((res * res - l)) > r) {
+    while (abs_view(res * res - l) > r) {
         res = (res + l / res) / 2; 
     }
     res.normalise();
@@ -1643,40 +1636,40 @@ int main() {
     ten * -3;
 
     real pi( 3.14159265 );
-    std::cout << "pi" << std::endl;
+    //std::cout << "pi" << std::endl;
     pi.print();
     real sqrt2( 1.41421356 );
-    std::cout << "sqrt" << std::endl;
-    sqrt2.print();
+    //std::cout << "sqrt" << std::endl;
+    //sqrt2.print();
     real e( 2.71828182 );
-    std::cout << "e" << std::endl;
-    e.print();
+    //std::cout << "e" << std::endl;
+    //e.print();
     real l_half( 0.40546511 );
-    std::cout << "l_half" << std::endl;
-    l_half.print();
+    //std::cout << "l_half" << std::endl;
+    //l_half.print();
     real aux = one.abs();
     aux = -one;
 
     assert( static_cast< real >( 1.0 ) == one );
 
-    std::cout << "1 + -1" << std::endl;
-    (one + -one).print();
+    //std::cout << "1 + -1" << std::endl;
+    //(one + -one).print();
     assert( one + -one == zero );
 
-    std::cout << "1 * 10" << std::endl;
-    (one * ten).print();
+    //std::cout << "1 * 10" << std::endl;
+    //(one * ten).print();
     assert( one * ten == ten );
 
-    std::cout << "one exp" << std::endl;
+    //std::cout << "one exp" << std::endl;
     //(one.exp(eps) - e).abs().print();
     assert( ( one.exp( eps ) - e ).abs() < eps );
 
-    std::cout << "log1p" << std::endl;
-    zero.log1p(eps).abs().print();
+    //std::cout << "log1p" << std::endl;
+    //zero.log1p(eps).abs().print();
     assert( zero.log1p( eps ).abs() < eps );
 
-    std::cout << "h log1p" << std::endl;
-    (half.log1p(eps) - l_half).abs().print();
+    //std::cout << "h log1p" << std::endl;
+    //(half.log1p(eps) - l_half).abs().print();
     assert( ( half.log1p( eps ) - l_half ).abs() < eps );
 
     assert( ( ( one / two ).exp( eps ) - e.sqrt( eps ) ).abs() < 2 * eps );
@@ -1686,6 +1679,7 @@ int main() {
     assert(two >= one);
     assert(-two < -one);
 
+    /*
     for (int64_t i = 1; i < 10; ++i) {
         real a { real(13) / real(3) };
         real b { real(9) / real(4)};
@@ -1720,5 +1714,40 @@ int main() {
         assert(b - a < b);
         assert(a * a == a * a + 0);
     }
+    */
+    eps = ten.power(-30);
+    /*
+      real pi { chunked( 314159, 265358, 979323, 846264, 338327, 950288 ) → ⟨?⟩\
+   }
+  real sqrt2 { chunked( 141421, 356237, 309504, 880168, 872420, 969808 ) → ⟨?\
+  ⟩ }
+  real e { chunked( 271828, 182845, 904523, 536028, 747135, 266250 ) → ⟨?⟩ \
+  }
+  real lhalf { chunked( 40546, 510810, 816438, 197801, 311546, 434914 ) → ⟨?�\
+  �� }
+  */
+    auto chunked = [](const std::vector<int32_t> &vec) {
+        real res(0);
+        for (int32_t x: vec) {
+            res *= real(1000000);
+            res += real(x);
+        }
+        for (std::size_t i = 0; i + 1 < vec.size(); ++i)
+            res /= real(1000000);
+        res /= real(100000);
+        return res;
+    };
+    pi = chunked({ 314159, 265358, 979323, 846264, 338327, 950288 });
+    sqrt2 = chunked({ 141421, 356237, 309504, 880168, 872420, 969808  });
+    e = chunked({  271828, 182845, 904523, 536028, 747135, 266250 });
+    l_half = chunked({  40546, 510810, 816438, 197801, 311546, 434914 });
+    assert( ( one.exp( eps ) - e ).abs() < eps );
+    assert( ( two.exp( eps ) - e * e ).abs() < eps);
+
+    assert( zero.log1p( eps ).abs() < eps );
+
+    assert( ( half.log1p( eps ) - l_half ).abs() < eps );
+
+    assert( ( ( one / two ).exp( eps ) - e.sqrt( eps ) ).abs() < 2 * eps );
     return 0;
 }
